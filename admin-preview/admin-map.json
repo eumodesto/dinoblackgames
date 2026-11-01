@@ -1,0 +1,779 @@
+{
+  "groups": [
+    {
+      "key": "painel",
+      "title": "Painel",
+      "icon": "grid",
+      "status": "MVP",
+      "pages": [
+        {
+          "slug": "dashboard",
+          "title": "Visão geral",
+          "summary": "Indicadores operacionais e atalhos para pedidos, catálogo e estoque."
+        },
+        {
+          "slug": "mapa",
+          "title": "Mapa de navegação",
+          "summary": "Índice clicável de todos os módulos administrativos e seus destinos."
+        }
+      ],
+      "metrics": [
+        [
+          "Vendas no período",
+          "R$ 84.690",
+          "Exemplo demonstrativo"
+        ],
+        [
+          "Pedidos",
+          "32",
+          "Exemplo demonstrativo"
+        ],
+        [
+          "Itens para revisar",
+          "3",
+          "Estoque abaixo do mínimo"
+        ]
+      ],
+      "columns": [
+        "Área",
+        "Escopo",
+        "Situação",
+        "Destino"
+      ],
+      "rows": [
+        [
+          "Catálogo",
+          "Produtos, categorias e kits",
+          "MVP",
+          "/admin/products"
+        ],
+        [
+          "Operação",
+          "Pedidos, estoque e usados",
+          "MVP + evolução",
+          "/admin/orders"
+        ],
+        [
+          "Loja",
+          "Editor visual e conteúdo",
+          "MVP",
+          "/admin/store/editor"
+        ]
+      ]
+    },
+    {
+      "key": "vendas",
+      "title": "Vendas e clientes",
+      "icon": "bag",
+      "status": "MVP",
+      "pages": [
+        {
+          "slug": "orders",
+          "title": "Pedidos",
+          "summary": "Fila de pedidos, busca, filtros e acesso ao detalhe."
+        },
+        {
+          "slug": "orders-new",
+          "title": "Pedidos recentes",
+          "summary": "Pedidos recebidos e alterações recentes de status."
+        },
+        {
+          "slug": "orders-payment",
+          "title": "Aguardando pagamento",
+          "summary": "Pedidos cujo pagamento está pendente, expirado ou em conciliação."
+        },
+        {
+          "slug": "orders-fulfillment",
+          "title": "Preparação e envio",
+          "summary": "Separação, embalagem, despacho e rastreamento."
+        },
+        {
+          "slug": "orders-returns",
+          "title": "Cancelamentos e devoluções",
+          "summary": "Solicitações de cancelamento, troca, estorno e garantia."
+        },
+        {
+          "slug": "customers",
+          "title": "Clientes",
+          "summary": "Cadastro, dados de contato e histórico de pedidos."
+        },
+        {
+          "slug": "customer-consent",
+          "title": "Consentimentos e preferências",
+          "summary": "Preferências por canal, finalidade, origem e registro de consentimento."
+        },
+        {
+          "slug": "customer-requests",
+          "title": "Solicitações de privacidade",
+          "summary": "Pedidos de acesso, correção ou exclusão e seu acompanhamento."
+        }
+      ],
+      "metrics": [
+        [
+          "Pedidos hoje",
+          "32",
+          "Dados fictícios"
+        ],
+        [
+          "Aguardando ação",
+          "8",
+          "Fila demonstrativa"
+        ],
+        [
+          "Devoluções abertas",
+          "2",
+          "Fila demonstrativa"
+        ]
+      ],
+      "columns": [
+        "Registro",
+        "Contexto",
+        "Situação",
+        "Ação"
+      ],
+      "rows": [
+        [
+          "#DB-24018 · Ana Silva",
+          "PS5 Slim · R$ 3.899",
+          "Pago",
+          "Abrir pedido"
+        ],
+        [
+          "#DB-24017 · Lucas Costa",
+          "Switch OLED · R$ 2.149,90",
+          "Em preparação",
+          "Ver separação"
+        ],
+        [
+          "#DB-24016 · Mariana Alves",
+          "DualSense seminovo · R$ 329",
+          "Enviado",
+          "Ver rastreio"
+        ]
+      ]
+    },
+    {
+      "key": "catalogo",
+      "title": "Catálogo",
+      "icon": "box",
+      "status": "MVP",
+      "pages": [
+        {
+          "slug": "products",
+          "title": "Produtos",
+          "summary": "Lista de produtos, atributos, status, condição, preço e publicação."
+        },
+        {
+          "slug": "product-new",
+          "title": "Cadastrar produto",
+          "summary": "Fluxo proposto de cadastro de item novo ou seminovo."
+        },
+        {
+          "slug": "categories",
+          "title": "Categorias",
+          "summary": "Organização das quatro categorias principais definidas no documento."
+        },
+        {
+          "slug": "collections",
+          "title": "Coleções e destaques",
+          "summary": "Agrupamentos transversais como ofertas, lançamentos, raridades e seminovos."
+        },
+        {
+          "slug": "kits",
+          "title": "Kits e compatibilidade",
+          "summary": "Composição de kits, compatibilidade, disponibilidade e preço adicional.",
+          "phase": "Evolução posterior"
+        },
+        {
+          "slug": "product-attributes",
+          "title": "Atributos e condições",
+          "summary": "Condições por item, especificações, acessórios incluídos e notas da unidade."
+        }
+      ],
+      "metrics": [
+        [
+          "Produtos ativos",
+          "248",
+          "Amostra ilustrativa"
+        ],
+        [
+          "Seminovos unitários",
+          "18",
+          "Amostra ilustrativa"
+        ],
+        [
+          "Rascunhos",
+          "6",
+          "Amostra ilustrativa"
+        ]
+      ],
+      "columns": [
+        "Item",
+        "Organização",
+        "Condição",
+        "Ação"
+      ],
+      "rows": [
+        [
+          "PlayStation 5 Slim · 1 TB",
+          "Consoles",
+          "Novo",
+          "Editar"
+        ],
+        [
+          "Nintendo Switch OLED",
+          "Consoles",
+          "Novo",
+          "Editar"
+        ],
+        [
+          "Controle DualSense · Branco",
+          "Consoles",
+          "Seminovo · unidade",
+          "Ver unidade"
+        ]
+      ]
+    },
+    {
+      "key": "estoque",
+      "title": "Estoque",
+      "icon": "layers",
+      "status": "MVP",
+      "pages": [
+        {
+          "slug": "inventory",
+          "title": "Visão do estoque",
+          "summary": "Disponibilidade, saldos, mínimos e divergências por produto/unidade."
+        },
+        {
+          "slug": "inventory-movements",
+          "title": "Movimentações",
+          "summary": "Histórico de entradas, saídas, reservas e ajustes."
+        },
+        {
+          "slug": "inventory-adjustments",
+          "title": "Ajustes e contagem",
+          "summary": "Fluxo controlado de correção de saldo, motivo e responsável."
+        },
+        {
+          "slug": "inventory-alerts",
+          "title": "Alertas de estoque",
+          "summary": "Itens abaixo do mínimo, sem saldo ou com divergência de sincronização."
+        },
+        {
+          "slug": "inventory-locations",
+          "title": "Locais de estoque",
+          "summary": "Locais físicos e origem do saldo, a validar na descoberta.",
+          "phase": "Validar na descoberta"
+        }
+      ],
+      "metrics": [
+        [
+          "SKUs ativos",
+          "248",
+          "Amostra ilustrativa"
+        ],
+        [
+          "Abaixo do mínimo",
+          "3",
+          "Amostra ilustrativa"
+        ],
+        [
+          "Divergências",
+          "1",
+          "Amostra ilustrativa"
+        ]
+      ],
+      "columns": [
+        "Produto / SKU",
+        "Disponível",
+        "Mínimo",
+        "Situação"
+      ],
+      "rows": [
+        [
+          "PS5 Slim · DB-PS5-01",
+          "2 un.",
+          "5 un.",
+          "Abaixo do mínimo"
+        ],
+        [
+          "Switch OLED · DB-SWO-02",
+          "1 un.",
+          "4 un.",
+          "Abaixo do mínimo"
+        ],
+        [
+          "DualSense branco · DB-DU-03",
+          "1 un.",
+          "3 un.",
+          "Seminovo · unidade única"
+        ]
+      ]
+    },
+    {
+      "key": "usados",
+      "title": "Avaliação de usados",
+      "icon": "handCoins",
+      "status": "Evolução posterior",
+      "pages": [
+        {
+          "slug": "used-intake",
+          "title": "Solicitações recebidas",
+          "summary": "Triagem dos formulários enviados por pessoas que querem vender usados."
+        },
+        {
+          "slug": "used-review",
+          "title": "Avaliação do item",
+          "summary": "Conferir estado declarado, fotos, acessórios e solicitar informações."
+        },
+        {
+          "slug": "used-offers",
+          "title": "Propostas e decisões",
+          "summary": "Registrar proposta, aceite, recusa e histórico sem automatizar preço final."
+        }
+      ],
+      "metrics": [
+        [
+          "Solicitações novas",
+          "4",
+          "Demonstração de fase posterior"
+        ],
+        [
+          "Em avaliação",
+          "7",
+          "Demonstração de fase posterior"
+        ],
+        [
+          "Aguardando resposta",
+          "3",
+          "Demonstração de fase posterior"
+        ]
+      ],
+      "columns": [
+        "Protocolo",
+        "Produto informado",
+        "Etapa",
+        "Próxima ação"
+      ],
+      "rows": [
+        [
+          "US-0084",
+          "Console · fotos recebidas",
+          "Triagem",
+          "Conferir item"
+        ],
+        [
+          "US-0083",
+          "Notebook gamer · faltam dados",
+          "Aguardando cliente",
+          "Solicitar detalhes"
+        ],
+        [
+          "US-0082",
+          "Jogo retrô · condição informada",
+          "Em avaliação",
+          "Registrar parecer"
+        ]
+      ]
+    },
+    {
+      "key": "loja",
+      "title": "Loja e conteúdo",
+      "icon": "shoppingBag",
+      "status": "MVP",
+      "pages": [
+        {
+          "slug": "store-editor",
+          "title": "Editor visual",
+          "summary": "Editar a apresentação das páginas com pré-visualização antes de publicar."
+        },
+        {
+          "slug": "store-banners",
+          "title": "Banners e campanhas",
+          "summary": "Organizar peças, texto, link, período e recorte responsivo."
+        },
+        {
+          "slug": "store-pages",
+          "title": "Páginas institucionais",
+          "summary": "Conteúdo de entrega, troca, garantia, atendimento e privacidade."
+        },
+        {
+          "slug": "store-navigation",
+          "title": "Menus e navegação",
+          "summary": "Editar os menus e destinos da loja; estrutura final a validar."
+        },
+        {
+          "slug": "store-seo",
+          "title": "SEO e metadados",
+          "summary": "Metadados, títulos, descrições, indexação e qualidade de URLs."
+        },
+        {
+          "slug": "store-redirects",
+          "title": "URLs e redirecionamentos",
+          "summary": "Mapa de URLs antigas e redirects para migração e continuidade."
+        }
+      ],
+      "metrics": [
+        [
+          "Rascunhos",
+          "4",
+          "Conteúdo de exemplo"
+        ],
+        [
+          "Agendados",
+          "2",
+          "Conteúdo de exemplo"
+        ],
+        [
+          "Pendentes de revisão",
+          "1",
+          "Conteúdo de exemplo"
+        ]
+      ],
+      "columns": [
+        "Conteúdo",
+        "Local",
+        "Publicação",
+        "Ação"
+      ],
+      "rows": [
+        [
+          "Banner de campanha",
+          "Home · desktop e celular",
+          "Rascunho",
+          "Pré-visualizar"
+        ],
+        [
+          "Política de entrega",
+          "Página institucional",
+          "Publicado · exemplo",
+          "Editar"
+        ],
+        [
+          "Coleção Retro",
+          "Destaque de categoria",
+          "Revisar",
+          "Abrir editor"
+        ]
+      ]
+    },
+    {
+      "key": "promocoes",
+      "title": "Promoções e automações",
+      "icon": "badgePercent",
+      "status": "MVP + evolução",
+      "pages": [
+        {
+          "slug": "promotions",
+          "title": "Promoções",
+          "summary": "Criar e acompanhar ofertas com regra, elegibilidade e vigência."
+        },
+        {
+          "slug": "coupons",
+          "title": "Cupons",
+          "summary": "Gerenciar códigos, limites, período e regras de aplicação."
+        },
+        {
+          "slug": "marketing-flows",
+          "title": "Automações de relacionamento",
+          "summary": "Planejar recuperação de carrinho e mensagens, sujeitas a consentimento e fornecedores.",
+          "phase": "Evolução posterior"
+        },
+        {
+          "slug": "campaign-audience",
+          "title": "Públicos e consentimentos",
+          "summary": "Segmentar contatos segundo preferências, finalidade e base aplicável.",
+          "phase": "Validar na descoberta"
+        }
+      ],
+      "metrics": [
+        [
+          "Ofertas ativas",
+          "3",
+          "Amostra ilustrativa"
+        ],
+        [
+          "Cupons vigentes",
+          "5",
+          "Amostra ilustrativa"
+        ],
+        [
+          "Fluxos a validar",
+          "2",
+          "Escopo depende de descoberta"
+        ]
+      ],
+      "columns": [
+        "Ação",
+        "Regra",
+        "Vigência",
+        "Situação"
+      ],
+      "rows": [
+        [
+          "Oferta Retro",
+          "Coleção selecionada",
+          "10–30 nov · exemplo",
+          "Rascunho"
+        ],
+        [
+          "DINO10",
+          "Limite por pedido",
+          "A definir",
+          "Proposta"
+        ],
+        [
+          "Carrinho interrompido",
+          "Canal e consentimento",
+          "Fornecedor a validar",
+          "Fase posterior"
+        ]
+      ]
+    },
+    {
+      "key": "relatorios",
+      "title": "Relatórios",
+      "icon": "chartSpline",
+      "status": "MVP base + evolução",
+      "pages": [
+        {
+          "slug": "reports",
+          "title": "Resumo operacional",
+          "summary": "Métricas essenciais para leitura de vendas, pedidos, catálogo e estoque."
+        },
+        {
+          "slug": "reports-sales",
+          "title": "Vendas",
+          "summary": "Receita, pedidos, ticket e comparativos após definição de convenções."
+        },
+        {
+          "slug": "reports-products",
+          "title": "Produtos e categorias",
+          "summary": "Desempenho por produto, condição e categoria."
+        },
+        {
+          "slug": "reports-inventory",
+          "title": "Saúde do estoque",
+          "summary": "Divergências, ruptura, tempo de sincronização e cancelamentos por saldo."
+        },
+        {
+          "slug": "reports-funnel",
+          "title": "Conversão e checkout",
+          "summary": "Busca, produto, carrinho, checkout e compra; metas após baseline.",
+          "phase": "Evolução posterior"
+        }
+      ],
+      "metrics": [
+        [
+          "Janela",
+          "7 dias",
+          "Intervalo demonstrativo"
+        ],
+        [
+          "Receita",
+          "R$ 84.690",
+          "Dados fictícios"
+        ],
+        [
+          "Eventos",
+          "6 etapas",
+          "Taxonomia a validar"
+        ]
+      ],
+      "columns": [
+        "Indicador",
+        "Definição inicial",
+        "Fonte",
+        "Estado"
+      ],
+      "rows": [
+        [
+          "Conversão",
+          "Pedidos pagos / sessões elegíveis",
+          "Analytics",
+          "Definir baseline"
+        ],
+        [
+          "Ticket médio",
+          "Receita líquida / pedidos",
+          "Commerce / financeiro",
+          "Convenção a acordar"
+        ],
+        [
+          "Saúde de estoque",
+          "Divergências, oversell e tempo de sync",
+          "Admin / ERP",
+          "Integração pendente"
+        ]
+      ]
+    },
+    {
+      "key": "integracoes",
+      "title": "Integrações",
+      "icon": "connect",
+      "status": "Validar na descoberta",
+      "pages": [
+        {
+          "slug": "integrations",
+          "title": "Visão das integrações",
+          "summary": "Inventário de sistemas, responsáveis, ambiente e saúde das conexões."
+        },
+        {
+          "slug": "integration-payments",
+          "title": "Pagamentos",
+          "summary": "Gateway, webhooks, conciliação, expiração e status do pedido."
+        },
+        {
+          "slug": "integration-shipping",
+          "title": "Frete e rastreio",
+          "summary": "Cotação, prazos, etiquetas e rastreamento quando suportados."
+        },
+        {
+          "slug": "integration-erp",
+          "title": "ERP e estoque",
+          "summary": "Fonte canônica, sincronização de produto, preço, saldo e pedido."
+        },
+        {
+          "slug": "integration-fiscal",
+          "title": "Emissão fiscal",
+          "summary": "Envio dos dados necessários, retorno e tratamento de rejeições."
+        },
+        {
+          "slug": "integration-messaging",
+          "title": "E-mail e WhatsApp",
+          "summary": "Mensagens transacionais e marketing com preferências e consentimento."
+        },
+        {
+          "slug": "integration-analytics",
+          "title": "Analytics e anúncios",
+          "summary": "Eventos de navegação/compra, consentimento e deduplicação."
+        }
+      ],
+      "metrics": [
+        [
+          "Conectadas",
+          "0",
+          "Nenhum fornecedor foi escolhido"
+        ],
+        [
+          "A homologar",
+          "6",
+          "Domínios propostos"
+        ],
+        [
+          "Falhas",
+          "—",
+          "Sem integração real no protótipo"
+        ]
+      ],
+      "columns": [
+        "Domínio",
+        "Responsável",
+        "Ambiente",
+        "Decisão"
+      ],
+      "rows": [
+        [
+          "Pagamento",
+          "A definir",
+          "Homologação pendente",
+          "Selecionar após auditoria"
+        ],
+        [
+          "ERP / estoque",
+          "A definir",
+          "API e custos a levantar",
+          "Definir fonte canônica"
+        ],
+        [
+          "Frete / fiscal",
+          "A definir",
+          "Fornecedores a mapear",
+          "Validar cobertura"
+        ]
+      ]
+    },
+    {
+      "key": "configuracoes",
+      "title": "Configurações",
+      "icon": "settings",
+      "status": "Validar na descoberta",
+      "pages": [
+        {
+          "slug": "settings-store",
+          "title": "Dados da loja",
+          "summary": "Dados da operação, identidade, contato e configurações gerais."
+        },
+        {
+          "slug": "settings-team",
+          "title": "Equipe e permissões",
+          "summary": "Papéis, acesso mínimo necessário e revisão de usuários."
+        },
+        {
+          "slug": "settings-notifications",
+          "title": "Notificações administrativas",
+          "summary": "Alertas operacionais para pedidos, estoque e falhas de integração."
+        },
+        {
+          "slug": "settings-policies",
+          "title": "Políticas comerciais",
+          "summary": "Troca, garantia, seminovos, entrega e regras de atendimento."
+        },
+        {
+          "slug": "settings-audit",
+          "title": "Histórico de alterações",
+          "summary": "Responsável, data, entidade e mudanças em dados administrativos."
+        },
+        {
+          "slug": "settings-security",
+          "title": "Segurança e privacidade",
+          "summary": "Sessão, acesso, retenção e solicitações relacionadas a dados pessoais."
+        }
+      ],
+      "metrics": [
+        [
+          "Papéis",
+          "A definir",
+          "Permissões dependem de validação"
+        ],
+        [
+          "Políticas",
+          "Em revisão",
+          "Condições comerciais pendentes"
+        ],
+        [
+          "Auditoria",
+          "Proposta",
+          "Ações e retenção a especificar"
+        ]
+      ],
+      "columns": [
+        "Configuração",
+        "Escopo",
+        "Decisão",
+        "Destino"
+      ],
+      "rows": [
+        [
+          "Papéis da equipe",
+          "Acesso administrativo",
+          "Validar responsáveis",
+          "Equipe e permissões"
+        ],
+        [
+          "Troca e garantia",
+          "Venda nova e seminova",
+          "Regras pendentes",
+          "Políticas comerciais"
+        ],
+        [
+          "Privacidade",
+          "Consentimento e solicitações",
+          "Revisar política",
+          "Segurança e privacidade"
+        ]
+      ]
+    }
+  ]
+}
