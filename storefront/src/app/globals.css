@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --dino-red: #da2230;
+  --dino-red-hover: #b91c28;
+  --dino-black: #000000;
+  --dino-silver: #e5e5e5;
+  --dino-control: #d7d9d8;
+  --dino-graphite: #2a2f35;
+  --dino-cyan: #5fc4e2;
+  --page-bg: #f1f3f6;
+  --page-bg-dark: #050507;
+  --surface: #ffffff;
+  --surface-dark: #050507;
+  --background: var(--page-bg);
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-dino-red: var(--dino-red);
+  --color-dino-red-hover: var(--dino-red-hover);
+  --color-dino-black: var(--dino-black);
+  --color-dino-silver: var(--dino-silver);
+  --color-dino-control: var(--dino-control);
+  --color-dino-graphite: var(--dino-graphite);
+  --color-dino-cyan: var(--dino-cyan);
+  --color-page: var(--page-bg);
+  --color-page-dark: var(--page-bg-dark);
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-rubik);
+}
+
+.dark {
+  --background: var(--page-bg-dark);
+  --foreground: #ededed;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes story-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.story-progress-fill {
+  animation: story-progress linear forwards;
+}
