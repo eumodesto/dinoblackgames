@@ -52,7 +52,8 @@ export function CategorySection() {
 
       <div
         ref={scrollerRef}
-        className="scrollbar-none container mx-auto flex gap-4 overflow-x-auto px-4 pb-2"
+        // pt/pb extras (com margem negativa) evitam cortar o lift e a sombra do hover.
+        className="scrollbar-none container mx-auto -mb-8 -mt-3 flex gap-4 overflow-x-auto px-4 pb-10 pt-3"
       >
         {CATEGORIES.map((cat) => (
           <a

@@ -54,7 +54,9 @@ export function ProductCarousel({
 
       <div
         ref={scrollerRef}
-        className="scrollbar-none flex snap-x gap-4 overflow-x-auto pb-2"
+        // Folga em volta dos cards (compensada por margem negativa) para o
+        // lift e a sombra do hover não serem cortados pelo overflow da faixa.
+        className="scrollbar-none -mx-4 -mb-12 -mt-4 flex snap-x scroll-pl-4 gap-4 overflow-x-auto px-4 pb-14 pt-4"
       >
         {products.map((product) => (
           <a
