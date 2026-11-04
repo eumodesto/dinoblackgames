@@ -2,9 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CATEGORIES, NAV_LINKS } from "@/data/demo";
+import {
+  AlignRightIcon,
+  type AlignRightIconHandle,
+} from "@/components/icons/align-right-icon";
 
 export function CategoriesNav() {
   const [open, setOpen] = useState(false);
+  const menuIconRef = useRef<AlignRightIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,9 +27,11 @@ export function CategoriesNav() {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
+            onMouseEnter={() => menuIconRef.current?.startAnimation()}
+            onMouseLeave={() => menuIconRef.current?.stopAnimation()}
             className="inline-flex items-center gap-2 rounded-full bg-dino-red px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-dino-red/25 transition hover:bg-dino-red-hover"
           >
-            <span aria-hidden>▦</span>
+            <AlignRightIcon ref={menuIconRef} size={16} aria-hidden />
             Todas as categorias
             <svg
               viewBox="0 0 24 24"

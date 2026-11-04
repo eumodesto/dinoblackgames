@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { UserIcon, type UserIconHandle } from "@/components/icons/user-icon";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
+  const userIconRef = useRef<UserIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,18 +23,11 @@ export function UserMenu() {
         aria-label="Conta do usuário"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => userIconRef.current?.startAnimation()}
+        onMouseLeave={() => userIconRef.current?.stopAnimation()}
         className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition hover:border-dino-red/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
       >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        >
-          <circle cx="12" cy="8" r="3.2" />
-          <path d="M5 19c1.8-3.2 4-4.8 7-4.8s5.2 1.6 7 4.8" />
-        </svg>
+        <UserIcon ref={userIconRef} size={16} />
         <span className="hidden sm:inline">Cliente DinoBlack</span>
         <svg
           viewBox="0 0 24 24"

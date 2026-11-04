@@ -6,6 +6,10 @@ import {
   POPULAR_SEARCH_CATEGORIES,
   TRENDING_SEARCHES,
 } from "@/data/demo";
+import {
+  AlignRightIcon,
+  type AlignRightIconHandle,
+} from "@/components/icons/align-right-icon";
 
 type SearchBarProps = {
   /** Inclui o seletor de categorias dentro da barra (mobile). */
@@ -16,6 +20,7 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
   const [open, setOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const menuIconRef = useRef<AlignRightIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,11 +56,11 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
                 setCatsOpen((v) => !v);
                 setOpen(false);
               }}
+              onMouseEnter={() => menuIconRef.current?.startAnimation()}
+              onMouseLeave={() => menuIconRef.current?.stopAnimation()}
               className="inline-flex shrink-0 items-center gap-1.5 bg-dino-red px-3 text-xs font-bold text-white transition hover:bg-dino-red-hover sm:px-3.5 sm:text-sm"
             >
-              <span aria-hidden className="text-[11px]">
-                ▦
-              </span>
+              <AlignRightIcon ref={menuIconRef} size={14} aria-hidden />
               <span className="max-w-[4.5rem] truncate sm:max-w-none">
                 Categorias
               </span>

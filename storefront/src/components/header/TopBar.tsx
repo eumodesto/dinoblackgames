@@ -1,4 +1,5 @@
-import { WA_SELL_USED, WHATSAPP_DISPLAY, waLink } from "@/lib/whatsapp";
+import { WHATSAPP_DISPLAY, waLink } from "@/lib/whatsapp";
+import { SellUsedLink } from "./SellUsedLink";
 
 function YouTubeIcon() {
   return (
@@ -73,14 +74,7 @@ export function TopBar() {
           >
             {WHATSAPP_DISPLAY}
           </a>
-          <a
-            href={WA_SELL_USED}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full bg-dino-red px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white transition hover:bg-dino-red-hover"
-          >
-            Venda seu usado
-          </a>
+          <SellUsedLink />
         </div>
       </div>
     </div>

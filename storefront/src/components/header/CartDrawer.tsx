@@ -1,31 +1,28 @@
 "use client";
 
 import Image from "next/image";
+import { useRef } from "react";
+import {
+  ShoppingCartIcon,
+  type ShoppingCartIconHandle,
+} from "@/components/icons/shopping-cart-icon";
 import { useCart } from "@/components/cart-provider";
 import { formatBRL } from "@/data/demo";
 
 export function CartButton() {
   const { count, setOpen } = useCart();
+  const cartIconRef = useRef<ShoppingCartIconHandle>(null);
 
   return (
     <button
       type="button"
       aria-label="Carrinho de compras"
       onClick={() => setOpen(true)}
+      onMouseEnter={() => cartIconRef.current?.startAnimation()}
+      onMouseLeave={() => cartIconRef.current?.stopAnimation()}
       className="relative grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-800 transition hover:border-dino-red/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
     >
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4.5 w-4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      >
-        <path d="M6 7h15l-1.5 9h-12z" />
-        <path d="M6 7 5 3H2" />
-        <circle cx="9" cy="20" r="1" />
-        <circle cx="18" cy="20" r="1" />
-      </svg>
+      <ShoppingCartIcon ref={cartIconRef} size={18} aria-hidden />
       {count > 0 && (
         <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-dino-red px-1 text-[10px] font-black text-white">
           {count}
@@ -51,7 +48,7 @@ export function CartDrawer() {
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-2xl dark:bg-zinc-950">
         <div className="flex items-center justify-between bg-[#0f172a] px-5 py-4 text-white">
           <div className="flex items-center gap-2 font-bold">
-            <span aria-hidden>🧺</span>
+            <ShoppingCartIcon size={18} aria-hidden />
             Carrinho
             <span className="grid h-5 min-w-5 place-items-center rounded-full bg-dino-red px-1.5 text-[11px]">
               {items.reduce((n, i) => n + i.qty, 0)}

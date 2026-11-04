@@ -3,9 +3,11 @@
 import Image from "next/image";
 import { useRef } from "react";
 import { CATEGORIES } from "@/data/demo";
+import { TagsIcon, type TagsIconHandle } from "@/components/icons/tags-icon";
 
 export function CategorySection() {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const tagsIconRef = useRef<TagsIconHandle>(null);
 
   function scrollBy(dir: number) {
     scrollerRef.current?.scrollBy({ left: dir * 280, behavior: "smooth" });
@@ -15,8 +17,12 @@ export function CategorySection() {
     <section className="mb-8 w-full border-y border-gray-100 bg-white py-8 dark:border-zinc-800/80 dark:bg-[#050507] md:py-12">
       <div className="container mx-auto mb-6 flex items-center justify-between px-4 md:mb-8">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-dino-red text-white shadow-md shadow-dino-red/30">
-            ▦
+          <span
+            onMouseEnter={() => tagsIconRef.current?.startAnimation()}
+            onMouseLeave={() => tagsIconRef.current?.stopAnimation()}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-dino-red text-white shadow-md shadow-dino-red/30"
+          >
+            <TagsIcon ref={tagsIconRef} size={20} aria-hidden />
           </span>
           <div>
             <h2 className="font-display text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
