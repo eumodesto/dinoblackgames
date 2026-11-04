@@ -2,10 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { UserIcon, type UserIconHandle } from "@/components/icons/user-icon";
+import {
+  PackageCheckIcon,
+  type PackageCheckIconHandle,
+} from "@/components/icons/package-check-icon";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const userIconRef = useRef<UserIconHandle>(null);
+  const ordersIconRef = useRef<PackageCheckIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,9 +67,12 @@ export function UserMenu() {
             </a>
             <a
               href="/pedidos"
+              onMouseEnter={() => ordersIconRef.current?.startAnimation()}
+              onMouseLeave={() => ordersIconRef.current?.stopAnimation()}
               className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-900"
             >
-              <span aria-hidden>🛍</span> Meus pedidos
+              <PackageCheckIcon ref={ordersIconRef} size={16} aria-hidden />
+              Meus pedidos
             </a>
           </div>
           <div className="border-t border-gray-100 dark:border-zinc-800">
