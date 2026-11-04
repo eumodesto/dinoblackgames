@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "storefront",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "storefront", "run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    },
+    {
+      "name": "admin-preview",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-File", "admin-preview/serve.ps1", "-Port", "5173"],
+      "port": 5173
+    }
+  ]
+}

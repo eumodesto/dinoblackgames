@@ -20,17 +20,6 @@ export type CategoryCard = {
   image: string;
 };
 
-export type StoryItem = {
-  id: string;
-  label: string;
-  badge?: "HOT" | "NEW" | "VERIFIED";
-  avatar: string;
-  media: string;
-  caption: string;
-  product: Product;
-  timeAgo: string;
-};
-
 export type HeroSlide = {
   id: string;
   eyebrow: string;
@@ -170,68 +159,6 @@ export const PRODUCTS: Product[] = [
     image:
       "https://images.unsplash.com/photo-1541140532154-b024d705b90a?auto=format&fit=crop&w=900&q=80",
     category: "PC Gamer",
-  },
-];
-
-export const STORIES: StoryItem[] = [
-  {
-    id: "unboxing",
-    label: "Unboxing",
-    badge: "HOT",
-    avatar:
-      "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=200&q=80",
-    media:
-      "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=1200&q=80",
-    caption: "Primeiras impressões do PlayStation 5 Slim na DinoBlack!",
-    product: PRODUCTS[0],
-    timeAgo: "1h",
-  },
-  {
-    id: "flash",
-    label: "Flash Sale",
-    badge: "HOT",
-    avatar:
-      "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?auto=format&fit=crop&w=200&q=80",
-    media:
-      "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?auto=format&fit=crop&w=1200&q=80",
-    caption: "Switch OLED com frete rápido — estoque limitado.",
-    product: PRODUCTS[1],
-    timeAgo: "3h",
-  },
-  {
-    id: "audio",
-    label: "Top Audio",
-    badge: "NEW",
-    avatar:
-      "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=200&q=80",
-    media:
-      "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=1200&q=80",
-    caption: "Headset gamer com som 7.1 para setup competitivo.",
-    product: PRODUCTS[6],
-    timeAgo: "5h",
-  },
-  {
-    id: "pro-gear",
-    label: "Pro Gear",
-    avatar:
-      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=200&q=80",
-    media:
-      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=80",
-    caption: "Notebook gamer RTX 4060 pronto para AAA em alto FPS.",
-    product: PRODUCTS[3],
-    timeAgo: "8h",
-  },
-  {
-    id: "guarantees",
-    label: "Garantias",
-    badge: "VERIFIED",
-    avatar:
-      "https://images.unsplash.com/photo-1592840496694-26d035b52b48?auto=format&fit=crop&w=200&q=80",
-    media:
-      "https://images.unsplash.com/photo-1592840496694-26d035b52b48?auto=format&fit=crop&w=1200&q=80",
-    caption: "Seminovos com garantia e fotos reais da unidade.",
-    product: PRODUCTS[2],
-    timeAgo: "1d",
   },
 ];
 
