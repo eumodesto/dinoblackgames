@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRef } from "react";
+import { ChevronButton } from "@/components/ui/ChevronButton";
 import { formatBRL, type Product } from "@/data/demo";
 
 type ProductCarouselProps = {
@@ -34,22 +35,20 @@ export function ProductCarousel({
           >
             Ver todos
           </a>
-          <button
-            type="button"
-            aria-label="Rolar para a esquerda"
-            onClick={() => scrollBy(-1)}
-            className="hidden h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-dino-red hover:bg-dino-red hover:text-white sm:flex dark:border-zinc-800"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="Rolar para a direita"
-            onClick={() => scrollBy(1)}
-            className="hidden h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-dino-red hover:bg-dino-red hover:text-white sm:flex dark:border-zinc-800"
-          >
-            ›
-          </button>
+          <div className="hidden items-center gap-2 sm:flex">
+            <ChevronButton
+              direction="left"
+              label="Rolar para a esquerda"
+              variant="surface"
+              onClick={() => scrollBy(-1)}
+            />
+            <ChevronButton
+              direction="right"
+              label="Rolar para a direita"
+              variant="surface"
+              onClick={() => scrollBy(1)}
+            />
+          </div>
         </div>
       </div>
 

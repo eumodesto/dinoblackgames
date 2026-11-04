@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { HERO_SLIDES, PRODUCTS, formatBRL } from "@/data/demo";
+import { ChevronButton } from "@/components/ui/ChevronButton";
 
 export function HeroBanners() {
   const [slide, setSlide] = useState(0);
@@ -48,26 +49,22 @@ export function HeroBanners() {
             </a>
           </div>
           <div className="absolute inset-y-0 left-3 flex items-center">
-            <button
-              type="button"
-              aria-label="Banner anterior"
+            <ChevronButton
+              direction="left"
+              label="Banner anterior"
+              size="lg"
               onClick={() =>
                 setSlide((s) => (s - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
               }
-              className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
-            >
-              ‹
-            </button>
+            />
           </div>
           <div className="absolute inset-y-0 right-3 flex items-center">
-            <button
-              type="button"
-              aria-label="Próximo banner"
+            <ChevronButton
+              direction="right"
+              label="Próximo banner"
+              size="lg"
               onClick={() => setSlide((s) => (s + 1) % HERO_SLIDES.length)}
-              className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur"
-            >
-              ›
-            </button>
+            />
           </div>
         </div>
 
@@ -134,34 +131,37 @@ export function HeroBanners() {
             </div>
           </a>
 
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <button
-              type="button"
-              aria-label="Oferta anterior"
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <ChevronButton
+              direction="left"
+              label="Oferta anterior"
               onClick={() => setDeal((d) => (d - 1 + deals.length) % deals.length)}
-              className="text-white/50"
-            >
-              ‹
-            </button>
-            {deals.map((item, i) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={`Ir para oferta ${i + 1}`}
-                onClick={() => setDeal(i)}
-                className={`h-2 w-2 rounded-full ${
-                  i === deal ? "bg-dino-red" : "bg-white/25"
-                }`}
-              />
-            ))}
-            <button
-              type="button"
-              aria-label="Próxima oferta"
+            />
+            <div className="flex items-center">
+              {deals.map((item, i) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={`Ir para oferta ${i + 1}`}
+                  aria-current={i === deal}
+                  onClick={() => setDeal(i)}
+                  className="group grid h-6 place-items-center px-1"
+                >
+                  <span
+                    className={`block h-2 rounded-full transition-all duration-300 ${
+                      i === deal
+                        ? "w-5 bg-dino-red"
+                        : "w-2 bg-white/25 group-hover:bg-white/50"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <ChevronButton
+              direction="right"
+              label="Próxima oferta"
               onClick={() => setDeal((d) => (d + 1) % deals.length)}
-              className="text-white/50"
-            >
-              ›
-            </button>
+            />
           </div>
         </div>
       </div>

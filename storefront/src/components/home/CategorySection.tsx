@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef } from "react";
 import { CATEGORIES } from "@/data/demo";
+import { ChevronButton } from "@/components/ui/ChevronButton";
 import { TagsIcon, type TagsIconHandle } from "@/components/icons/tags-icon";
 
 export function CategorySection() {
@@ -34,22 +35,18 @@ export function CategorySection() {
           </div>
         </div>
         <div className="hidden items-center gap-2 lg:flex">
-          <button
-            type="button"
-            aria-label="Anterior"
+          <ChevronButton
+            direction="left"
+            label="Anterior"
+            variant="surface"
             onClick={() => scrollBy(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-dino-red hover:bg-dino-red hover:text-white dark:border-zinc-800 dark:text-zinc-400"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="Próximo"
+          />
+          <ChevronButton
+            direction="right"
+            label="Próximo"
+            variant="surface"
             onClick={() => scrollBy(1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-dino-red hover:bg-dino-red hover:text-white dark:border-zinc-800 dark:text-zinc-400"
-          >
-            ›
-          </button>
+          />
         </div>
       </div>
 
