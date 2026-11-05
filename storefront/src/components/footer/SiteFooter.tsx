@@ -20,10 +20,10 @@ const SOCIAL_ICONS = {
   facebook: FacebookIcon,
 } as const;
 
-const textClass = "text-sm font-medium text-white/75";
+const textClass = "text-sm font-medium text-white";
 
 const linkClass =
-  "text-sm font-medium text-white/75 transition-colors hover:text-white focus-visible:text-white focus-visible:underline";
+  "text-sm font-medium text-white underline-offset-4 transition-colors hover:underline focus-visible:underline";
 
 export function SiteFooter() {
   return (
@@ -55,7 +55,7 @@ export function SiteFooter() {
               <h2 className="mt-4 font-display text-xl font-black leading-tight md:text-[22px]">
                 {FOOTER_BRAND}
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-white/85">
+              <p className="mt-3 text-sm leading-relaxed text-white">
                 {FOOTER_DESCRIPTION}
               </p>
 
@@ -63,7 +63,7 @@ export function SiteFooter() {
                 href={FOOTER_MAPS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-6 inline-flex items-start gap-3 text-sm font-medium text-white/90 transition-colors hover:text-white"
+                className="mt-6 inline-flex items-start gap-3 text-sm font-medium text-white transition-colors hover:text-white"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -84,7 +84,7 @@ export function SiteFooter() {
               </a>
 
               <div className="mt-8">
-                <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-white/80">
+                <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-white">
                   Redes sociais
                 </div>
                 <div className="flex items-center gap-3">
@@ -135,7 +135,7 @@ export function SiteFooter() {
             </nav>
           </div>
 
-          <div className="mt-12 border-t border-white/25 pt-6 text-xs font-light text-white/80 md:text-[13px]">
+          <div className="mt-12 border-t border-white/25 pt-6 text-xs font-light text-white md:text-[13px]">
             © {new Date().getFullYear()} {FOOTER_BRAND}. Todos os direitos
             reservados.
           </div>

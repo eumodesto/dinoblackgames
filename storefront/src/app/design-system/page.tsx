@@ -399,6 +399,7 @@ export default function DesignSystemPage() {
       <Section id="historico" title="Histórico">
         <ol className="space-y-3 text-sm">
           {[
+            ["5 nov 2026", "Modelo da página de produto em /produto/[slug]: galeria, opções, frete por CEP, laudo de seminovo, seções e barra de compra fixa no celular. Texto do rodapé passou a branco sólido para atingir o contraste mínimo."],
             ["5 nov 2026", "Rodapé da loja: painel vermelho com textura de vidro (shader carregado só no navegador), nome da marca em contorno, endereço com link para o mapa, redes sociais e quatro colunas de links."],
             ["5 nov 2026", "Criada esta página. Setas de carrossel padronizadas (ChevronButton) e faixas de cards com folga para o hover."],
             ["4 nov 2026", "Oito ícones animados aplicados ao header, ao carrinho e às categorias. Barra de stories removida da home."],

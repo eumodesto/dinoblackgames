@@ -4,7 +4,9 @@
 
 O documento [Documento de Desenvolvimento do E-commerce DinoBlack](./Documento_Desenvolvimento_Ecommerce_DinoBlack.md) é a referência de produto, UX/UI, arquitetura, fases, critérios de aceite, testes e decisões pendentes do projeto.
 
-Use-o para:
+Complemento: [Plano da página de produto e da listagem com filtros](./Plano_Pagina_Produto.md), com diagnóstico, anatomia da página, variantes (novo, seminovo, raridade), filtros por categoria, modelo de dados, roadmap e decisões pendentes.
+
+Use o guia principal para:
 
 - orientar descoberta, design, implementação, migração e lançamento;
 - distinguir requisitos definidos, recomendações e pontos que ainda precisam de validação;

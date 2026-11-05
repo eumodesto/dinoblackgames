@@ -61,16 +61,3 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
-
-@keyframes story-progress {
-  from {
-    width: 0%;
-  }
-  to {
-    width: 100%;
-  }
-}
-
-.story-progress-fill {
-  animation: story-progress linear forwards;
-}
