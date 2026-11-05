@@ -399,11 +399,12 @@ export default function DesignSystemPage() {
       <Section id="historico" title="Histórico">
         <ol className="space-y-3 text-sm">
           {[
+            ["5 nov 2026", "Rodapé da loja: painel vermelho com textura de vidro (shader carregado só no navegador), nome da marca em contorno, endereço com link para o mapa, redes sociais e quatro colunas de links."],
             ["5 nov 2026", "Criada esta página. Setas de carrossel padronizadas (ChevronButton) e faixas de cards com folga para o hover."],
             ["4 nov 2026", "Oito ícones animados aplicados ao header, ao carrinho e às categorias. Barra de stories removida da home."],
             ["30 out 2026", "Paleta e direção visual aprovadas no documento de desenvolvimento (v1.2)."],
           ].map(([date, text]) => (
-            <li key={date} className="grid gap-1 rounded-2xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-[110px_1fr]">
+            <li key={text} className="grid gap-1 rounded-2xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-[110px_1fr]">
               <span className="font-mono text-xs font-bold text-dino-red">{date}</span>
               <span>{text}</span>
             </li>

@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@paper-design/shaders-react": "^0.0.82",
     "motion": "^14.9.1",
     "next": "^15.5.29",
     "react": "19.1.0",

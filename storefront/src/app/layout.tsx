@@ -3,6 +3,7 @@ import { Nunito_Sans, Rubik } from "next/font/google";
 import { CartProvider } from "@/components/cart-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/header/SiteHeader";
+import { SiteFooter } from "@/components/footer/SiteFooter";
 import "./globals.css";
 
 const nunito = Nunito_Sans({
@@ -48,6 +49,7 @@ export default function RootLayout({
               <main className="w-full flex-grow pb-16 transition-colors duration-300 lg:pb-0">
                 {children}
               </main>
+              <SiteFooter />
             </div>
           </CartProvider>
         </ThemeProvider>
