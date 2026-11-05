@@ -9,6 +9,7 @@ import {
   installmentValue,
   type ProductDetail,
 } from "@/data/product-details";
+import { WhatsAppIcon } from "@/components/icons/social-icons";
 import { waLink } from "@/lib/whatsapp";
 
 type ShippingOption = { id: string; name: string; price: number; time: string };
@@ -267,8 +268,9 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
           href={whatsapp}
           target="_blank"
           rel="noreferrer"
-          className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 text-sm font-bold text-gray-800 transition hover:border-dino-red hover:text-dino-red dark:border-zinc-700 dark:text-zinc-100"
+          className="flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-[#25D366] text-sm font-black text-[#052e16] shadow-md shadow-[#25D366]/25 transition hover:bg-[#1fbd5b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] active:scale-[0.99]"
         >
+          <WhatsAppIcon className="h-6 w-6" />
           Tirar uma dúvida no WhatsApp
         </a>
       </div>

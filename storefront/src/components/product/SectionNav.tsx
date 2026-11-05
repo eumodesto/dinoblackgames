@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 type Item = { id: string; label: string };
 
 /** Navegação fixa por seções da página de produto, com destaque da seção visível. */
-export function SectionNav({ items }: { items: Item[] }) {
+export function SectionNav({ items, className = "" }: { items: Item[]; className?: string }) {
   const [active, setActive] = useState(items[0]?.id);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function SectionNav({ items }: { items: Item[] }) {
   return (
     <nav
       aria-label="Seções do produto"
-      className="sticky top-0 z-30 -mx-4 border-y border-gray-200 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-[#050507]/90"
+      className={`sticky top-16 z-40 -mx-4 lg:top-[68px] border-y border-gray-200 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-[#050507]/90 ${className}`}
     >
       <ul className="scrollbar-none mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2">
         {items.map((item) => (

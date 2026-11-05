@@ -46,7 +46,7 @@ function Check() {
 
 function Block({ id, title, lead, children }: { id: string; title: string; lead?: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20 py-10">
+    <section id={id} className="scroll-mt-36 py-10">
       <h2 className="font-display text-2xl font-black tracking-tight text-gray-900 dark:text-white md:text-3xl">{title}</h2>
       {lead && <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-zinc-400">{lead}</p>}
       <div className="mt-6">{children}</div>
@@ -112,7 +112,7 @@ export default async function ProductPage({ params }: PageProps) {
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
-        <div className="self-start lg:sticky lg:top-20">
+        <div className="self-start lg:sticky lg:top-24">
           <ProductGallery
             images={detail.gallery}
             badge={isUnique ? CONDITION_LABEL.seminovo : product.badge ? `★ ${product.badge}` : undefined}
@@ -121,9 +121,8 @@ export default async function ProductPage({ params }: PageProps) {
         <BuyBox product={product} detail={detail} />
       </div>
 
-      <div className="mt-10">
-        <SectionNav items={nav} />
-      </div>
+      {/* Sem wrapper: o sticky só funciona dentro de um pai mais alto que ele. */}
+      <SectionNav items={nav} className="mt-10" />
 
       <Block id="visao-geral" title="Visão geral">
         <div className="relative overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-950 text-white">
@@ -258,7 +257,7 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
       </Block>
 
-      <section id="relacionados" className="scroll-mt-20 pt-4">
+      <section id="relacionados" className="scroll-mt-36 pt-4">
         <ProductCarousel title="Quem viu este produto também viu" products={related} />
       </section>
 

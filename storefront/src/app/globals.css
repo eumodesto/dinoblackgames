@@ -61,3 +61,25 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Efeito de "encaixe" da barra principal ao grudar no topo. */
+@keyframes dock-in {
+  from {
+    transform: translateY(-10px);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.dock-in {
+  animation: dock-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-in {
+    animation: none;
+  }
+}

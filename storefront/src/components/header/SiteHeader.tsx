@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { SunIcon, type SunIconHandle } from "@/components/icons/sun-icon";
 import {
@@ -20,12 +20,38 @@ export function SiteHeader() {
   const isDark = ready && theme === "dark";
   const sunRef = useRef<SunIconHandle>(null);
   const sunMoonRef = useRef<SunMoonIconHandle>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [docked, setDocked] = useState(false);
 
+  // O sentinela fica logo acima da barra principal. Quando ele sai da tela, a
+  // barra "encaixou" no topo. Observar um elemento fora da barra evita o
+  // efeito de pisca que uma mudança de altura causaria.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setDocked(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // O <header> usa display: contents para que a barra principal seja filha direta do
+  // layout da página (alto), condição para o position: sticky valer na rolagem toda.
   return (
-    <header className="z-50 w-full select-none font-sans">
+    <header role="banner" className="contents select-none font-sans">
       <TopBar />
-      <div className="relative z-40 bg-white dark:bg-[#050507]">
-        <div className="relative z-40 w-full px-3 pb-3 pt-3 transition-all duration-300 lg:px-0 lg:pb-0 lg:pt-5">
+      <div ref={sentinelRef} aria-hidden className="-mb-px h-px" />
+
+      <div
+        className={`sticky top-0 z-50 w-full bg-white transition-shadow duration-300 dark:bg-[#050507] ${
+          docked
+            ? "dock-in shadow-[0_1px_0_0_rgba(0,0,0,0.08),0_12px_24px_-14px_rgba(0,0,0,0.45)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.08),0_12px_24px_-14px_rgba(0,0,0,0.95)]"
+            : ""
+        }`}
+      >
+        <div className="w-full px-3 pb-3 pt-3 lg:px-0 lg:pb-0 lg:pt-5">
           <div className="container mx-auto flex items-center gap-3 lg:gap-6">
             <Link href="/" className="shrink-0">
               <Image
@@ -33,7 +59,9 @@ export function SiteHeader() {
                 alt="DinoBlack Games e Informática"
                 width={140}
                 height={56}
-                className="h-10 w-auto object-contain sm:h-11 lg:h-12"
+                className={`h-10 w-auto origin-left object-contain transition-transform duration-300 sm:h-11 lg:h-12 ${
+                  docked ? "scale-90" : "scale-100"
+                }`}
                 priority
               />
             </Link>
@@ -70,12 +98,16 @@ export function SiteHeader() {
               <CartButton />
             </div>
           </div>
-
-          <div className="container mx-auto mt-3 lg:hidden">
-            <SearchBar withCategories />
-          </div>
         </div>
       </div>
+
+      {/* No celular a busca fica abaixo da barra fixa e rola com a página. */}
+      <div className="relative z-40 bg-white px-3 pb-3 dark:bg-[#050507] lg:hidden">
+        <div className="container mx-auto">
+          <SearchBar withCategories />
+        </div>
+      </div>
+
       <CategoriesNav />
       <CartDrawer />
     </header>
