@@ -4,8 +4,8 @@
     {
       "name": "storefront",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "storefront", "run", "dev", "--", "-p", "3100"],
-      "port": 3100
+      "runtimeArgs": ["--prefix", "storefront", "run", "dev", "--", "-p", "3110"],
+      "port": 3110
     },
     {
       "name": "admin-preview",

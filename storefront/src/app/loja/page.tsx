@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FilterPanel } from "@/components/shop/FilterPanel";
 import { MobileFilters } from "@/components/shop/MobileFilters";
+import { ShopBanner } from "@/components/shop/ShopBanner";
 import { ShopProductCard } from "@/components/shop/ProductCard";
 import { SortSelect } from "@/components/shop/SortSelect";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
@@ -36,14 +37,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
         </ol>
       </nav>
 
-      <header className="relative overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-950 p-6 text-white sm:p-10">
-        <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-dino-red/20 blur-3xl" aria-hidden />
-        <p className="relative text-[11px] font-black uppercase tracking-[0.18em] text-dino-red">DinoBlack · Games e Informática</p>
-        <h1 className="relative mt-3 font-display text-4xl font-black sm:text-5xl">Loja</h1>
-        <p className="relative mt-3 max-w-xl text-sm text-white/80 sm:text-base">
-          Consoles, PC Gamer, Retro e Notebooks. Novos e seminovos, com garantia e envio para todo o Brasil.
-        </p>
-      </header>
+      <ShopBanner />
 
       <div className="mt-6 flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="navigation" aria-label="Categorias">
         {shop.categoryTabs.map((tab) => (
@@ -67,7 +61,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden lg:block" aria-label="Filtros">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="scrollbar-none sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
             {filters}
           </div>
         </aside>

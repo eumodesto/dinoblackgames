@@ -67,7 +67,7 @@ export function MobileFilters({
                 ✕
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-3 py-3">{children}</div>
+            <div className="scrollbar-none flex-1 overflow-y-auto px-3 py-3">{children}</div>
             <div className="border-t border-gray-200 p-4 dark:border-zinc-800">
               <button
                 type="button"
