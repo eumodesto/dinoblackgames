@@ -20,6 +20,8 @@ const SOCIAL_ICONS = {
   facebook: FacebookIcon,
 } as const;
 
+const textClass = "text-sm font-medium text-white/75";
+
 const linkClass =
   "text-sm font-medium text-white/75 transition-colors hover:text-white focus-visible:text-white focus-visible:underline";
 
@@ -113,23 +115,18 @@ export function SiteFooter() {
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.title} className="flex flex-col gap-4">
                   <h3 className="text-sm font-black uppercase tracking-wider">
-                    {column.href ? (
-                      <a
-                        href={column.href}
-                        className="transition-colors hover:text-white/80"
-                      >
-                        {column.title}
-                      </a>
-                    ) : (
-                      column.title
-                    )}
+                    {column.title}
                   </h3>
                   <ul className="flex flex-col gap-3">
                     {column.links.map((link) => (
-                      <li key={link.href}>
-                        <a href={link.href} className={linkClass}>
-                          {link.label}
-                        </a>
+                      <li key={link.label}>
+                        {link.href ? (
+                          <a href={link.href} className={linkClass}>
+                            {link.label}
+                          </a>
+                        ) : (
+                          <span className={textClass}>{link.label}</span>
+                        )}
                       </li>
                     ))}
                   </ul>

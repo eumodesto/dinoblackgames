@@ -24,27 +24,27 @@ export const SOCIAL_LINKS = [
   },
 ] as const;
 
-export type FooterLink = { label: string; href: string };
+export type FooterLink = {
+  label: string;
+  /** Rota interna. Sem href, o item aparece como texto até a página existir. */
+  href?: string;
+};
 export type FooterColumn = {
   title: string;
-  /** Quando existe, o título da coluna também é um link. */
-  href?: string;
   links: FooterLink[];
 };
 
-// Os links apontam para o site atual (dinoblackgames.com.br) enquanto as
-// páginas equivalentes da loja nova não existem. Troque por rotas internas
-// conforme forem criadas.
+// Sem links externos: a loja nova ainda não tem estas páginas. Quando cada uma
+// existir, basta preencher o href com a rota interna (ex.: "/loja").
 export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: "Departamentos",
-    href: "https://dinoblackgames.com.br/loja/",
     links: [
-      { label: "PlayStation", href: "https://dinoblackgames.com.br/categoria-produto/playstation/" },
-      { label: "Nintendo", href: "https://dinoblackgames.com.br/categoria-produto/nintendo/" },
-      { label: "Xbox", href: "https://dinoblackgames.com.br/categoria-produto/xbox/" },
-      { label: "Variados", href: "https://dinoblackgames.com.br/categoria-produto/variados/" },
-      { label: "Pré-Vendas", href: "https://dinoblackgames.com.br/categoria-produto/pre-vendas/" },
+      { label: "PlayStation" },
+      { label: "Nintendo" },
+      { label: "Xbox" },
+      { label: "Variados" },
+      { label: "Pré-Vendas" },
     ],
   },
   {
@@ -52,25 +52,22 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     links: [
       {
         label: "Projeto Drop - A DinoBlack Compra seu Usado!",
-        href: "https://dinoblackgames.com.br/como-vender-seu-jogo-usado-para-a-shock-games-reload/",
       },
-      { label: "Quem Somos", href: "https://dinoblackgames.com.br/quem-somos" },
-      { label: "Trabalhe Conosco", href: "https://dinoblackgames.com.br/trabalhe-conosco/" },
+      { label: "Quem Somos" },
+      { label: "Trabalhe Conosco" },
       {
         label: "Políticas de Troca e Devoluções",
-        href: "https://dinoblackgames.com.br/politicas-de-troca-ou-devolucao",
       },
       {
         label: "Políticas de Privacidade",
-        href: "https://dinoblackgames.com.br/politicas-de-privacidade/",
       },
     ],
   },
   {
     title: "Minha conta",
     links: [
-      { label: "Minha Conta", href: "https://dinoblackgames.com.br/minha-conta/" },
-      { label: "Meus Pedidos", href: "https://dinoblackgames.com.br/minha-conta/pedidos/" },
+      { label: "Minha Conta" },
+      { label: "Meus Pedidos" },
     ],
   },
   {
@@ -78,7 +75,6 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     links: [
       {
         label: "Regulamento Promoção - Site Novo Premiado",
-        href: "https://dinoblackgames.com.br/regulamento-promocao-site-novo-premiado/",
       },
     ],
   },
