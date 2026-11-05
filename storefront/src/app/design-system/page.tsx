@@ -215,7 +215,7 @@ export default function DesignSystemPage() {
             {
               label: "Título de seção",
               spec: "font-display text-xl md:text-2xl font-black",
-              sample: <span className="font-display text-xl font-black text-gray-900 dark:text-white md:text-2xl">Lançamentos e destaques</span>,
+              sample: <span className="font-display text-xl font-black text-gray-900 dark:text-white md:text-2xl">Produtos em Destaques</span>,
             },
             {
               label: "Sobretítulo",

@@ -17,14 +17,14 @@ export default function HomePage() {
       <section className="container mx-auto space-y-6 px-4 py-4">
         <div>
           <ProductCarousel
-            title="Lançamentos e destaques"
+            title="Produtos em Destaques"
             products={latest}
             viewAllHref="/loja"
           />
         </div>
         <div>
           <ProductCarousel
-            title="Consoles em destaque"
+            title="Produtos em Promoção"
             products={flagship}
             viewAllHref="/loja?categoria=consoles"
           />
