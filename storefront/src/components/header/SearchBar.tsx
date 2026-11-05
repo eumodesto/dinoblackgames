@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   CATEGORIES,
@@ -20,6 +21,7 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
   const [open, setOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const router = useRouter();
   const menuIconRef = useRef<AlignRightIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +35,13 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  function submit(term: string = query) {
+    const q = term.trim();
+    setOpen(false);
+    setCatsOpen(false);
+    router.push(q ? `/loja?q=${encodeURIComponent(q)}` : "/loja");
+  }
 
   return (
     <div
@@ -98,6 +107,9 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submit();
+            }}
             onFocus={() => {
               setOpen(true);
               setCatsOpen(false);
@@ -113,6 +125,7 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
           <button
             type="button"
             aria-label="Enviar busca"
+            onClick={() => submit()}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-dino-red text-white transition hover:bg-dino-red-hover"
           >
             <svg
@@ -166,7 +179,7 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
                   type="button"
                   onClick={() => {
                     setQuery(term);
-                    setOpen(false);
+                    submit(term);
                   }}
                   className="inline-flex items-center gap-1.5 rounded-full bg-dino-red/10 px-3 py-1.5 text-xs font-semibold text-gray-800 transition hover:bg-dino-red/15 dark:text-zinc-100"
                 >

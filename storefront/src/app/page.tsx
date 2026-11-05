@@ -5,10 +5,7 @@ import { PRODUCTS } from "@/data/demo";
 
 export default function HomePage() {
   const latest = PRODUCTS;
-  const flagship = PRODUCTS.filter(
-    (product) =>
-      product.category === "Consoles" || product.badge === "Flagship",
-  );
+  const onSale = PRODUCTS.filter((product) => product.discount);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f1f3f6] transition-colors duration-300 dark:bg-[#050507]">
@@ -25,8 +22,8 @@ export default function HomePage() {
         <div>
           <ProductCarousel
             title="Produtos em Promoção"
-            products={flagship}
-            viewAllHref="/loja?categoria=consoles"
+            products={onSale}
+            viewAllHref="/loja?promocao=1"
           />
         </div>
       </section>

@@ -1,4 +1,7 @@
+import { getListingAttrs, type Condition } from "@/data/catalog";
 import { PRODUCTS, type Product } from "@/data/demo";
+
+export type { Condition };
 
 /**
  * Dados de DEMONSTRAÇÃO da página de produto.
@@ -6,8 +9,6 @@ import { PRODUCTS, type Product } from "@/data/demo";
  * seção "Modelo de dados"). Fotos, especificações, prazos e garantia abaixo
  * são ilustrativos e precisam ser substituídos pelos dados reais.
  */
-
-export type Condition = "novo" | "seminovo" | "raridade" | "pre-venda";
 
 export type GalleryImage = {
   src: string;
@@ -365,8 +366,13 @@ export function getProductBySlug(slug: string): Product | undefined {
 
 export function getProductDetail(product: Product): ProductDetail {
   const base = BY_SLUG[product.slug] ?? DEFAULT_DETAIL;
+  const attrs = getListingAttrs(product);
   return {
     ...base,
+    // Marca, plataforma e condição têm uma fonte só (data/catalog.ts), a mesma dos filtros da loja.
+    brand: attrs.brand,
+    platform: attrs.platform,
+    condition: attrs.condition,
     sku: BY_SLUG[product.slug] ? base.sku : `DB-${product.id.padStart(4, "0")}`,
     slug: product.slug,
     gallery: gallery(product, product.name),

@@ -376,3 +376,15 @@ Estimativas indicativas, sujeitas a dados, acessos e aprovações.
 - **O que funciona:** galeria com zoom e teclado, seletor de opções com estado esgotado, quantidade, adicionar ao carrinho (respeita a quantidade), CEP com máscara e validação, barra fixa no celular, navegação por seções com destaque, laudo do seminovo, FAQ, relacionados e JSON-LD.
 - **O que é demonstração:** fotos (reaproveitadas, em recortes diferentes), especificações, garantia, parcelas, prazos e valores de frete, FAQ. A página está com `noindex` até o catálogo real alimentar os dados.
 - **O que ainda não existe:** `/loja`, `/carrinho` e checkout, "Avise-me", avaliações, vídeo, comparador e kits.
+
+---
+
+## 14. O modelo da listagem (loja) entregue
+
+- **Endereço:** `/loja`. Aceita `?categoria=`, `?condicao=`, `?plataforma=`, `?tipo=`, `?preco=`, `?promocao=1`, `?ordem=` e `?q=` (busca), combináveis e compartilháveis. Links antigos como `?categoria=nintendo` são tratados como plataforma.
+- **Código:** [`app/loja/page.tsx`](../storefront/src/app/loja/page.tsx), lógica de filtros em [`lib/shop.ts`](../storefront/src/lib/shop.ts), componentes em [`components/shop/`](../storefront/src/components/shop/) e atributos de demonstração em [`data/catalog.ts`](../storefront/src/data/catalog.ts).
+- **Como funciona:** a página é renderizada no servidor a partir da URL. Cada opção de filtro é um link, então funciona sem JavaScript e o botão voltar se comporta. Só a gaveta de filtros do celular e o seletor de ordenação são componentes de cliente.
+- **Contagens:** disjuntivas (cada grupo ignora a própria seleção), e opções com zero resultado ficam desabilitadas em vez de sumir.
+- **Estados:** nenhum resultado (com "Limpar filtros" e WhatsApp), filtros ativos em chips removíveis, gaveta que continua aberta enquanto a lista atualiza.
+- **Filtros presentes:** condição, plataforma, tipo, faixa de preço e "em promoção", mais as categorias em abas. Marca, armazenamento, processador, placa de vídeo, memória e tela da seção 7.2 ficam para quando o catálogo real tiver esses dados.
+- **Ainda não existe:** paginação (a demonstração tem 8 produtos), indexação (`noindex` até o catálogo real), cache por tag e a lista de "mais vendidos" baseada em dados reais.
