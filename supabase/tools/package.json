@@ -1,0 +1,14 @@
+{
+  "name": "dinoblack-db-tools",
+  "private": true,
+  "type": "module",
+  "description": "Gera o seed fict\u00c3\u00adcio e valida migrations + seed + RLS num Postgres local (PGlite), sem tocar em nenhum banco remoto.",
+  "scripts": {
+    "seed:build": "node build-seed.mjs",
+    "validate": "node validate.mjs",
+    "docs": "node build-dictionary.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0"
+  }
+}

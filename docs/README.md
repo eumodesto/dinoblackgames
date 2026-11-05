@@ -6,6 +6,8 @@ O documento [Documento de Desenvolvimento do E-commerce DinoBlack](./Documento_D
 
 Complemento: [Plano da página de produto e da listagem com filtros](./Plano_Pagina_Produto.md), com diagnóstico, anatomia da página, variantes (novo, seminovo, raridade), filtros por categoria, modelo de dados, roadmap e decisões pendentes.
 
+Banco de dados: [Mapeamento de telas, produtos e usuários](./Mapeamento_Telas_e_Dados.md) (perfis, permissões, telas da loja e do painel, jornadas, plano de integração e dados fictícios) e o [Dicionário de dados](./Dicionario_de_Dados.md) (gerado do banco real). O código fica em [`supabase/`](../supabase/).
+
 Use o guia principal para:
 
 - orientar descoberta, design, implementação, migração e lançamento;
