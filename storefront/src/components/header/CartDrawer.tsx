@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef } from "react";
 import {
   ShoppingCartIcon,
@@ -65,9 +66,24 @@ export function CartDrawer() {
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          {items.length === 0 && (
+            <div className="grid h-full place-items-center text-center">
+              <div>
+                <p className="font-display text-lg font-black text-gray-900 dark:text-white">Seu carrinho está vazio</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Escolha um produto para começar.</p>
+                <Link
+                  href="/loja"
+                  onClick={() => setOpen(false)}
+                  className="mt-4 inline-flex h-11 items-center rounded-2xl bg-dino-red px-5 text-sm font-black text-white hover:bg-dino-red-hover"
+                >
+                  Ver a loja
+                </Link>
+              </div>
+            </div>
+          )}
           {items.map((line) => (
             <div
-              key={line.product.id}
+              key={line.key}
               className="rounded-2xl bg-gray-50 p-3 dark:bg-zinc-900"
             >
               <div className="flex gap-3">
@@ -81,7 +97,7 @@ export function CartDrawer() {
                   <button
                     type="button"
                     aria-label={`Remover ${line.product.name}`}
-                    onClick={() => removeItem(line.product.id)}
+                    onClick={() => removeItem(line.key)}
                     className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-[10px] text-white"
                   >
                     ×
@@ -108,8 +124,9 @@ export function CartDrawer() {
                       <button
                         type="button"
                         className="px-2 py-1 text-sm"
+                        aria-label="Diminuir quantidade"
                         onClick={() =>
-                          updateQty(line.product.id, line.qty - 1)
+                          updateQty(line.key, line.qty - 1)
                         }
                       >
                         −
@@ -120,8 +137,9 @@ export function CartDrawer() {
                       <button
                         type="button"
                         className="px-2 py-1 text-sm"
+                        aria-label="Aumentar quantidade"
                         onClick={() =>
-                          updateQty(line.product.id, line.qty + 1)
+                          updateQty(line.key, line.qty + 1)
                         }
                       >
                         +
@@ -144,12 +162,16 @@ export function CartDrawer() {
               {formatBRL(subtotal)}
             </span>
           </div>
-          <a
-            href="/carrinho"
-            className="flex h-12 items-center justify-center rounded-2xl bg-dino-red text-sm font-black uppercase tracking-wide text-white transition hover:bg-dino-red-hover"
+          <Link
+            href="/checkout"
+            onClick={() => setOpen(false)}
+            aria-disabled={items.length === 0}
+            className={`flex h-12 items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide text-white transition ${
+              items.length === 0 ? "pointer-events-none bg-zinc-400 dark:bg-zinc-700" : "bg-dino-red hover:bg-dino-red-hover"
+            }`}
           >
-            Ver carrinho e checkout
-          </a>
+            Finalizar compra
+          </Link>
         </div>
       </aside>
     </div>

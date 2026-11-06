@@ -12,7 +12,7 @@ Arquivos desta entrega:
 | [`supabase/migrations/`](../supabase/migrations/) | Schema (49 tabelas), funções de estoque e pedido, views e RLS. Pronto para `supabase db reset` ou `psql`. |
 | [`supabase/seed.sql`](../supabase/seed.sql) | Dados fictícios: 24 produtos, 10 usuários, 10 pedidos, 5 usados, banners, páginas, cupons. Gerado. |
 | [`docs/Dicionario_de_Dados.md`](./Dicionario_de_Dados.md) | Todas as tabelas e colunas, gerado a partir do banco real. |
-| [`supabase/tools/`](../supabase/tools/) | Gerador do seed, gerador do dicionário e a suíte de 78 verificações. |
+| [`supabase/tools/`](../supabase/tools/) | Gerador do seed, gerador do dicionário e a suíte de 110 verificações. |
 
 ---
 
@@ -26,7 +26,7 @@ Arquivos desta entrega:
 | Perfis de usuário | 2 públicos (visitante, cliente) + 6 de equipe |
 | Tabelas / views / funções / políticas de RLS | 49 / 4 / 10 / 140 |
 | Dados fictícios | 10 usuários, 24 produtos (22 publicados), 10 pedidos em 7 status, 5 usados, 4 cupons, 3 promoções, 6 banners, 9 páginas |
-| Verificações automáticas | 78, todas passando |
+| Verificações automáticas | 110 no banco (migrations, seed, RLS, regras, checkout) + 46 ponta a ponta do checkout, todas passando |
 
 ---
 
@@ -83,9 +83,9 @@ Legenda de estado: **existe** (já publicada), **a criar** (linkada ou prevista 
 | `/loja` | existe | todos | `v_product_listing`, `categories`, `product_facets` | `analytics_events` | Filtros, ordenação e busca por URL; ver seção 7 |
 | `/produto/[slug]` | existe | todos | `products`, `product_media`, `product_options`, `product_variants`, `v_public_units`, `v_product_listing` | `analytics_events`, `back_in_stock_alerts` | Laudo só para seminovo e raridade |
 | `/design-system` | existe | interno | nenhum | nenhum | Documentação viva; fora do banco |
-| `/carrinho` | **a criar** (linkada) | cliente | `carts`, `cart_items`, `product_variants`, `effective_price()` | `cart_items` | Hoje o carrinho vive só no navegador |
-| `/checkout` | **a criar** | cliente (visitante: **Validar**) | carrinho, `addresses`, `store_settings` | `create_order_from_cart()`, `consents`, `addresses` | Identificação, entrega, pagamento, confirmação |
-| `/checkout/confirmacao/[número]` | **a criar** | cliente | `orders`, `payments` | nada | Pix, estado de pagamento |
+| `/carrinho` | existe (redireciona) | todos | nada | nada | Leva ao checkout. O carrinho é a gaveta do header e fica salvo no navegador (localStorage); o banco só vê os itens na cotação e no pedido |
+| `/checkout` | **existe** | visitante (compra sem cadastro) | `checkout_quote()` → `products`, `product_variants`, `inventory_*`, `promotions`, `coupons` | `create_checkout_order()` → `orders`, `order_items`, `inventory_*`, `coupon_redemptions`; `consents`; `payments` e `integration_events` via Mercado Pago | Dados, entrega por CEP, cupom, pagamento (Mercado Pago). Ver [Checkout_Mercado_Pago.md](./Checkout_Mercado_Pago.md) |
+| `/checkout/confirmacao/[número]` | **existe** | dono do pedido (token no link) | `orders`, `order_items`, `payments`, `shipments` | `sync_mp_payment()` ao conferir o pagamento | Pix com QR e copia e cola, status ao vivo, itens e entrega |
 | `/entrar`, `/cadastro`, `/recuperar-senha` | **a criar** | visitante | Supabase Auth | `profiles`, `consents` | Cadastro cria `profiles` por gatilho |
 | `/conta` | **a criar** (linkada) | cliente | `profiles`, `addresses`, `consents` | `profiles`, `addresses`, `consents` | Dados, endereços, preferências |
 | `/conta/privacidade` | **a criar** | cliente | `privacy_requests` | `privacy_requests` | Acesso, correção, exclusão |
@@ -409,7 +409,7 @@ Todos os nomes têm "(teste)", os e-mails usam o domínio reservado `.example` (
 ```bash
 cd supabase/tools
 npm install
-npm run validate     # aplica migrations + seed num Postgres local (PGlite) e roda as 78 verificações
+npm run validate     # aplica migrations + seed num Postgres local (PGlite) e roda as 110 verificações
 npm run seed:build   # regenera supabase/seed.sql
 npm run docs         # regenera docs/Dicionario_de_Dados.md
 ```

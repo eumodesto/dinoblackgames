@@ -12,10 +12,13 @@
     "@paper-design/shaders-react": "^0.0.82",
     "motion": "^14.9.1",
     "next": "^15.5.29",
+    "postgres": "^4.1.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

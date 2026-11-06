@@ -334,7 +334,7 @@ const orderDefs = [
   { n: 1, user: C.c1, addr: ADDR.ana, status: "delivered", when: "14 days", method: "SEDEX", ship: 24.9, eta: 3, pay: "credit_card", inst: 3, items: [["sw-br", 1], ["headset", 1]], shipment: { status: "delivered", carrier: "Correios", service: "SEDEX", code: "BR000000001TE", shipped: "13 days", delivered: "10 days" } },
   { n: 2, user: C.c2, addr: ADDR.bruno, status: "shipped", when: "3 days", method: "Entrega local", ship: 14.9, eta: 2, pay: "pix", items: [["nb4060", 1]], shipment: { status: "shipped", carrier: "Transportadora Fictícia", service: "Expressa", code: "TF000000002TE", shipped: "1 day" } },
   { n: 3, user: C.c3, addr: ADDR.carla, status: "preparing", when: "1 day", method: "Econômica", ship: 38.5, eta: 7, pay: "pix", items: [["mouse", 2], ["teclado", 1]], shipment: { status: "ready" } },
-  { n: 4, user: C.c1, addr: ADDR.ana, status: "paid", when: "3 hours", method: "Retirada na loja", ship: 0, eta: 0, pay: "pix", items: [["monitor", 1]], shipment: { status: "pending" } },
+  { n: 4, user: C.c1, addr: ADDR.ana, status: "paid", when: "3 hours", method: "Retirada na loja", ship: 0, eta: 0, pay: "pix", coupon: "LIMITE1", items: [["monitor", 1]], shipment: { status: "pending" } },
   { n: 5, user: C.c4, addr: ADDR.diego, status: "pending_payment", when: "10 minutes", method: "Expressa", ship: 52.3, eta: 4, pay: "pix", items: [["ps5-br", 1]], reserved: true },
   { n: 6, user: C.c2, addr: ADDR.bruno, status: "cancelled", when: "5 days", method: "Entrega local", ship: 14.9, eta: 2, pay: "pix", items: [["swlite", 1]], cancelReason: "Pagamento não confirmado no prazo" },
   { n: 7, guest: "visitante@teste.dinoblack.example", addr: ADDR.guest, status: "paid", when: "2 days", method: "Retirada na loja", ship: 0, eta: 0, pay: "credit_card", inst: 1, items: [["snes", 1, "unit"]], shipment: { status: "pending" } },
@@ -367,6 +367,7 @@ ins("inventory_units", unitRows);
 const couponDefs = {
   DINO10: { n: 1, kind: "percent", value: 10 },
   BEMVINDO50: { n: 2, kind: "amount", value: 50 },
+  LIMITE1: { n: 4, kind: "percent", value: 5 }, // cupom de uso único: este pedido o esgota
 };
 const priceOf = (variantKey) => varProd[variantKey].price;
 

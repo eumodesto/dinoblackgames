@@ -10,24 +10,8 @@ import {
   type ProductDetail,
 } from "@/data/product-details";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
+import { shippingOptions, type ShippingOption } from "@/lib/shipping";
 import { waLink } from "@/lib/whatsapp";
-
-type ShippingOption = { id: string; name: string; price: number; time: string };
-
-/** Simulação de frete só para a demonstração. A cotação real virá da integração (Correios/transportadora). */
-function simulateShipping(cep: string): ShippingOption[] {
-  const first = Number(cep[0]);
-  if (first === 7) {
-    return [
-      { id: "pickup", name: "Retirar na loja (Santa Maria, Brasília - DF)", price: 0, time: "Hoje ou amanhã" },
-      { id: "local", name: "Entrega local", price: 14.9, time: "1 a 2 dias úteis" },
-    ];
-  }
-  return [
-    { id: "pac", name: "Econômica", price: 24.9 + first * 3.2, time: `${5 + first} a ${8 + first} dias úteis` },
-    { id: "sedex", name: "Expressa", price: 39.9 + first * 4.1, time: `${2 + Math.floor(first / 3)} a ${4 + Math.floor(first / 3)} dias úteis` },
-  ];
-}
 
 function Stars({ value }: { value: number }) {
   return (
@@ -100,10 +84,7 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
 
   function handleAdd() {
     if (soldOut) return;
-    const times = isUnique ? 1 : qty;
-    for (let i = 0; i < times; i += 1) {
-      addItem(product, { color: selected.color, storage: selected.storage });
-    }
+    addItem(product, { color: selected.color, storage: selected.storage, qty: isUnique ? 1 : qty });
     setAdded(true);
   }
 
@@ -116,7 +97,7 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
       return;
     }
     setCepError("");
-    setShipping(simulateShipping(digits));
+    setShipping(shippingOptions(digits));
   }
 
   const hasDiscount = Boolean(product.compareAt && product.discount);

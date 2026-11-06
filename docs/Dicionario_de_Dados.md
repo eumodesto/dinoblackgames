@@ -2,12 +2,12 @@
 
 > **Gerado automaticamente** por `supabase/tools/build-dictionary.mjs` a partir das migrations em `supabase/migrations/`. Não edite à mão: altere a migration e rode `npm run docs` em `supabase/tools`.
 
-- **49 tabelas**, 4 views, 10 funções, 140 políticas de RLS (todas as tabelas com RLS ligado).
+- **49 tabelas**, 4 views, 16 funções, 140 políticas de RLS (todas as tabelas com RLS ligado).
 - Colunas marcadas com **PK** são chave primária; **→ tabela** indica chave estrangeira.
 - Para o mapa de telas, perfis e jornadas que usam estas tabelas, veja [Mapeamento_Telas_e_Dados.md](./Mapeamento_Telas_e_Dados.md).
 
 **Views:** `v_inventory_alerts`, `v_product_listing`, `v_public_units`, `v_sales_daily`
-**Funções:** `_release_order_stock`, `cancel_order`, `confirm_payment`, `create_order_from_cart`, `effective_price`, `expire_pending_orders`, `handle_new_user`, `has_any_role`, `is_staff`, `touch_updated_at`
+**Funções:** `_coupon_discount`, `_create_order`, `_release_order_stock`, `cancel_order`, `checkout_quote`, `checkout_resolve_items`, `confirm_payment`, `create_checkout_order`, `create_order_from_cart`, `effective_price`, `expire_pending_orders`, `handle_new_user`, `has_any_role`, `is_staff`, `sync_mp_payment`, `touch_updated_at`
 
 ## Usuários e acesso
 
@@ -296,6 +296,11 @@
 | cancelled_at | timestamptz | sim |  |  |
 | cancel_reason | text | sim |  |  |
 | updated_at | timestamptz | não | `now()` |  |
+| public_token | uuid | não | `gen_random_uuid()` |  |
+| customer_name | text | sim |  |  |
+| customer_email | text | sim |  |  |
+| customer_phone | text | sim |  |  |
+| terms_accepted_at | timestamptz | sim |  |  |
 
 ### `order_items`  _(3 políticas RLS)_
 
@@ -339,6 +344,8 @@
 | paid_at | timestamptz | sim |  |  |
 | created_at | timestamptz | não | `now()` |  |
 | updated_at | timestamptz | não | `now()` |  |
+| status_detail | text | sim |  |  |
+| provider_data | jsonb | não | `'{}'::jsonb` |  |
 
 ### `shipments`  _(3 políticas RLS)_
 
@@ -422,6 +429,7 @@
 | user_id | uuid | sim |  | → profiles |
 | discount | numeric(12,2) | não |  |  |
 | created_at | timestamptz | não | `now()` |  |
+| email | text | sim |  |  |
 
 ## Venda de usados
 

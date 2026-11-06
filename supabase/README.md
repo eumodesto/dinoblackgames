@@ -4,7 +4,7 @@ Schema, regras de estoque e pedido, RLS e dados **fictícios** para testes. Nada
 
 ```
 supabase/
-  migrations/   schema (49 tabelas), funções e views, RLS
+  migrations/   schema (49 tabelas), funções e views, RLS, checkout (migration 4)
   seed.sql      dados fictícios (gerado por tools/build-seed.mjs, não edite à mão)
   tools/        gerador do seed, gerador do dicionário e a suíte de validação
 ```
@@ -17,7 +17,7 @@ npm install
 npm run validate
 ```
 
-Sobe um Postgres em memória (PGlite) com um stub do Supabase Auth, aplica as migrations e o seed e roda 78 verificações: integridade, paridade com a loja, RLS por perfil e regras de estoque, pedido, cupom e cancelamento.
+Sobe um Postgres em memória (PGlite) com um stub do Supabase Auth, aplica as migrations e o seed e roda 110 verificações: integridade, paridade com a loja, RLS por perfil, regras de estoque, pedido, cupom e cancelamento, e o checkout (cotação, pedido de visitante e sincronização com o Mercado Pago).
 
 ## Outros comandos
 

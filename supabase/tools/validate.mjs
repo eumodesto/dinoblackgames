@@ -90,6 +90,8 @@ if (existsSync(seedFile)) {
     const mod = await import(pathToFileURL(suite).href);
     try {
       await mod.run({ db, q, one, check, asUser });
+      const checkout = join(root, "tools", "tests-checkout.mjs");
+      if (existsSync(checkout)) await (await import(pathToFileURL(checkout).href)).run({ db, q, one, check, asUser });
     } catch (e) {
       const where = String(e.where ?? "").split("\n").slice(-2).join(" | ");
       check("a suíte terminou sem erro inesperado", false, `\n       ${e.message}\n       ${where}`);
