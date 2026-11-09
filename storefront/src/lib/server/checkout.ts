@@ -78,9 +78,8 @@ export function parseAddress(raw: unknown, fallbackRecipient: string, fallbackPh
 // ---------------------------------------------------------------------------- cotação
 const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, qty }) => ({ slug, color, storage, qty })));
 
-type QuoteRow = Omit<QuoteResponse, "shipping"> & {
-  lines: Array<QuoteLine & { variantId?: string; weightGrams?: number }>;
-};
+type QuoteLineServer = QuoteLine & { variantId?: string; weightGrams?: number };
+type QuoteRow = Omit<QuoteResponse, "shipping" | "lines"> & { lines: QuoteLineServer[] };
 
 export async function quote(items: CartItemInput[], cep: string | null, coupon: string | null, email: string | null): Promise<QuoteResponse> {
   const sql = await getSql();
@@ -89,10 +88,11 @@ export async function quote(items: CartItemInput[], cep: string | null, coupon: 
     [itemsJson(items), coupon, email],
   );
   const r = row.r;
+  const lines = (r.lines ?? []) as QuoteLineServer[];
   const shipping = cep
     ? await quoteShippingOptions(
         cep,
-        (r.lines ?? [])
+        lines
           .filter((l) => l.ok)
           .map((l) => ({
             variantId: l.variantId,
@@ -102,7 +102,7 @@ export async function quote(items: CartItemInput[], cep: string | null, coupon: 
           })),
       )
     : [];
-  return { ...r, shipping };
+  return { ...r, lines, shipping };
 }
 
 // ---------------------------------------------------------------------------- pedido

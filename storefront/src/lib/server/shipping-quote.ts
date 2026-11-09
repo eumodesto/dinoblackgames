@@ -1,6 +1,6 @@
 import "server-only";
 import type { ShippingChoice } from "@/lib/checkout-types";
-import { isValidCep, onlyDigits, PICKUP_ID, pickupOption } from "@/lib/shipping";
+import { isValidCep, onlyDigits, pickupOption } from "@/lib/shipping";
 import { env } from "./env";
 import { getSql } from "./sql";
 import {
