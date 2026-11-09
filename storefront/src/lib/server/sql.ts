@@ -39,7 +39,17 @@ async function connectLocal(): Promise<Sql> {
   const { pgcrypto } = await import("@electric-sql/pglite/contrib/pgcrypto");
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  const root = join(process.cwd(), "..", "supabase");
+  const root = [
+    join(process.cwd(), "..", "supabase"),
+    join(process.cwd(), "supabase"),
+  ].find((p) => {
+    try {
+      return readdirSync(p).some((f) => f === "migrations" || f === "seed.sql");
+    } catch {
+      return false;
+    }
+  });
+  if (!root) throw new Error("Pasta supabase/ não encontrada (migrations + seed).");
   await db.exec(`
     create extension if not exists pgcrypto;
     create role anon nologin;
