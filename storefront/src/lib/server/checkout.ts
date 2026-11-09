@@ -1,5 +1,5 @@
 import "server-only";
-import { findShipping, isValidCep, onlyDigits, shippingOptions } from "@/lib/shipping";
+import { isValidCep, onlyDigits } from "@/lib/shipping";
 import {
   ORDER_PAY_WINDOW_MINUTES,
   type AddressInput,
@@ -10,10 +10,12 @@ import {
   type OrderRequest,
   type PayResponse,
   type PaymentDto,
+  type QuoteLine,
   type QuoteResponse,
 } from "@/lib/checkout-types";
 import { env, mpMode } from "./env";
 import { MpError, mpCreatePayment, mpGetPayment, toSyncPayload, type MpPayment } from "./mp";
+import { findQuotedShipping, quoteShippingOptions } from "./shipping-quote";
 import { getSql } from "./sql";
 
 /** Erro com mensagem segura para mostrar ao cliente. */
@@ -76,14 +78,31 @@ export function parseAddress(raw: unknown, fallbackRecipient: string, fallbackPh
 // ---------------------------------------------------------------------------- cotação
 const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, qty }) => ({ slug, color, storage, qty })));
 
+type QuoteRow = Omit<QuoteResponse, "shipping"> & {
+  lines: Array<QuoteLine & { variantId?: string; weightGrams?: number }>;
+};
+
 export async function quote(items: CartItemInput[], cep: string | null, coupon: string | null, email: string | null): Promise<QuoteResponse> {
   const sql = await getSql();
-  const [row] = await sql.query<{ r: Omit<QuoteResponse, "shipping"> }>(
+  const [row] = await sql.query<{ r: QuoteRow }>(
     "select checkout_quote($1::jsonb, $2, null, $3) as r",
     [itemsJson(items), coupon, email],
   );
   const r = row.r;
-  return { ...r, shipping: cep ? shippingOptions(cep, r.weightGrams) : [] };
+  const shipping = cep
+    ? await quoteShippingOptions(
+        cep,
+        (r.lines ?? [])
+          .filter((l) => l.ok)
+          .map((l) => ({
+            variantId: l.variantId,
+            qty: l.qty,
+            unitPrice: l.unitPrice,
+            weightGrams: l.weightGrams,
+          })),
+      )
+    : [];
+  return { ...r, shipping };
 }
 
 // ---------------------------------------------------------------------------- pedido
@@ -100,7 +119,7 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
     const bad = q.lines.find((l) => !l.ok);
     throw new CheckoutError(`${bad?.name ?? bad?.slug}: ${bad?.reason ?? "indisponível"}`, 409);
   }
-  const ship = findShipping(address.cep, q.weightGrams, req.shippingId);
+  const ship = findQuotedShipping(q.shipping, req.shippingId);
   if (!ship) throw new CheckoutError("Escolha uma forma de entrega.");
 
   try {

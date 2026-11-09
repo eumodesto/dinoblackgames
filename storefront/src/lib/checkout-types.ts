@@ -25,7 +25,16 @@ export type QuoteLine = {
 
 export type CouponResult = { ok: boolean; message: string; code?: string; discount?: number };
 
-export type ShippingChoice = { id: string; name: string; price: number; etaDays: number; time: string };
+export type ShippingChoice = {
+  id: string;
+  name: string;
+  price: number;
+  etaDays: number;
+  time: string;
+  /** Provedor da cotação (ausente em retirada na loja). */
+  provider?: "superfrete" | "melhor_envio" | "pickup";
+  serviceId?: number;
+};
 
 export type QuoteResponse = {
   lines: QuoteLine[];

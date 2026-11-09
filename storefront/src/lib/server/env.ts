@@ -40,10 +40,35 @@ export const env = {
   get cronSecret() {
     return process.env.CRON_SECRET ?? "";
   },
+  get superfreteToken() {
+    return process.env.SUPERFRETE_TOKEN ?? "";
+  },
+  get superfreteApiBase() {
+    return (process.env.SUPERFRETE_API_BASE ?? "https://api.superfrete.com").replace(/\/$/, "");
+  },
+  get melhorEnvioToken() {
+    return process.env.MELHOR_ENVIO_TOKEN ?? "";
+  },
+  get melhorEnvioApiBase() {
+    return (process.env.MELHOR_ENVIO_API_BASE ?? "https://www.melhorenvio.com.br").replace(/\/$/, "");
+  },
+  /** Preferência: superfrete | melhor_envio | auto (SuperFrete primeiro, Melhor Envio se falhar). */
+  get shippingProvider() {
+    const v = (process.env.SHIPPING_PROVIDER ?? "auto").toLowerCase();
+    if (v === "superfrete" || v === "melhor_envio") return v;
+    return "auto" as const;
+  },
+  get shippingOriginCep() {
+    return (process.env.SHIPPING_ORIGIN_CEP ?? "").replace(/\D/g, "");
+  },
+  get shippingUserAgent() {
+    return process.env.SHIPPING_USER_AGENT ?? "DinoBlack Games (dinoblackgamesbrasil@gmail.com)";
+  },
 };
 
 export function checkoutReady() {
   const db = Boolean(env.databaseUrl) || env.localDb;
   const payments = mpMode() === "simulated" || Boolean(env.mpAccessToken);
-  return { db, payments, ok: db && payments };
+  const shipping = Boolean(env.superfreteToken || env.melhorEnvioToken);
+  return { db, payments, shipping, ok: db && payments };
 }

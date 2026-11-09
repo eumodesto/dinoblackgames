@@ -11,6 +11,7 @@ export async function GET() {
     ready: ready.ok,
     db: ready.db,
     payments: ready.payments,
+    shipping: ready.shipping,
     mode: mpMode(),
     publicKey: env.mpPublicKey,
     maxInstallments: 10,

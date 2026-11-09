@@ -603,7 +603,12 @@ export function CheckoutView() {
                 })}
               </div>
               {show("shipping") && <p role="alert" className="mt-1 text-xs font-semibold text-dino-red">{show("shipping")}</p>}
-              {cepOk && quote?.shipping.length ? <p className="mt-2 text-[11px] text-gray-500 dark:text-zinc-500">Valores e prazos de entrega estimados. A cotação por transportadora entra com a integração de frete.</p> : null}
+              {cepOk && quote?.shipping.length ? <p className="mt-2 text-[11px] text-gray-500 dark:text-zinc-500">Valores e prazos cotados agora (SuperFrete / Melhor Envio). O frete é recalculado no servidor ao finalizar o pedido.</p> : null}
+              {cepOk && !quoteLoading && quote && !quote.shipping.length ? (
+                <p role="alert" className="mt-2 text-xs font-semibold text-dino-red">
+                  Não encontramos frete para este CEP. Tente outro ou fale conosco no WhatsApp.
+                </p>
+              ) : null}
             </fieldset>
           </Section>
 

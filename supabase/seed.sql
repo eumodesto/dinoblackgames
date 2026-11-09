@@ -625,7 +625,7 @@ insert into store_settings (key, value, is_public) values
   ('contact', '{"whatsapp":"5561992926551","display":"(61) 99292-6551"}'::jsonb, true),
   ('socials', '{"youtube":"https://www.youtube.com/@DinoBlackGames","tiktok":"https://www.tiktok.com/@dinoblack.games","facebook":"https://www.facebook.com/dinoblackgames"}'::jsonb, true),
   ('checkout', '{"maxInstallments":10,"pickupLocation":"LOJA-SM"}'::jsonb, true),
-  ('shipping_origin', '{"cep":"72510000","note":"Dado fictício"}'::jsonb, false),
+  ('shipping_origin', '{"cep":"72501200","note":"Santa Maria / DF — CEP válido para cotação Correios"}'::jsonb, false),
   ('stock_alerts', '{"notifyRoles":["owner","manager","stock"]}'::jsonb, false);
 
 -- ----------------------------------------------------------------------

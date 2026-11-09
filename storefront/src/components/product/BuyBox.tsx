@@ -10,7 +10,7 @@ import {
   type ProductDetail,
 } from "@/data/product-details";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
-import { shippingOptions, type ShippingOption } from "@/lib/shipping";
+import type { ShippingOption } from "@/lib/shipping";
 import { waLink } from "@/lib/whatsapp";
 
 function Stars({ value }: { value: number }) {
@@ -63,6 +63,7 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
   const [cep, setCep] = useState("");
   const [cepError, setCepError] = useState("");
   const [shipping, setShipping] = useState<ShippingOption[] | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
   const [showBar, setShowBar] = useState(false);
   const ctaRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +89,7 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
     setAdded(true);
   }
 
-  function handleCep(e: FormEvent) {
+  async function handleCep(e: FormEvent) {
     e.preventDefault();
     const digits = cep.replace(/\D/g, "");
     if (digits.length !== 8) {
@@ -97,7 +98,28 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
       return;
     }
     setCepError("");
-    setShipping(shippingOptions(digits));
+    setShippingLoading(true);
+    setShipping(null);
+    try {
+      const res = await fetch("/api/shipping/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cep: digits,
+          items: [{ qty: isUnique ? 1 : qty, unitPrice: product.price }],
+        }),
+      });
+      const data = (await res.json()) as { shipping?: ShippingOption[]; error?: string };
+      if (!res.ok) {
+        setCepError(data.error ?? "Não foi possível calcular o frete.");
+        return;
+      }
+      setShipping(data.shipping ?? []);
+    } catch {
+      setCepError("Não foi possível calcular o frete. Tente novamente.");
+    } finally {
+      setShippingLoading(false);
+    }
   }
 
   const hasDiscount = Boolean(product.compareAt && product.discount);
@@ -278,9 +300,10 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
           />
           <button
             type="submit"
-            className="h-12 rounded-xl bg-gray-900 px-5 text-sm font-black text-white transition hover:bg-dino-red dark:bg-white dark:text-zinc-950 dark:hover:bg-dino-red dark:hover:text-white"
+            disabled={shippingLoading}
+            className="h-12 rounded-xl bg-gray-900 px-5 text-sm font-black text-white transition hover:bg-dino-red disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-dino-red dark:hover:text-white"
           >
-            Calcular
+            {shippingLoading ? "Calculando…" : "Calcular"}
           </button>
         </div>
         {cepError && (
@@ -301,9 +324,6 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
                 </span>
               </li>
             ))}
-            <li className="pt-2 text-[11px] text-gray-500 dark:text-zinc-500">
-              Simulação para demonstração. O valor real virá da integração de frete.
-            </li>
           </ul>
         )}
       </form>
