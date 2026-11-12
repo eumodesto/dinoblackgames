@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export const metadata: Metadata = {
   title: "Entrar · Admin DinoBlack Games",
@@ -48,13 +49,12 @@ export default async function AdminLoginPage({
         </label>
         <label className="mb-6 block">
           <span className="mb-1.5 block text-sm font-semibold text-zinc-300">Senha</span>
-          <input
+          <PasswordInput
             name="password"
-            type="password"
             autoComplete="current-password"
             required
             autoFocus
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-white outline-none focus:border-dino-red"
+            inputClassName="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-white outline-none focus:border-dino-red"
           />
         </label>
 
