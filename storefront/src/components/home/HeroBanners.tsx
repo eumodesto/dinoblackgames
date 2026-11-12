@@ -2,22 +2,29 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { HERO_SLIDES, PRODUCTS, formatBRL } from "@/data/demo";
+import { formatBRL, type ProductCard, type HeroSlide } from "@/lib/types";
 import { ChevronButton } from "@/components/ui/ChevronButton";
 
-export function HeroBanners() {
+type Props = {
+  slides: HeroSlide[];
+  deals: ProductCard[];
+};
+
+export function HeroBanners({ slides, deals }: Props) {
   const [slide, setSlide] = useState(0);
   const [deal, setDeal] = useState(0);
-  const deals = PRODUCTS.filter((p) => p.discount).slice(0, 6);
-  const current = HERO_SLIDES[slide];
-  const currentDeal = deals[deal] ?? PRODUCTS[0];
+  const current = slides[slide];
+  const currentDeal = deals[deal] ?? deals[0];
 
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = window.setInterval(() => {
-      setSlide((s) => (s + 1) % HERO_SLIDES.length);
+      setSlide((s) => (s + 1) % slides.length);
     }, 6000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [slides.length]);
+
+  if (!current || !currentDeal) return null;
 
   return (
     <section className="container mx-auto px-4 py-5">
@@ -54,7 +61,7 @@ export function HeroBanners() {
               label="Banner anterior"
               size="lg"
               onClick={() =>
-                setSlide((s) => (s - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
+                setSlide((s) => (s - 1 + slides.length) % slides.length)
               }
             />
           </div>
@@ -63,7 +70,7 @@ export function HeroBanners() {
               direction="right"
               label="Próximo banner"
               size="lg"
-              onClick={() => setSlide((s) => (s + 1) % HERO_SLIDES.length)}
+              onClick={() => setSlide((s) => (s + 1) % slides.length)}
             />
           </div>
         </div>
@@ -90,7 +97,7 @@ export function HeroBanners() {
               <div className="absolute left-3 top-3 rounded-full bg-zinc-700/80 px-2 py-1 text-[10px] font-bold">
                 Oferta exclusiva
               </div>
-              {currentDeal.discount && (
+              {currentDeal.discount != null && currentDeal.discount > 0 && (
                 <div className="absolute right-3 top-3 rounded-full bg-rose-600 px-2 py-1 text-[10px] font-black">
                   −{currentDeal.discount}%
                 </div>
@@ -106,7 +113,7 @@ export function HeroBanners() {
             <div className="mt-3">
               <div className="mb-1 flex justify-between text-[11px]">
                 <span className="font-semibold text-dino-red">
-                  Só {currentDeal.stockLeft ?? 3} no estoque
+                  Só {currentDeal.available ?? 3} no estoque
                 </span>
                 <span className="text-white/40">Quase esgotando</span>
               </div>
@@ -116,7 +123,7 @@ export function HeroBanners() {
             </div>
             <div className="mt-4 flex items-end justify-between gap-3">
               <div>
-                {currentDeal.compareAt && (
+                {currentDeal.compareAt != null && (
                   <div className="text-xs text-white/40 line-through">
                     {formatBRL(currentDeal.compareAt)}
                   </div>

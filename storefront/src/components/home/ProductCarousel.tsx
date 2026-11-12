@@ -3,11 +3,11 @@
 import Image from "next/image";
 import { useRef } from "react";
 import { ChevronButton } from "@/components/ui/ChevronButton";
-import { formatBRL, type Product } from "@/data/demo";
+import { formatBRL, type ProductCard } from "@/lib/types";
 
 type ProductCarouselProps = {
   title: string;
-  products: Product[];
+  products: ProductCard[];
   viewAllHref?: string;
 };
 
@@ -54,8 +54,6 @@ export function ProductCarousel({
 
       <div
         ref={scrollerRef}
-        // Folga em volta dos cards (compensada por margem negativa) para o
-        // lift e a sombra do hover não serem cortados pelo overflow da faixa.
         className="scrollbar-none -mx-4 -mb-12 -mt-4 flex snap-x scroll-pl-4 gap-4 overflow-x-auto px-4 pb-14 pt-4"
       >
         {products.map((product) => (
@@ -81,7 +79,7 @@ export function ProductCarousel({
                   ★ {product.badge}
                 </span>
               )}
-              {product.discount != null && (
+              {product.discount != null && product.discount > 0 && (
                 <span className="rounded-full bg-gradient-to-r from-rose-600 to-red-600 px-2.5 py-0.5 text-[10px] font-black text-white shadow-md sm:text-[11px]">
                   −{product.discount}%
                 </span>
@@ -96,7 +94,7 @@ export function ProductCarousel({
                 <span className="font-mono text-lg font-black tracking-tight text-white drop-shadow-md sm:text-xl">
                   {formatBRL(product.price)}
                 </span>
-                {product.compareAt && (
+                {product.compareAt != null && (
                   <span className="font-mono text-xs text-zinc-400 line-through">
                     {formatBRL(product.compareAt)}
                   </span>

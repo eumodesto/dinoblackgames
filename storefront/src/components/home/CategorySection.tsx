@@ -2,11 +2,15 @@
 
 import Image from "next/image";
 import { useRef } from "react";
-import { CATEGORIES } from "@/data/demo";
+import type { CategoryCard } from "@/lib/types";
 import { ChevronButton } from "@/components/ui/ChevronButton";
 import { TagsIcon, type TagsIconHandle } from "@/components/icons/tags-icon";
 
-export function CategorySection() {
+type Props = {
+  categories: CategoryCard[];
+};
+
+export function CategorySection({ categories }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const tagsIconRef = useRef<TagsIconHandle>(null);
 
@@ -52,21 +56,22 @@ export function CategorySection() {
 
       <div
         ref={scrollerRef}
-        // pt/pb extras (com margem negativa) evitam cortar o lift e a sombra do hover.
         className="scrollbar-none container mx-auto -mb-8 -mt-3 flex gap-4 overflow-x-auto px-4 pb-10 pt-3"
       >
-        {CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <a
             key={cat.id}
             href={cat.href}
             className="group relative block aspect-[4/3] w-48 shrink-0 overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-900 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-dino-red hover:shadow-2xl hover:z-10 sm:w-52 md:w-56 dark:border-zinc-800"
           >
-            <Image
-              src={cat.image}
-              alt={cat.name}
-              fill
-              className="object-cover opacity-80 transition duration-700 group-hover:scale-110 group-hover:opacity-95"
-            />
+            {cat.image && (
+              <Image
+                src={cat.image}
+                alt={cat.name}
+                fill
+                className="object-cover opacity-80 transition duration-700 group-hover:scale-110 group-hover:opacity-95"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4">
               <div className="text-base font-black text-white">{cat.name}</div>

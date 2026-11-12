@@ -2,11 +2,30 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  CATEGORIES,
-  POPULAR_SEARCH_CATEGORIES,
-  TRENDING_SEARCHES,
-} from "@/data/demo";
+const CATEGORIES = [
+  { id: "consoles", name: "Consoles", href: "/loja?categoria=consoles" },
+  { id: "pc-gamer", name: "PC Gamer", href: "/loja?categoria=pc-gamer" },
+  { id: "retro", name: "Retro", href: "/loja?categoria=retro" },
+  { id: "notebooks", name: "Notebooks", href: "/loja?categoria=notebooks" },
+];
+
+const TRENDING_SEARCHES = [
+  "PlayStation 5",
+  "Switch OLED",
+  "Notebook Gamer",
+  "DualSense",
+  "PC Gamer",
+  "Retro",
+];
+
+const POPULAR_SEARCH_CATEGORIES = [
+  "Consoles",
+  "Nintendo",
+  "PlayStation",
+  "PC Gamer",
+  "Notebooks",
+  "Retro",
+];
 import {
   AlignRightIcon,
   type AlignRightIconHandle,

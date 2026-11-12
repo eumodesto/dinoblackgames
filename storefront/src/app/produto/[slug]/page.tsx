@@ -4,35 +4,42 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ProductCarousel } from "@/components/home/ProductCarousel";
-import { BuyBox } from "@/components/product/BuyBox";
+import { BuyBox, type BuyBoxProduct } from "@/components/product/BuyBox";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { SectionNav } from "@/components/product/SectionNav";
-import { PRODUCTS } from "@/data/demo";
 import {
-  CONDITION_LABEL,
   getProductBySlug,
-  getProductDetail,
   getRelatedProducts,
-} from "@/data/product-details";
+  getAllProductSlugs,
+} from "@/lib/server/catalog";
 import { WA_SELL_USED } from "@/lib/whatsapp";
+
+const CONDITION_LABEL: Record<string, string> = {
+  novo: "Novo",
+  seminovo: "Seminovo · unidade única",
+  raridade: "Raridade",
+  pre_venda: "Pré-venda",
+};
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return PRODUCTS.map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  const slugs = await getAllProductSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: "Produto não encontrado · DinoBlack Games" };
-  const detail = getProductDetail(product);
   return {
     title: `${product.name} · DinoBlack Games`,
-    description: detail.tagline,
-    openGraph: { title: product.name, description: detail.tagline, images: [product.image] },
-    // Dados de demonstração: não indexar até o catálogo real alimentar a página.
-    robots: { index: false, follow: false },
+    description: product.tagline,
+    openGraph: {
+      title: product.name,
+      description: product.tagline,
+      images: product.gallery[0] ? [product.gallery[0].src] : [],
+    },
   };
 }
 
@@ -56,16 +63,16 @@ function Block({ id, title, lead, children }: { id: string; title: string; lead?
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const detail = getProductDetail(product);
-  const related = getRelatedProducts(product);
-  const isUnique = detail.condition === "seminovo";
+  const related = await getRelatedProducts(product.id, product.categorySlug);
+  const isUnique = product.condition === "seminovo" || product.condition === "raridade";
+  const mainImage = product.gallery[0]?.src ?? "";
 
   const nav = [
     { id: "visao-geral", label: "Visão geral" },
-    ...(detail.unit ? [{ id: "laudo", label: "Laudo da unidade" }] : []),
+    ...(product.unit ? [{ id: "laudo", label: "Laudo da unidade" }] : []),
     { id: "especificacoes", label: "Especificações" },
     { id: "na-caixa", label: "Na caixa" },
     { id: "entrega-garantia", label: "Entrega e garantia" },
@@ -73,19 +80,57 @@ export default async function ProductPage({ params }: PageProps) {
     { id: "relacionados", label: "Relacionados" },
   ];
 
+  const warrantyLabel = product.warrantyMonths >= 12
+    ? `${product.warrantyMonths} meses`
+    : `${product.warrantyMonths * 30} dias`;
+  const warrantyText = product.warrantyText ?? `Garantia de ${warrantyLabel} DinoBlack.`;
+
+  const buyBoxProduct: BuyBoxProduct = {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    sku: product.sku,
+    brand: product.brand,
+    condition: product.condition,
+    tagline: product.tagline,
+    price: product.price,
+    compareAt: product.compareAt,
+    discount: product.discount,
+    rating: product.rating,
+    soldCount: product.soldCount,
+    available: product.available,
+    inStock: product.inStock,
+    image: mainImage,
+    warrantyMonths: product.warrantyMonths,
+    warrantyText: product.warrantyText,
+    maxInstallments: product.maxInstallments,
+    options: product.options,
+  };
+
+  const relatedCards = related.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: p.price,
+    compareAt: p.compareAt,
+    badge: p.badge,
+    discount: p.discount,
+    image: p.image,
+  }));
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: [product.image],
-    description: detail.tagline,
-    sku: detail.sku,
-    brand: { "@type": "Brand", name: detail.brand },
+    image: mainImage ? [mainImage] : [],
+    description: product.tagline,
+    sku: product.sku,
+    brand: { "@type": "Brand", name: product.brand },
     offers: {
       "@type": "Offer",
       priceCurrency: "BRL",
       price: product.price.toFixed(2),
-      availability: product.stockLeft === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: isUnique ? "https://schema.org/UsedCondition" : "https://schema.org/NewCondition",
     },
   };
@@ -102,8 +147,8 @@ export default async function ProductPage({ params }: PageProps) {
           <li><Link href="/" className="hover:text-dino-red">Início</Link></li>
           <li aria-hidden>›</li>
           <li>
-            <a href={`/loja?categoria=${product.category.toLowerCase().replace(/\s+/g, "-")}`} className="hover:text-dino-red">
-              {product.category}
+            <a href={`/loja?categoria=${product.categorySlug}`} className="hover:text-dino-red">
+              {product.categoryName}
             </a>
           </li>
           <li aria-hidden>›</li>
@@ -114,36 +159,37 @@ export default async function ProductPage({ params }: PageProps) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
         <div className="self-start lg:sticky lg:top-24">
           <ProductGallery
-            images={detail.gallery}
-            badge={isUnique ? CONDITION_LABEL.seminovo : product.badge ? `★ ${product.badge}` : undefined}
+            images={product.gallery}
+            badge={isUnique ? (CONDITION_LABEL[product.condition] ?? product.condition) : product.badge ? `★ ${product.badge}` : undefined}
           />
         </div>
-        <BuyBox product={product} detail={detail} />
+        <BuyBox product={buyBoxProduct} />
       </div>
 
-      {/* Sem wrapper: o sticky só funciona dentro de um pai mais alto que ele. */}
       <SectionNav items={nav} className="mt-10" />
 
       <Block id="visao-geral" title="Visão geral">
         <div className="relative overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-950 text-white">
-          <Image src={product.image} alt="" fill sizes="100vw" className="object-cover opacity-30" />
+          {mainImage && <Image src={mainImage} alt="" fill sizes="100vw" className="object-cover opacity-30" />}
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
           <div className="relative z-10 p-6 sm:p-10">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-dino-red">{detail.brand}</p>
-            <p className="mt-3 max-w-xl font-display text-2xl font-black leading-tight sm:text-4xl">{detail.tagline}</p>
-            <ul className="mt-8 grid gap-4 md:grid-cols-3">
-              {detail.highlights.map((h) => (
-                <li key={h.title} className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-                  <h3 className="text-base font-black">{h.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/75">{h.text}</p>
-                </li>
-              ))}
-            </ul>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-dino-red">{product.brand}</p>
+            <p className="mt-3 max-w-xl font-display text-2xl font-black leading-tight sm:text-4xl">{product.tagline}</p>
+            {product.highlights.length > 0 && (
+              <ul className="mt-8 grid gap-4 md:grid-cols-3">
+                {product.highlights.map((h) => (
+                  <li key={h.title} className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                    <h3 className="text-base font-black">{h.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-white/75">{h.text}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </Block>
 
-      {detail.unit && (
+      {product.unit && (
         <Block
           id="laudo"
           title="Laudo da unidade"
@@ -152,13 +198,13 @@ export default async function ProductPage({ params }: PageProps) {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-amber-400/40 bg-amber-400/10 p-5">
               <div className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">Condição</div>
-              <div className="mt-1 font-display text-2xl font-black text-gray-900 dark:text-white">{detail.unit.grade}</div>
-              <p className="mt-1 text-sm text-gray-700 dark:text-zinc-300">{detail.unit.summary}</p>
+              <div className="mt-1 font-display text-2xl font-black text-gray-900 dark:text-white">{product.unit.grade}</div>
+              <p className="mt-1 text-sm text-gray-700 dark:text-zinc-300">{product.unit.summary}</p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
               <div className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-zinc-400">Marcas e observações</div>
               <ul className="mt-2 space-y-2 text-sm">
-                {detail.unit.knownMarks.map((m) => (
+                {product.unit.knownMarks.map((m) => (
                   <li key={m} className="flex gap-2"><span aria-hidden className="text-amber-500">◆</span>{m}</li>
                 ))}
               </ul>
@@ -166,7 +212,7 @@ export default async function ProductPage({ params }: PageProps) {
             <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
               <div className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-zinc-400">O que testamos</div>
               <ul className="mt-2 space-y-2 text-sm">
-                {detail.unit.tested.map((t) => (
+                {product.unit.tested.map((t) => (
                   <li key={t} className="flex gap-2"><Check />{t}</li>
                 ))}
               </ul>
@@ -174,7 +220,7 @@ export default async function ProductPage({ params }: PageProps) {
             <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
               <div className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-zinc-400">Itens incluídos</div>
               <ul className="mt-2 space-y-2 text-sm">
-                {detail.unit.included.map((i) => (
+                {product.unit.included.map((i) => (
                   <li key={i} className="flex gap-2"><Check />{i}</li>
                 ))}
               </ul>
@@ -183,42 +229,46 @@ export default async function ProductPage({ params }: PageProps) {
         </Block>
       )}
 
-      <Block id="especificacoes" title="Especificações">
-        <div className="grid gap-4 md:grid-cols-2">
-          {detail.specs.map((group) => (
-            <div key={group.group} className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-              <h3 className="border-b border-gray-100 px-5 py-3 text-xs font-black uppercase tracking-wider text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
-                {group.group}
-              </h3>
-              <dl className="divide-y divide-gray-100 dark:divide-zinc-800">
-                {group.rows.map(([label, value]) => (
-                  <div key={label} className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] gap-3 px-5 py-3 text-sm">
-                    <dt className="text-gray-500 dark:text-zinc-400">{label}</dt>
-                    <dd className="font-semibold text-gray-900 dark:text-white">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ))}
-        </div>
-      </Block>
+      {product.specs.length > 0 && (
+        <Block id="especificacoes" title="Especificações">
+          <div className="grid gap-4 md:grid-cols-2">
+            {product.specs.map((group) => (
+              <div key={group.group} className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+                <h3 className="border-b border-gray-100 px-5 py-3 text-xs font-black uppercase tracking-wider text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
+                  {group.group}
+                </h3>
+                <dl className="divide-y divide-gray-100 dark:divide-zinc-800">
+                  {group.rows.map(([label, value]) => (
+                    <div key={label} className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] gap-3 px-5 py-3 text-sm">
+                      <dt className="text-gray-500 dark:text-zinc-400">{label}</dt>
+                      <dd className="font-semibold text-gray-900 dark:text-white">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+        </Block>
+      )}
 
-      <Block id="na-caixa" title="O que vem na caixa">
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {detail.inBox.map((item) => (
-            <li key={item} className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold dark:border-zinc-800 dark:bg-zinc-950">
-              <Check />
-              {item}
-            </li>
-          ))}
-        </ul>
-      </Block>
+      {product.inBox.length > 0 && (
+        <Block id="na-caixa" title="O que vem na caixa">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {product.inBox.map((item) => (
+              <li key={item} className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold dark:border-zinc-800 dark:bg-zinc-950">
+                <Check />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </Block>
+      )}
 
       <Block id="entrega-garantia" title="Entrega, garantia e troca">
         <div className="grid gap-4 md:grid-cols-3">
           {[
             ["Entrega", "Enviamos para todo o Brasil. Informe o CEP no quadro de compra para ver prazo e valor. Em Brasília, retire na loja em Santa Maria."],
-            ["Garantia", detail.warranty.text],
+            ["Garantia", warrantyText],
             ["Troca e devolução", "Se o produto não for o esperado, você tem política clara de troca e devolução, para novos e seminovos."],
           ].map(([title, text]) => (
             <div key={title} className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
@@ -243,28 +293,25 @@ export default async function ProductPage({ params }: PageProps) {
         </a>
       </Block>
 
-      <Block id="perguntas" title="Perguntas frequentes">
-        <div className="divide-y divide-gray-200 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
-          {detail.faq.map((item) => (
-            <details key={item.q} className="group px-5 py-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-gray-900 marker:hidden dark:text-white [&::-webkit-details-marker]:hidden">
-                {item.q}
-                <span aria-hidden className="text-xl text-dino-red transition-transform group-open:rotate-45">+</span>
-              </summary>
-              <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-zinc-400">{item.a}</p>
-            </details>
-          ))}
-        </div>
-      </Block>
+      {product.faq.length > 0 && (
+        <Block id="perguntas" title="Perguntas frequentes">
+          <div className="divide-y divide-gray-200 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
+            {product.faq.map((item) => (
+              <details key={item.q} className="group px-5 py-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-gray-900 marker:hidden dark:text-white [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span aria-hidden className="text-xl text-dino-red transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-zinc-400">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </Block>
+      )}
 
       <section id="relacionados" className="scroll-mt-36 pt-4">
-        <ProductCarousel title="Quem viu este produto também viu" products={related} />
+        <ProductCarousel title="Quem viu este produto também viu" products={relatedCards} />
       </section>
-
-      <p className="mt-6 rounded-2xl border border-dashed border-gray-300 p-4 text-center text-xs text-gray-500 dark:border-zinc-700 dark:text-zinc-400">
-        Modelo de página de produto. Fotos, especificações, prazos e garantia são dados de demonstração e serão
-        substituídos pelo catálogo real.
-      </p>
     </div>
   );
 }

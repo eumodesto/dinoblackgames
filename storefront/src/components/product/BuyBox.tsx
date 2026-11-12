@@ -2,16 +2,47 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useCart } from "@/components/cart-provider";
-import { formatBRL, type Product } from "@/data/demo";
-import {
-  CONDITION_LABEL,
-  MAX_INSTALLMENTS,
-  installmentValue,
-  type ProductDetail,
-} from "@/data/product-details";
+import { formatBRL, type ProductCard } from "@/lib/types";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
 import type { ShippingOption } from "@/lib/shipping";
 import { waLink } from "@/lib/whatsapp";
+
+const CONDITION_LABEL: Record<string, string> = {
+  novo: "Novo",
+  seminovo: "Seminovo · unidade única",
+  raridade: "Raridade",
+  pre_venda: "Pré-venda",
+};
+
+const MAX_INSTALLMENTS = 10;
+function installmentValue(price: number) {
+  return Math.ceil((price / MAX_INSTALLMENTS) * 100) / 100;
+}
+
+type OptionValue = { label: string; available: boolean };
+type ProductOption = { id: string; name: string; values: OptionValue[] };
+
+export type BuyBoxProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  sku: string;
+  brand: string;
+  condition: string;
+  tagline: string;
+  price: number;
+  compareAt?: number | null;
+  discount?: number | null;
+  rating?: number | null;
+  soldCount: number;
+  available: number;
+  inStock: boolean;
+  image: string;
+  warrantyMonths: number;
+  warrantyText: string | null;
+  maxInstallments: number;
+  options: ProductOption[];
+};
 
 function Stars({ value }: { value: number }) {
   return (
@@ -48,14 +79,15 @@ const svgProps = {
   "aria-hidden": true,
 };
 
-export function BuyBox({ product, detail }: { product: Product; detail: ProductDetail }) {
+export function BuyBox({ product }: { product: BuyBoxProduct }) {
   const { addItem } = useCart();
-  const isUnique = detail.condition === "seminovo";
-  const soldOut = product.stockLeft === 0;
+  const isUnique = product.condition === "seminovo" || product.condition === "raridade";
+  const soldOut = product.available === 0;
+  const lowStock = product.available > 0 && product.available <= 5;
 
   const [selected, setSelected] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      detail.options.map((o) => [o.id, (o.values.find((v) => v.available) ?? o.values[0]).label]),
+      product.options.map((o) => [o.id, (o.values.find((v) => v.available) ?? o.values[0]).label]),
     ),
   );
   const [qty, setQty] = useState(1);
@@ -85,7 +117,15 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
 
   function handleAdd() {
     if (soldOut) return;
-    addItem(product, { color: selected.color, storage: selected.storage, qty: isUnique ? 1 : qty });
+    const cartProduct: ProductCard = {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      compareAt: product.compareAt,
+      image: product.image,
+    };
+    addItem(cartProduct, { color: selected.color, storage: selected.storage, qty: isUnique ? 1 : qty });
     setAdded(true);
   }
 
@@ -123,7 +163,11 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
   }
 
   const hasDiscount = Boolean(product.compareAt && product.discount);
-  const whatsapp = waLink(`Olá! Tenho uma dúvida sobre: ${product.name} (${detail.sku})`);
+  const whatsapp = waLink(`Olá! Tenho uma dúvida sobre: ${product.name} (${product.sku})`);
+  const warrantyLabel = product.warrantyMonths >= 12
+    ? `${product.warrantyMonths} meses`
+    : `${product.warrantyMonths * 30} dias`;
+  const warrantyText = product.warrantyText ?? `Garantia de ${warrantyLabel} DinoBlack.`;
 
   return (
     <div className="flex flex-col gap-5 rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-6">
@@ -136,22 +180,22 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
           }`}
         >
           <span aria-hidden>{isUnique ? "◆" : "●"}</span>
-          {CONDITION_LABEL[detail.condition]}
+          {CONDITION_LABEL[product.condition] ?? product.condition}
         </span>
-        <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">SKU {detail.sku}</span>
+        <span className="font-mono text-[11px] text-gray-500 dark:text-zinc-500">SKU {product.sku}</span>
       </div>
 
       <div>
         <h1 className="font-display text-2xl font-black leading-tight text-gray-900 dark:text-white sm:text-3xl">
           {product.name}
         </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">{detail.tagline}</p>
-        {product.rating && (
+        <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">{product.tagline}</p>
+        {product.rating != null && (
           <div className="mt-3 flex items-center gap-2 text-sm">
             <Stars value={product.rating} />
             <span className="font-bold text-gray-900 dark:text-white">{product.rating}</span>
-            {product.sold && (
-              <span className="text-gray-500 dark:text-zinc-400">· {product.sold}+ vendidos</span>
+            {product.soldCount > 0 && (
+              <span className="text-gray-500 dark:text-zinc-400">· {product.soldCount}+ vendidos</span>
             )}
           </div>
         )}
@@ -170,12 +214,12 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
           {formatBRL(product.price)}
         </div>
         <div className="mt-1 text-sm text-gray-600 dark:text-zinc-400">
-          ou {MAX_INSTALLMENTS}x de{" "}
+          ou {product.maxInstallments}x de{" "}
           <strong className="text-gray-900 dark:text-white">{formatBRL(installmentValue(product.price))}</strong> sem juros
         </div>
       </div>
 
-      {detail.options.map((option) => (
+      {product.options.map((option) => (
         <div key={option.id}>
           <div className="mb-2 flex items-baseline justify-between">
             <span id={`opt-${option.id}`} className="text-sm font-bold text-gray-900 dark:text-white">
@@ -214,11 +258,11 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
           <span aria-hidden>◆</span> Unidade única: você recebe o item das fotos.
         </p>
       ) : (
-        product.stockLeft != null && (
+        lowStock && (
           <div>
             <div className="mb-1 flex justify-between text-xs">
               <span className="font-bold text-dino-red">
-                {soldOut ? "Sem estoque" : `Só ${product.stockLeft} no estoque`}
+                {soldOut ? "Sem estoque" : `Só ${product.available} no estoque`}
               </span>
               <span className="text-gray-500 dark:text-zinc-400">Quase esgotando</span>
             </div>
@@ -251,7 +295,7 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
               <button
                 type="button"
                 aria-label="Aumentar quantidade"
-                onClick={() => setQty((q) => Math.min(product.stockLeft ?? 10, q + 1))}
+                onClick={() => setQty((q) => Math.min(product.available || 10, q + 1))}
                 className="h-full w-11 text-lg font-bold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
               >
                 +
@@ -336,8 +380,8 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
               <path d="m9 12 2 2 4-4" />
             </svg>
           }
-          title={`Garantia de ${detail.warranty.months >= 12 ? `${detail.warranty.months} meses` : `${detail.warranty.months * 30} dias`}`}
-          text={detail.warranty.text}
+          title={`Garantia de ${warrantyLabel}`}
+          text={warrantyText}
         />
         <TrustItem
           icon={
@@ -365,7 +409,6 @@ export function BuyBox({ product, detail }: { product: Product; detail: ProductD
         />
       </ul>
 
-      {/* Barra de compra fixa no celular, aparece quando o botão principal sai da tela */}
       <div
         className={`fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.25)] backdrop-blur transition-transform duration-300 dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden ${
           showBar ? "translate-y-0" : "translate-y-full"

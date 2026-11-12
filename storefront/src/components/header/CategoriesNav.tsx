@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CATEGORIES, NAV_LINKS } from "@/data/demo";
+const CATEGORIES = [
+  { id: "consoles", name: "Consoles", href: "/loja?categoria=consoles" },
+  { id: "pc-gamer", name: "PC Gamer", href: "/loja?categoria=pc-gamer" },
+  { id: "retro", name: "Retro", href: "/loja?categoria=retro" },
+  { id: "notebooks", name: "Notebooks", href: "/loja?categoria=notebooks" },
+];
+
+const NAV_LINKS = [
+  { label: "Início", href: "/" },
+  { label: "Loja", href: "/loja" },
+  { label: "Sobre", href: "/sobre" },
+  { label: "Contato", href: "/contato" },
+];
 import {
   AlignRightIcon,
   type AlignRightIconHandle,

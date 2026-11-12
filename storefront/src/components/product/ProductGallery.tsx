@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { ChevronButton } from "@/components/ui/ChevronButton";
-import type { GalleryImage } from "@/data/product-details";
+type GalleryImage = { src: string; alt: string; position?: string };
 
 export function ProductGallery({ images, badge }: { images: GalleryImage[]; badge?: string }) {
   const [index, setIndex] = useState(0);

@@ -1,14 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getListingAttrs } from "@/data/catalog";
-import { formatBRL, type Product } from "@/data/demo";
-import { MAX_INSTALLMENTS, installmentValue } from "@/data/product-details";
+import { formatBRL } from "@/lib/types";
+import type { ShopItem } from "@/lib/shop";
 
-/** Card de produto da listagem. A condição aparece em texto e símbolo, nunca só por cor. */
-export function ShopProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
-  const attrs = getListingAttrs(product);
-  const isUnique = attrs.condition === "seminovo";
-  const lowStock = product.stockLeft != null && product.stockLeft > 0 && product.stockLeft <= 5;
+const MAX_INSTALLMENTS = 10;
+
+function installmentValue(price: number) {
+  return Math.ceil((price / MAX_INSTALLMENTS) * 100) / 100;
+}
+
+export function ShopProductCard({ product, priority = false }: { product: ShopItem; priority?: boolean }) {
+  const isUnique = product.condition === "seminovo" || product.condition === "raridade";
+  const lowStock = product.stockLeft != null && product.stockLeft > 0;
 
   return (
     <Link
@@ -36,7 +39,7 @@ export function ShopProductCard({ product, priority = false }: { product: Produc
           <span aria-hidden>{isUnique ? "◆" : "●"}</span>
           {isUnique ? "Seminovo" : "Novo"}
         </span>
-        {product.discount != null && (
+        {product.discount != null && product.discount > 0 && (
           <span className="rounded-full bg-gradient-to-r from-rose-600 to-red-600 px-2.5 py-1 text-[10px] font-black text-white shadow-md sm:text-[11px]">
             −{product.discount}%
           </span>
@@ -53,7 +56,7 @@ export function ShopProductCard({ product, priority = false }: { product: Produc
           <span className="font-mono text-base font-black tracking-tight text-white sm:text-xl">
             {formatBRL(product.price)}
           </span>
-          {product.compareAt && (
+          {product.compareAt != null && (
             <span className="font-mono text-[11px] text-zinc-400 line-through">{formatBRL(product.compareAt)}</span>
           )}
         </div>

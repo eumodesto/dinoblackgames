@@ -6,7 +6,7 @@ import { ShopBanner } from "@/components/shop/ShopBanner";
 import { ShopProductCard } from "@/components/shop/ProductCard";
 import { SortSelect } from "@/components/shop/SortSelect";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
-import { getShop, parseShopState } from "@/lib/shop";
+import { getShop, parseShopState, type ShopItem } from "@/lib/shop";
 import { WA_SELL_USED, waLink } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 
 export default async function ShopPage({ searchParams }: PageProps) {
   const state = parseShopState(await searchParams);
-  const shop = getShop(state);
+  const shop = await getShop(state);
   const activeCount = shop.chips.length;
 
   const filters = (
@@ -155,7 +155,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
           </a>
 
           <p className="mt-6 rounded-2xl border border-dashed border-gray-300 p-4 text-center text-xs text-gray-500 dark:border-zinc-700 dark:text-zinc-400">
-            Modelo da loja. Produtos, fotos, preços e estoque são dados de demonstração e serão substituídos pelo catálogo real.
+            Catálogo DinoBlack Games. Preços e disponibilidade sujeitos a alteração sem aviso.
           </p>
         </section>
       </div>

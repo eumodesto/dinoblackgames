@@ -1,28 +1,57 @@
 import { CategorySection } from "@/components/home/CategorySection";
 import { HeroBanners } from "@/components/home/HeroBanners";
 import { ProductCarousel } from "@/components/home/ProductCarousel";
-import { PRODUCTS } from "@/data/demo";
+import { getBanners, getCategories, getProductListings } from "@/lib/server/catalog";
 
-export default function HomePage() {
-  const latest = PRODUCTS;
-  const onSale = PRODUCTS.filter((product) => product.discount);
+export default async function HomePage() {
+  const [banners, categories, featured, onSale] = await Promise.all([
+    getBanners("home_hero"),
+    getCategories(),
+    getProductListings({ limit: 12 }),
+    getProductListings({ promocao: true, limit: 12 }),
+  ]);
+
+  const deals = onSale.slice(0, 6).map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: p.price,
+    compareAt: p.compareAt,
+    badge: p.badge,
+    discount: p.discount,
+    image: p.image,
+    rating: p.rating,
+    sold: p.soldCount,
+    available: p.available,
+  }));
+
+  const toCard = (p: (typeof featured)[number]) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: p.price,
+    compareAt: p.compareAt,
+    badge: p.badge,
+    discount: p.discount,
+    image: p.image,
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f1f3f6] transition-colors duration-300 dark:bg-[#050507]">
-      <HeroBanners />
-      <CategorySection />
+      <HeroBanners slides={banners} deals={deals} />
+      <CategorySection categories={categories} />
       <section className="container mx-auto space-y-6 px-4 py-4">
         <div>
           <ProductCarousel
             title="Produtos em Destaques"
-            products={latest}
+            products={featured.map(toCard)}
             viewAllHref="/loja"
           />
         </div>
         <div>
           <ProductCarousel
             title="Produtos em Promoção"
-            products={onSale}
+            products={onSale.map(toCard)}
             viewAllHref="/loja?promocao=1"
           />
         </div>

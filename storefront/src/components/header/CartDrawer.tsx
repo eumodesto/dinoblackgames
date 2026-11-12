@@ -8,7 +8,7 @@ import {
   type ShoppingCartIconHandle,
 } from "@/components/icons/shopping-cart-icon";
 import { useCart } from "@/components/cart-provider";
-import { formatBRL } from "@/data/demo";
+import { formatBRL } from "@/lib/types";
 
 export function CartButton() {
   const { count, setOpen } = useCart();
