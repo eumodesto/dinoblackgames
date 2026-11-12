@@ -31,10 +31,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           ))}
         </nav>
-        <div className="mt-auto border-t border-zinc-800 p-4">
+        <div className="mt-auto flex items-center justify-between border-t border-zinc-800 p-4">
           <Link href="/" className="text-xs font-semibold text-zinc-500 hover:text-dino-red">
             ← Voltar à loja
           </Link>
+          <form method="post" action="/api/admin/logout">
+            <button type="submit" className="text-xs font-semibold text-zinc-500 hover:text-dino-red">
+              Sair
+            </button>
+          </form>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
