@@ -2,10 +2,18 @@
 
 import { useState } from "react";
 
-type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & { inputClassName?: string };
+type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  inputClassName?: string;
+  buttonClassName?: string;
+};
 
 /** Campo de senha com botão de olho para mostrar ou ocultar o texto. */
-export function PasswordInput({ inputClassName = "", className = "", ...props }: Props) {
+export function PasswordInput({
+  inputClassName = "",
+  buttonClassName = "text-zinc-400 hover:text-white",
+  className = "",
+  ...props
+}: Props) {
   const [visible, setVisible] = useState(false);
   return (
     <div className={`relative ${className}`}>
@@ -15,7 +23,7 @@ export function PasswordInput({ inputClassName = "", className = "", ...props }:
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
         aria-pressed={visible}
-        className="absolute inset-y-0 right-0 grid w-11 place-items-center text-zinc-400 transition hover:text-white"
+        className={`absolute inset-y-0 right-0 grid w-11 place-items-center transition ${buttonClassName}`}
       >
         {visible ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

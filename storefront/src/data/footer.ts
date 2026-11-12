@@ -66,8 +66,8 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: "Minha conta",
     links: [
-      { label: "Minha Conta" },
-      { label: "Meus Pedidos" },
+      { label: "Minha Conta", href: "/minhaconta" },
+      { label: "Meus Pedidos", href: "/minhaconta" },
     ],
   },
   {
