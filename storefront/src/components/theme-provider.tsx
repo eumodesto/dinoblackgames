@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
     document.documentElement.classList.toggle("dark", next === "dark");
-    window.localStorage.setItem("dinoblack-theme", next);
+    window.localStorage.setItem("dinoblack-theme-v2", next);
   }, []);
 
   const toggleTheme = useCallback(() => {
