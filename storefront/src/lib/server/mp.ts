@@ -122,11 +122,15 @@ export async function mpGetPayment(id: string): Promise<MpPayment | null> {
 }
 
 /**
- * Valida a assinatura do webhook (cabeçalho x-signature) quando MP_WEBHOOK_SECRET está definido.
- * Mesmo sem segredo, o webhook nunca confia no corpo: sempre consulta o pagamento na API.
+ * Valida a assinatura do webhook (cabeçalho x-signature).
+ *
+ * O modo simulado não recebe eventos externos e precisa continuar livre para
+ * os testes locais. No modo live, a ausência do segredo deve bloquear o
+ * webhook: consultar a API depois não substitui a autenticação da origem.
  */
 export function verifyWebhookSignature(opts: { signature: string | null; requestId: string | null; dataId: string }): boolean {
-  if (!env.mpWebhookSecret) return true;
+  if (mpMode() === "simulated") return true;
+  if (!env.mpWebhookSecret) return false;
   if (!opts.signature) return false;
   const parts = Object.fromEntries(opts.signature.split(",").map((p) => p.trim().split("=") as [string, string]));
   if (!parts.ts || !parts.v1) return false;

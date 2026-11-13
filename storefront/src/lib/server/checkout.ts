@@ -128,10 +128,20 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
       [itemsJson(items), JSON.stringify(customer), JSON.stringify(address), ship.name, ship.price, ship.etaDays, str(req.coupon, 40) || null, true],
     );
     if (req.marketingOptIn) {
-      await sql.query(
-        "insert into consents (email, channel, purpose, granted, source) values ($1, 'email', 'marketing', true, 'checkout')",
-        [customer.email],
-      );
+      try {
+        await sql.query(
+          "insert into consents (email, channel, purpose, granted, source) values ($1, 'email', 'marketing', true, 'checkout')",
+          [customer.email],
+        );
+      } catch (consentError) {
+        // O consentimento é importante, mas não pode transformar um pedido já
+        // criado e reservado em um erro percebido pelo cliente. A equipe pode
+        // reprocessar o registro a partir do log sem duplicar o pedido.
+        console.error(
+          "[checkout] pedido criado, mas não foi possível registrar o consentimento de marketing:",
+          consentError instanceof Error ? consentError.message : consentError,
+        );
+      }
     }
     const r = row.r;
     return { number: r.number, token: r.token, total: Number(r.total), subtotal: Number(r.subtotal), discount: Number(r.discount), shipping: Number(r.shipping) };

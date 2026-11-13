@@ -68,7 +68,12 @@ export const env = {
 
 export function checkoutReady() {
   const db = Boolean(env.databaseUrl) || env.localDb;
-  const payments = mpMode() === "simulated" || Boolean(env.mpAccessToken);
+  const livePaymentsReady =
+    Boolean(env.mpAccessToken) &&
+    Boolean(env.mpPublicKey) &&
+    Boolean(env.mpWebhookSecret) &&
+    env.siteUrl.startsWith("https://");
+  const payments = mpMode() === "simulated" || livePaymentsReady;
   const shipping = Boolean(env.superfreteToken || env.melhorEnvioToken);
   return { db, payments, shipping, ok: db && payments };
 }
