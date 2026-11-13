@@ -121,13 +121,6 @@ function toggled(state: ShopState, id: FacetId, value: string): ShopState {
   return { ...state, [id]: next };
 }
 
-function priceRange(price: number): string | undefined {
-  for (const r of PRICE_RANGES) {
-    if (price >= r.min && price < r.max) return r.value;
-  }
-  return undefined;
-}
-
 function buildFacets(state: ShopState, items: ProductListing[], allItems: ProductListing[], facetValues: { platforms: string[]; types: string[]; conditions: string[] }): FacetView[] {
   const countFor = (facetId: FacetId, test: (p: ProductListing) => boolean) =>
     allItems.filter(test).length;

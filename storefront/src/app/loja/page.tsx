@@ -6,7 +6,7 @@ import { ShopBanner } from "@/components/shop/ShopBanner";
 import { ShopProductCard } from "@/components/shop/ProductCard";
 import { SortSelect } from "@/components/shop/SortSelect";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
-import { getShop, parseShopState, type ShopItem } from "@/lib/shop";
+import { getShop, parseShopState } from "@/lib/shop";
 import { WA_SELL_USED, waLink } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
