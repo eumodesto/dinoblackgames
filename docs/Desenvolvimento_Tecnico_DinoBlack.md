@@ -93,6 +93,10 @@ A prontidão em `storefront/src/lib/server/env.ts` também passou a exigir, no
 modo live, token privado, chave pública, segredo do webhook e URL HTTPS. Sem
 esses quatro itens a API informa que o checkout ainda não está pronto.
 
+O banco local em memória também ficou restrito ao modo simulado. Em modo live,
+`DATABASE_URL` passa a ser obrigatório, evitando pagamentos reais sem
+persistência.
+
 ## 7. Próximas etapas
 
 1. Rodar lint, build e testes.

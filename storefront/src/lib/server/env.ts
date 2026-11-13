@@ -67,7 +67,9 @@ export const env = {
 };
 
 export function checkoutReady() {
-  const db = Boolean(env.databaseUrl) || env.localDb;
+  // Banco em memória é permitido apenas no modo simulado. Nunca devemos
+  // aceitar pagamentos reais com dados que desaparecem ao reiniciar a função.
+  const db = Boolean(env.databaseUrl) || (mpMode() === "simulated" && env.localDb);
   const livePaymentsReady =
     Boolean(env.mpAccessToken) &&
     Boolean(env.mpPublicKey) &&
