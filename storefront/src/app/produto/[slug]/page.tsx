@@ -10,7 +10,6 @@ import { SectionNav } from "@/components/product/SectionNav";
 import {
   getProductBySlug,
   getRelatedProducts,
-  getAllProductSlugs,
 } from "@/lib/server/catalog";
 import { WA_SELL_USED } from "@/lib/whatsapp";
 
@@ -23,10 +22,12 @@ const CONDITION_LABEL: Record<string, string> = {
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-export async function generateStaticParams() {
-  const slugs = await getAllProductSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+// Product data is served from the runtime database. Keeping this route dynamic
+// prevents a production build from requiring DATABASE_URL just to enumerate
+// every SKU during `next build`.
+export const dynamic = "force-dynamic";
+
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
