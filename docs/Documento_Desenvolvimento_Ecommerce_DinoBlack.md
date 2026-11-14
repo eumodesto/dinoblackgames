@@ -20,6 +20,8 @@ O projeto será iniciado do zero: frontend, backend, painel administrativo e int
 
 > DECISÃO CENTRAL  Iniciar o desenvolvimento do zero, com descoberta técnica e operacional antes da implementação. Definir a arquitetura da nova loja, o editor visual e as integrações; avaliar dados e URLs da operação atual apenas para eventual migração e continuidade do negócio.
 
+> **Atualização de 14/11/2026 — plataforma:** o desenvolvimento seguiu a opção headless própria (Next.js na Vercel, Postgres/Supabase e Mercado Pago). A escolha ainda precisa de validação com o cliente quanto a custo de operação e autonomia de edição visual, que continua sendo prioridade e ainda não foi implementada. Estado, backlog e decisões pendentes: [Desenvolvimento_Tecnico_DinoBlack.md](./Desenvolvimento_Tecnico_DinoBlack.md).
+
 ### Como usar este documento
 
 Use os requisitos marcados como “base da proposta” para orientar o escopo; use as recomendações como hipóteses técnicas a validar; transforme os pontos em aberto em decisões registradas no workshop. As estimativas comerciais e de prazo da proposta permanecem preliminares.

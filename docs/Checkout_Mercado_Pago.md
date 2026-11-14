@@ -160,7 +160,7 @@ Resultado desta entrega: **110 verificações no banco, 35 ponta a ponta em modo
 | --- | --- |
 | **Boleto** | Fora de propósito: o boleto leva dias para pagar e o pedido reserva o estoque por 30 minutos. O banco e o servidor já suportam; falta decidir a reserva mais longa para boleto. |
 | **Termos e políticas** | A caixa de aceite cita "termos de compra e política de privacidade", mas as páginas **ainda não existem** (nem o texto oficial). Precisam existir e ser revisadas antes de vender de verdade. |
-| **Catálogo no banco** | As páginas de produto e a loja ainda leem o catálogo de demonstração em código; o checkout já valida preço e estoque no banco. Falta trocar a leitura (fase 1 do plano de integração). |
+| **Catálogo no banco** | **Feito (14/11/2026):** home, loja, produto e admin leem o catálogo do banco em tempo de execução (`lib/server/catalog.ts`), como o checkout. Sem `DATABASE_URL` (ou `CHECKOUT_DB=local` com `MP_MODE=simulated`), essas páginas dão 500, embora o `next build` passe. |
 | **Frete real** | Cotação via SuperFrete (principal) e Melhor Envio (fallback), com retirada na loja no DF. Falta emissão/compra de etiqueta pós-pagamento. |
 | **Conta do cliente** | O checkout é só para visitante. Login, endereços salvos e `/pedidos` vêm depois (o banco já suporta). |
 | **E-mails** | Nenhum e-mail transacional é enviado ainda (confirmação, Pix, envio). |

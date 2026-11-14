@@ -3,6 +3,8 @@
 **DinoBlack Games e Informática** · Versão 0.1 · 5 de novembro de 2026
 Status: proposta para validação. Baseada na leitura do documento de desenvolvimento (v1.2), do mapa do painel administrativo, do código do storefront e do modelo de página construído junto com este plano.
 
+> **Atualização de 14/11/2026:** este plano é o retrato de 5/11. Desde então foram entregues `/loja`, carrinho persistido, checkout com Mercado Pago, banco (4 migrations), leitura do catálogo pelo banco e um admin provisório. As seções 2.1 e 13 a 15 abaixo refletem o estado atual; as demais seguem como proposta de referência. O plano de execução vigente está em [Desenvolvimento_Tecnico_DinoBlack.md](./Desenvolvimento_Tecnico_DinoBlack.md).
+
 > **Como ler:** o que está marcado como **Fato** foi verificado no repositório ou nos documentos. **Proposta** é recomendação técnica ou de UX. **Validar** depende de uma decisão do cliente ou de dados que ainda não existem. Metas numéricas só viram compromisso depois do baseline, como o próprio documento de desenvolvimento determina.
 
 ---
@@ -23,12 +25,12 @@ Status: proposta para validação. Baseada na leitura do documento de desenvolvi
 
 | Área | Situação |
 | --- | --- |
-| Rotas existentes | `/` (home) e `/design-system`. Agora também `/produto/[slug]` (modelo). |
-| Rotas linkadas que dão 404 | `/loja`, `/loja?categoria=…`, `/carrinho`, `/conta`, `/pedidos`, `/sobre`, `/contato`. A busca e as categorias também não levam a lugar nenhum. |
-| Carrinho | Estado só no navegador, sem persistência (some ao recarregar) e **já iniciado com 2 itens de demonstração**. A linha do carrinho é identificada só pelo `id` do produto: dois produtos iguais com cores diferentes viram a mesma linha. |
+| Rotas existentes | *(5/11)* `/`, `/design-system` e `/produto/[slug]`. *(14/11)* Também `/loja`, `/checkout`, `/checkout/confirmacao/[número]`, `/carrinho` (redireciona ao checkout), `/minhaconta`, `/admin*` e `/admin-login`. |
+| Rotas linkadas que dão 404 | *(14/11)* Ainda faltam `/pedidos`, `/sobre`, `/contato` e as páginas legais (termos, privacidade, trocas, garantia). |
+| Carrinho | *(5/11)* Sem persistência e iniciado com 2 itens de demonstração; linha identificada só pelo `id` do produto. *(14/11)* Salvo no navegador, começa vazio e distingue cor e armazenamento. |
 | Modelo `Product` | `id, slug, name, price, compareAt, badge, discount, image, category, rating, sold, stockLeft`. Sem condição, galeria, variações, especificações, garantia, SKU ou unidade. |
 | Imagens | Todas remotas do Unsplash, **uma por produto**. Algumas não combinam com o produto: a foto do "Nintendo Switch OLED" mostra um Xbox Series X; a do "Controle DualSense" mostra um controle preto de PS4; a do notebook é um laptop genérico. O cliente rejeitou o Xbox como referência visual. |
-| Banco de dados e admin real | Não existem. O admin é um protótipo estático (`admin-preview`) com dados de demonstração. |
+| Banco de dados e admin real | *(5/11)* Não existiam; o admin era um protótipo estático (`admin-preview`). *(14/11)* O banco existe em `supabase/` (49 tabelas) e o catálogo é lido dele; o admin tem Dashboard, Pedidos e Produtos com login provisório. Falta Supabase de produção. |
 | Documento do design system | O `Design_System_DinoBlack.md` citado na seção 21 do documento de desenvolvimento **não está no repositório**. A página `/design-system` cobre parte disso. |
 | Desempenho | Home com 162 kB de JavaScript no primeiro carregamento (build de produção). O cliente relatou lentidão em sites de referência e pede carregamento ágil. |
 
@@ -374,8 +376,8 @@ Estimativas indicativas, sujeitas a dados, acessos e aprovações.
 - **Endereço:** `/produto/<slug>`. Exemplos: `/produto/playstation-5-slim-1tb` (novo), `/produto/nintendo-switch-oled` (novo, com cores) e `/produto/dualsense-branco` (**seminovo de unidade única**, com laudo).
 - **Código:** [`app/produto/[slug]/page.tsx`](../storefront/src/app/produto/[slug]/page.tsx), componentes em [`components/product/`](../storefront/src/components/product/) e dados de demonstração em [`data/product-details.ts`](../storefront/src/data/product-details.ts).
 - **O que funciona:** galeria com zoom e teclado, seletor de opções com estado esgotado, quantidade, adicionar ao carrinho (respeita a quantidade), CEP com máscara e validação, barra fixa no celular, navegação por seções com destaque, laudo do seminovo, FAQ, relacionados e JSON-LD.
-- **O que é demonstração:** fotos (reaproveitadas, em recortes diferentes), especificações, garantia, parcelas, prazos e valores de frete, FAQ. A página está com `noindex` até o catálogo real alimentar os dados.
-- **O que ainda não existe:** `/loja`, `/carrinho` e checkout, "Avise-me", avaliações, vídeo, comparador e kits.
+- **O que é demonstração:** fotos (reaproveitadas, em recortes diferentes), especificações, garantia, parcelas, FAQ e o conteúdo de `data/product-details.ts`. Preço, estoque e frete vêm do banco e da integração de frete. *(14/11)* A página **não tem mais `noindex`**: decidir quando liberar de fato, pois ainda mostra conteúdo de demonstração.
+- **O que ainda não existe:** "Avise-me", avaliações, vídeo, comparador e kits. *(`/loja`, carrinho e checkout já foram entregues.)*
 
 ---
 
@@ -387,4 +389,4 @@ Estimativas indicativas, sujeitas a dados, acessos e aprovações.
 - **Contagens:** disjuntivas (cada grupo ignora a própria seleção), e opções com zero resultado ficam desabilitadas em vez de sumir.
 - **Estados:** nenhum resultado (com "Limpar filtros" e WhatsApp), filtros ativos em chips removíveis, gaveta que continua aberta enquanto a lista atualiza.
 - **Filtros presentes:** condição, plataforma, tipo, faixa de preço e "em promoção", mais as categorias em abas. Marca, armazenamento, processador, placa de vídeo, memória e tela da seção 7.2 ficam para quando o catálogo real tiver esses dados.
-- **Ainda não existe:** paginação (a demonstração tem 8 produtos), indexação (`noindex` até o catálogo real), cache por tag e a lista de "mais vendidos" baseada em dados reais.
+- **Ainda não existe:** paginação, indexação (`/loja` segue com `noindex` até o catálogo real), cache por tag e a lista de "mais vendidos" baseada em dados reais. *(14/11)* A listagem lê o catálogo do banco (24 produtos no seed) e é renderizada a cada requisição (`force-dynamic`).

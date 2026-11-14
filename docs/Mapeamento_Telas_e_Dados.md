@@ -1,7 +1,7 @@
 # Mapeamento de telas, produtos e usuários para o banco de dados
 
 **DinoBlack Games e Informática** · Versão 0.1 · 5 de novembro de 2026
-Status: pronto para a integração e para testes com dados fictícios. **Nada foi aplicado em nenhum banco remoto.** Tudo foi validado num Postgres local (ver seção 12).
+Status: pronto para a integração e para testes com dados fictícios. **Nada foi aplicado em nenhum banco remoto.** *(14/11/2026: a loja já lê o catálogo e o checkout grava pedidos nesse banco, local ou via `DATABASE_URL`; as fases do plano de integração estão marcadas na seção 11.)* Tudo foi validado num Postgres local (ver seção 12).
 
 > **Fontes do mapeamento (Fato):** código do storefront (`storefront/src`), protótipo do painel (`admin-preview/admin-map.json`, 10 módulos e 52 páginas), documento de desenvolvimento v1.2 e o plano da página de produto. Onde algo ainda não existe no código, está marcado **a criar**. Decisões que dependem do cliente estão em **Validar**.
 
@@ -423,9 +423,9 @@ Num projeto Supabase de **desenvolvimento ou teste** (nunca produção): `supaba
 | Fase | O que entrega | Pré-requisito |
 | --- | --- | --- |
 | **0. Ambiente** | Projeto Supabase de desenvolvimento, migrations e seed aplicados, variáveis de ambiente | **Escolher o projeto** e liberar o alvo no Access Hub |
-| **1. Leitura do catálogo** | Camada de dados (`lib/db`) com a interface `getProduct`, `listProducts`, `getUnit`; `/loja`, `/produto` e home lendo do banco; troca de `data/demo.ts` e `catalog.ts` por consultas | Fase 0 |
+| **1. Leitura do catálogo** *(feito em 14/11/2026: `lib/server/catalog.ts`)* | Camada de dados (`lib/db`) com a interface `getProduct`, `listProducts`, `getUnit`; `/loja`, `/produto` e home lendo do banco; troca de `data/demo.ts` e `catalog.ts` por consultas | Fase 0 |
 | **2. Contas** | Cadastro, login, recuperação, `/conta`, endereços, preferências | Fase 1; provedores de login (e-mail e Google) |
-| **3. Carrinho e pedido** | Carrinho persistido, checkout chamando `create_order_from_cart`, pagamento de teste chamando `confirm_payment`, `/pedidos` | Fase 2 |
+| **3. Carrinho e pedido** *(checkout de visitante feito; falta conta e `/pedidos`)* | Carrinho persistido, checkout chamando `create_order_from_cart`, pagamento de teste chamando `confirm_payment`, `/pedidos` | Fase 2 |
 | **4. Painel real** | Telas do admin por módulo, com os papéis da seção 2; começar por Pedidos, Catálogo e Estoque | Fase 3 |
 | **5. Usados e conteúdo** | Formulário do Projeto Drop com fotos em bucket privado, páginas institucionais, banners editáveis | Fase 2 |
 | **6. Integrações reais** | Gateway, frete, ERP, fiscal, mensagens, analytics | Escolha de fornecedores |

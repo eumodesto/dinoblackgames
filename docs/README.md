@@ -1,5 +1,11 @@
 # Documentação do desenvolvimento
 
+## Por onde começar
+
+- **Estado atual, backlog priorizado, decisões pendentes e riscos:** [Documento técnico de desenvolvimento](./Desenvolvimento_Tecnico_DinoBlack.md) (documento vivo, atualizado a cada marco).
+- **Escopo de produto, jornadas e aceite:** o guia principal abaixo.
+- **Implantação e variáveis de ambiente:** [Checkout com Mercado Pago](./Checkout_Mercado_Pago.md), seção 8, e `storefront/.env.example`.
+
 ## Guia principal
 
 O documento [Documento de Desenvolvimento do E-commerce DinoBlack](./Documento_Desenvolvimento_Ecommerce_DinoBlack.md) é a referência de produto, UX/UI, arquitetura, fases, critérios de aceite, testes e decisões pendentes do projeto.
