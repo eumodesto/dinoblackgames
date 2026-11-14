@@ -19,6 +19,10 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   returned: { label: "Devolvido", cls: "bg-zinc-500/10 text-zinc-400 border-zinc-500/30" },
 };
 
+// Lê o catálogo do banco em tempo de execução. Sem isto o Next tenta pré-renderizar a página
+// durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
+export const dynamic = "force-dynamic";
+
 export default async function AdminOrdersPage() {
   const orders = await getOrders(undefined, 50);
 

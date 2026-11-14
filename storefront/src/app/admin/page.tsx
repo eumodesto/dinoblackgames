@@ -15,6 +15,10 @@ function Kpi({ label, value, sub }: { label: string; value: string | number; sub
   );
 }
 
+// Lê o catálogo do banco em tempo de execução. Sem isto o Next tenta pré-renderizar a página
+// durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboard() {
   const kpis = await getDashboardKpis();
 

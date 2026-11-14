@@ -3,6 +3,10 @@ import { HeroBanners } from "@/components/home/HeroBanners";
 import { ProductCarousel } from "@/components/home/ProductCarousel";
 import { getBanners, getCategories, getProductListings } from "@/lib/server/catalog";
 
+// Lê o catálogo do banco em tempo de execução. Sem isto o Next tenta pré-renderizar a página
+// durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [banners, categories, featured, onSale] = await Promise.all([
     getBanners("home_hero"),

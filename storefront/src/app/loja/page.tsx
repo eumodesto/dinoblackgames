@@ -18,6 +18,10 @@ export const metadata: Metadata = {
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
+// Lê o catálogo do banco em tempo de execução. Sem isto o Next tenta pré-renderizar a página
+// durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
+export const dynamic = "force-dynamic";
+
 export default async function ShopPage({ searchParams }: PageProps) {
   const state = parseShopState(await searchParams);
   const shop = await getShop(state);
