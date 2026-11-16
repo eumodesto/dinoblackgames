@@ -1,1 +1,4 @@
 supabase/seed.local.sql
+
+.vercel
+.env*
