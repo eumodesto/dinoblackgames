@@ -17,15 +17,47 @@ export class DbNotConfiguredError extends Error {
 
 const g = globalThis as unknown as { __dinoSql?: Promise<Sql> };
 
-/** Postgres do Supabase (produção ou teste na nuvem). Conexão do servidor, com permissão de service role. */
 async function connectPostgres(url: string): Promise<Sql> {
   const { default: postgres } = await import("postgres");
-  // prepare: false é necessário no pooler em modo transação do Supabase.
-  const client = postgres(url, { prepare: false, max: 3, idle_timeout: 20 });
+  const client = postgres(url, {
+    prepare: false,
+    max: 3,
+    idle_timeout: 20,
+  });
+  await client`SELECT 1`;
   return {
     async query<T>(text: string, params: unknown[] = []) {
       const rows = await client.unsafe(text, params as never[]);
       return rows as unknown as T[];
+    },
+  };
+}
+
+async function connectViaRest(baseUrl: string, serviceKey: string): Promise<Sql> {
+  const rpcUrl = `${baseUrl}/rest/v1/rpc/exec_sql`;
+  const headers = {
+    "Content-Type": "application/json",
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+  };
+  const test = await fetch(rpcUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ sql_text: "SELECT 1 AS ok" }),
+  });
+  if (!test.ok) throw new Error(`REST proxy test failed: ${test.status}`);
+  return {
+    async query<T>(text: string, params: unknown[] = []) {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ sql_text: text, params }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`exec_sql ${res.status}: ${body}`);
+      }
+      return (await res.json()) as T[];
     },
   };
 }
@@ -80,12 +112,24 @@ async function connectLocal(): Promise<Sql> {
   };
 }
 
+async function connectWithFallback(): Promise<Sql> {
+  if (env.databaseUrl) {
+    try {
+      return await connectPostgres(env.databaseUrl);
+    } catch {
+      if (env.supabaseUrl && env.supabaseServiceKey) {
+        return await connectViaRest(env.supabaseUrl, env.supabaseServiceKey);
+      }
+      throw new Error("Postgres falhou e REST não configurado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");
+    }
+  }
+  if (env.localDb) return connectLocal();
+  throw new DbNotConfiguredError();
+}
+
 export function getSql(): Promise<Sql> {
   if (!g.__dinoSql) {
-    if (env.databaseUrl) g.__dinoSql = connectPostgres(env.databaseUrl);
-    else if (env.localDb) g.__dinoSql = connectLocal();
-    else return Promise.reject(new DbNotConfiguredError());
-    // Se a conexão falhar, não guardar a falha para sempre.
+    g.__dinoSql = connectWithFallback();
     g.__dinoSql.catch(() => {
       g.__dinoSql = undefined;
     });

@@ -64,6 +64,12 @@ export const env = {
   get shippingUserAgent() {
     return process.env.SHIPPING_USER_AGENT ?? "DinoBlack Games (dinoblackgamesbrasil@gmail.com)";
   },
+  get supabaseUrl() {
+    return process.env.SUPABASE_URL ?? "";
+  },
+  get supabaseServiceKey() {
+    return process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  },
 };
 
 export function checkoutReady() {
