@@ -145,7 +145,7 @@ Arquivos esperados:
 
 ### Tarefa ORD-001 — Detalhe do pedido
 
-**Status:** `[~]`
+**Status:** `[x]`
 
 Criar `/admin/pedidos/[id]` e API protegida para retornar:
 
@@ -468,7 +468,7 @@ Uma tarefa só pode ser marcada como concluída quando:
 |---|---|---|---|---|
 | 18/11/2026 | Auditoria inicial | `[x]` | Schema, rotas, páginas e integrações revisados | Executar ADM-001 e ORD-001 |
 | 18/11/2026 | ADM-001 Sidebar | `[~]` | Sidebar modular criada; links de módulos futuros aguardam as respectivas telas | Finalizar responsividade móvel e permissões por papel |
-| 18/11/2026 | ORD-001 Detalhe do pedido | `[x]` | Página, API protegida, itens, cliente, entrega, financeiro, pagamentos, envios, timeline e alteração segura de status implementados; TypeScript, ESLint e build aprovados | Evoluir para rastreio, etiqueta e ações de expedição |
+| 18/11/2026 | ORD-001 Detalhe do pedido | `[x]` | Página, API protegida, itens, cliente, entrega, financeiro, pagamentos, envios, timeline e alteração segura de status implementados; rotas administrativas sem sessão retornam não autorizado; TypeScript, ESLint e build aprovados | Evoluir para rastreio, etiqueta e ações de expedição |
 | 18/11/2026 | ORD-002 Busca, filtros e paginação | `[x]` | Busca, filtros operacionais, paginação segura e exportação CSV protegida implementados; CSV sanitizado contra fórmulas | Evoluir para relatórios operacionais avançados |
 | 18/11/2026 | CAT-001 Categorias | `[~]` | CRUD administrativo de categorias criado com ativação, posição e slug | Adicionar SEO completo, hierarquia e preview público |
 | 18/11/2026 | CAT-002 Tags | `[~]` | Tabelas `tags`/`product_tags`, CRUD e contagem de produtos criados | Associar tags ao formulário de produto e ativar filtros públicos |
