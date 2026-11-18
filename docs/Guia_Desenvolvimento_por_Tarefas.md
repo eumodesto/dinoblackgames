@@ -181,13 +181,18 @@ exportação CSV protegida, limitada a 100 pedidos por solicitação e sanitizad
 
 ### Tarefa ORD-003 — Alteração de status e timeline
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 - Transições permitidas por estado.
 - Confirmação antes de cancelar ou devolver.
 - Registro em `order_events` e `audit_log`.
 - Atualização de estoque ao cancelar.
 - Disparo de e-mail conforme o novo status.
+
+Implementado nesta entrega: matriz de transições permitidas, resposta HTTP 409 para transições
+inválidas, registro em `order_events` e `audit_log`, cancelamento usando a rotina transacional
+existente e templates de e-mail para pago, enviado, entregue e cancelado. Pendente: vincular o
+ator ao usuário administrativo real e cobrir devolução/reembolso com fluxo operacional completo.
 
 ### Tarefa ORD-004 — Pagamento e expedição
 
@@ -470,6 +475,7 @@ Uma tarefa só pode ser marcada como concluída quando:
 | 18/11/2026 | ADM-001 Sidebar | `[~]` | Sidebar modular criada; links de módulos futuros aguardam as respectivas telas | Finalizar responsividade móvel e permissões por papel |
 | 18/11/2026 | ORD-001 Detalhe do pedido | `[x]` | Página, API protegida, itens, cliente, entrega, financeiro, pagamentos, envios, timeline e alteração segura de status implementados; rotas administrativas sem sessão retornam não autorizado; TypeScript, ESLint e build aprovados | Evoluir para rastreio, etiqueta e ações de expedição |
 | 18/11/2026 | ORD-002 Busca, filtros e paginação | `[x]` | Busca, filtros operacionais, paginação segura e exportação CSV protegida implementados; CSV sanitizado contra fórmulas | Evoluir para relatórios operacionais avançados |
+| 18/11/2026 | ORD-003 Status, timeline e auditoria | `[~]` | Transições permitidas, `order_events`, `audit_log`, cancelamento transacional e notificações transacionais implementados; falta identidade administrativa real | Integrar papéis administrativos e fluxo de reembolso/devolução |
 | 18/11/2026 | CAT-001 Categorias | `[~]` | CRUD administrativo de categorias criado com ativação, posição e slug | Adicionar SEO completo, hierarquia e preview público |
 | 18/11/2026 | CAT-002 Tags | `[~]` | Tabelas `tags`/`product_tags`, CRUD e contagem de produtos criados | Associar tags ao formulário de produto e ativar filtros públicos |
 | 18/11/2026 | CUP-001 Cupons | `[~]` | CRUD administrativo de cupons percentuais/fixos, validade, limites e contador de usos criado | Adicionar frete grátis, escopos e regras de acúmulo |

@@ -1,5 +1,6 @@
 import "server-only";
 import { getSql, type Sql } from "./sql";
+import { sendTransactionalEmail, type EmailTemplateKey } from "./email";
 
 // ---------------------------------------------------------------------------
 // Types shared between storefront pages and the data layer
@@ -657,24 +658,67 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
 // Admin: update order status
 // ---------------------------------------------------------------------------
 
+export class OrderStatusError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OrderStatusError";
+  }
+}
+
 export async function updateOrderStatus(orderId: string, newStatus: string, actorId?: string): Promise<void> {
-  const allowed = new Set(["pending_payment", "paid", "preparing", "shipped", "delivered", "cancelled", "returned"]);
-  if (!allowed.has(newStatus)) throw new Error("Status de pedido inválido.");
+  const transitions: Record<string, Set<string>> = {
+    pending_payment: new Set(["paid", "cancelled"]),
+    paid: new Set(["preparing", "cancelled"]),
+    preparing: new Set(["shipped", "cancelled"]),
+    shipped: new Set(["delivered"]),
+    delivered: new Set(["returned"]),
+    cancelled: new Set(),
+    returned: new Set(),
+  };
+  if (!transitions[newStatus]) throw new OrderStatusError("Status de pedido inválido.");
   const sql = await getSql();
-  const [order] = await sql.query<{ id: string; status: string }>(
-    "select id, status::text from orders where id = $1::uuid",
+  const [order] = await sql.query<{
+    id: string; status: string; number: string; customer_name: string | null;
+    customer_email: string | null; guest_email: string | null; total: string | number;
+  }>(
+    "select id, status::text, number, customer_name, customer_email, guest_email, total from orders where id = $1::uuid",
     [orderId],
   );
-  if (!order) throw new Error("Pedido não encontrado");
+  if (!order) throw new OrderStatusError("Pedido não encontrado.");
+  if (!transitions[order.status]?.has(newStatus)) {
+    throw new OrderStatusError(`Transição não permitida: ${order.status} → ${newStatus}.`);
+  }
+
   if (newStatus === "cancelled") {
     await sql.query("select cancel_order($1::uuid, 'Cancelado pelo admin')", [orderId]);
-    return;
+  } else {
+    await sql.query("update orders set status = $1::order_status where id = $2::uuid", [newStatus, orderId]);
+    await sql.query(
+      "insert into order_events (order_id, type, from_status, to_status, message, actor_id) values ($1::uuid, 'status_changed', $2, $3, $4, $5::uuid)",
+      [orderId, order.status, newStatus, `Status alterado para ${newStatus}`, actorId ?? null],
+    );
   }
-  await sql.query("update orders set status = $1::order_status where id = $2::uuid", [newStatus, orderId]);
   await sql.query(
-    "insert into order_events (order_id, type, from_status, to_status, message, actor_id) values ($1::uuid, 'status_changed', $2, $3, $4, $5::uuid)",
-    [orderId, order.status, newStatus, `Status alterado para ${newStatus}`, actorId ?? null],
+    "insert into audit_log (actor_id, action, entity, entity_id, changes) values ($1::uuid, 'order_status_changed', 'orders', $2, $3::jsonb)",
+    [actorId ?? null, orderId, JSON.stringify({ from: order.status, to: newStatus })],
   );
+
+  const recipient = order.customer_email ?? order.guest_email;
+  const templates: Partial<Record<string, EmailTemplateKey>> = {
+    paid: "order_paid", shipped: "order_shipped", delivered: "order_delivered", cancelled: "order_cancelled",
+  };
+  const template = templates[newStatus];
+  if (recipient && template) {
+    void sendTransactionalEmail({
+      to: recipient,
+      template,
+      variables: {
+        name: order.customer_name ?? "Cliente",
+        order_number: order.number,
+        total: `R$ ${Number(order.total).toFixed(2).replace(".", ",")}`,
+      },
+    }).catch((error) => console.error("[email] falha ao notificar mudança de pedido:", error));
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ export const EMAIL_TEMPLATE_KEYS = [
   "order_paid",
   "order_shipped",
   "order_delivered",
+  "order_cancelled",
   "used_request_received",
   "back_in_stock",
 ] as const;
@@ -23,6 +24,7 @@ const DEFAULT_TEMPLATES: EmailTemplates = {
   order_paid: { name: "Pagamento confirmado", subject: "Pagamento confirmado — pedido {{order_number}}", enabled: true, body: "<h1>Pagamento confirmado</h1><p>O pagamento do pedido <strong>{{order_number}}</strong> foi confirmado.</p>" },
   order_shipped: { name: "Pedido enviado", subject: "Seu pedido {{order_number}} foi enviado", enabled: true, body: "<h1>Pedido enviado</h1><p>O pedido <strong>{{order_number}}</strong> está a caminho.</p>" },
   order_delivered: { name: "Pedido entregue", subject: "Pedido {{order_number}} entregue", enabled: true, body: "<h1>Pedido entregue</h1><p>Seu pedido foi entregue.</p>" },
+  order_cancelled: { name: "Pedido cancelado", subject: "Pedido {{order_number}} cancelado", enabled: true, body: "<h1>Pedido cancelado</h1><p>O pedido <strong>{{order_number}}</strong> foi cancelado. Se precisar de ajuda, fale com nosso atendimento.</p>" },
   used_request_received: { name: "Solicitação de avaliação recebida", subject: "Recebemos sua solicitação de troca", enabled: true, body: "<h1>Solicitação recebida</h1><p>Recebemos os dados do item para avaliação.</p>" },
   back_in_stock: { name: "Produto disponível novamente", subject: "{{product_name}} voltou ao estoque", enabled: true, body: "<h1>Boa notícia!</h1><p><strong>{{product_name}}</strong> está disponível novamente.</p>" },
 };

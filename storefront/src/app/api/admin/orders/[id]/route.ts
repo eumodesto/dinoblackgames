@@ -1,6 +1,5 @@
 import { handle, json, requireAdminSession } from "@/lib/server/api";
-import { getAdminOrderDetail } from "@/lib/server/catalog";
-import { updateOrderStatus } from "@/lib/server/catalog";
+import { getAdminOrderDetail, OrderStatusError, updateOrderStatus } from "@/lib/server/catalog";
 import { readJson } from "@/lib/server/api";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +22,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const body = await readJson(req);
     const status = typeof body.status === "string" ? body.status : "";
-    await updateOrderStatus(id, status);
+    try {
+      await updateOrderStatus(id, status);
+    } catch (error) {
+      if (error instanceof OrderStatusError) {
+        return json({ error: error.message }, error.message === "Pedido não encontrado." ? 404 : 409);
+      }
+      throw error;
+    }
     return json({ ok: true });
   });
 }
