@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminOrderDetail } from "@/lib/server/catalog";
 import { OrderStatusActions } from "@/components/admin/OrderStatusActions";
+import { ShipmentActions } from "@/components/admin/ShipmentActions";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"><h2 className="font-bold text-white">Pagamentos</h2><div className="mt-4 space-y-3">{detail.payments.length === 0 ? <p className="text-sm text-zinc-500">Nenhum pagamento registrado.</p> : detail.payments.map((payment) => <div key={String(payment.id)} className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm"><div className="flex justify-between"><span className="text-zinc-300">{String(payment.method)} · {String(payment.status)}</span><strong className="font-mono text-white">{money(payment.amount)}</strong></div><p className="mt-1 text-xs text-zinc-500">Provedor: {String(payment.provider ?? "—")} · Confirmado: {date(payment.paid_at)}</p></div>)}</div></div>
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"><h2 className="font-bold text-white">Envios</h2><div className="mt-4 space-y-3">{detail.shipments.length === 0 ? <p className="text-sm text-zinc-500">Nenhum envio registrado.</p> : detail.shipments.map((shipment) => <div key={String(shipment.id)} className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm"><p className="font-semibold text-white">{String(shipment.carrier ?? "Transportadora não definida")} · {String(shipment.status)}</p><p className="mt-1 text-xs text-zinc-500">Serviço: {String(shipment.service ?? "—")} · Rastreio: {String(shipment.tracking_code ?? "—")}</p></div>)}</div></div>
       </section>
+      <ShipmentActions orderId={id} shipment={(detail.shipments[0] as { status?: unknown; carrier?: unknown; service?: unknown; tracking_code?: unknown } | undefined) ?? null} />
     </div>
   );
 }

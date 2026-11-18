@@ -721,6 +721,50 @@ export async function updateOrderStatus(orderId: string, newStatus: string, acto
   }
 }
 
+export type AdminShipmentInput = {
+  status: "pending" | "ready" | "shipped" | "delivered" | "failed";
+  carrier?: string;
+  service?: string;
+  trackingCode?: string;
+};
+
+export async function upsertAdminShipment(orderId: string, input: AdminShipmentInput, actorId?: string) {
+  const sql = await getSql();
+  const [order] = await sql.query<{ id: string; status: string }>("select id, status::text from orders where id = $1::uuid", [orderId]);
+  if (!order) throw new OrderStatusError("Pedido não encontrado.");
+  if (["pending_payment", "cancelled", "returned"].includes(order.status)) {
+    throw new OrderStatusError("Este pedido não pode receber uma remessa neste status.");
+  }
+  const status = input.status;
+  const [shipment] = await sql.query<{ id: string }>("select id from shipments where order_id = $1::uuid order by created_at desc limit 1", [orderId]);
+  const values = [status, input.carrier?.trim() || null, input.service?.trim() || null, input.trackingCode?.trim() || null, orderId, actorId ?? null];
+  if (shipment) {
+    await sql.query(
+      `update shipments set status = $1::shipment_status, carrier = $2, service = $3, tracking_code = $4,
+       shipped_at = case when $1::shipment_status in ('shipped', 'delivered') then coalesce(shipped_at, now()) else shipped_at end,
+       delivered_at = case when $1::shipment_status = 'delivered' then coalesce(delivered_at, now()) else delivered_at end
+       where id = $5::uuid`,
+      values.slice(0, 5),
+    );
+  } else {
+    await sql.query(
+      `insert into shipments (order_id, status, carrier, service, tracking_code, shipped_at, delivered_at)
+       values ($5::uuid, $1::shipment_status, $2, $3, $4,
+         case when $1::shipment_status in ('shipped', 'delivered') then now() end,
+         case when $1::shipment_status = 'delivered' then now() end)`,
+      values,
+    );
+  }
+  await sql.query(
+    "insert into order_events (order_id, type, message, actor_id) values ($1::uuid, 'shipment', $2, $3::uuid)",
+    [orderId, `Remessa atualizada: ${status}${input.trackingCode ? ` · ${input.trackingCode.trim()}` : ""}`, actorId ?? null],
+  );
+  await sql.query(
+    "insert into audit_log (actor_id, action, entity, entity_id, changes) values ($1::uuid, 'shipment_updated', 'orders', $2, $3::jsonb)",
+    [actorId ?? null, orderId, JSON.stringify({ status, carrier: input.carrier?.trim() || null, service: input.service?.trim() || null, tracking_code: input.trackingCode?.trim() || null })],
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Admin: products list (includes drafts and archived)
 // ---------------------------------------------------------------------------

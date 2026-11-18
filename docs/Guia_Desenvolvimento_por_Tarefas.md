@@ -196,13 +196,17 @@ ator ao usuário administrativo real e cobrir devolução/reembolso com fluxo op
 
 ### Tarefa ORD-004 — Pagamento e expedição
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 - Visualizar pagamento e webhook recebido.
 - Criar remessa após pagamento confirmado.
 - Informar transportadora e rastreio.
 - Reenviar notificação ao cliente.
 - Preparar reembolso e devolução.
+
+Implementado nesta entrega: edição protegida de remessa com transportadora, serviço, rastreio e
+status; registro da operação na timeline e auditoria; reenvio de notificação transacional pelo
+admin. Pendente: criação de etiqueta, integração com transportadora, webhook de rastreio e reembolso.
 
 ## 6. Fase 2 — Produto, embalagem e frete
 
@@ -476,6 +480,7 @@ Uma tarefa só pode ser marcada como concluída quando:
 | 18/11/2026 | ORD-001 Detalhe do pedido | `[x]` | Página, API protegida, itens, cliente, entrega, financeiro, pagamentos, envios, timeline e alteração segura de status implementados; rotas administrativas sem sessão retornam não autorizado; TypeScript, ESLint e build aprovados | Evoluir para rastreio, etiqueta e ações de expedição |
 | 18/11/2026 | ORD-002 Busca, filtros e paginação | `[x]` | Busca, filtros operacionais, paginação segura e exportação CSV protegida implementados; CSV sanitizado contra fórmulas | Evoluir para relatórios operacionais avançados |
 | 18/11/2026 | ORD-003 Status, timeline e auditoria | `[~]` | Transições permitidas, `order_events`, `audit_log`, cancelamento transacional e notificações transacionais implementados; falta identidade administrativa real | Integrar papéis administrativos e fluxo de reembolso/devolução |
+| 18/11/2026 | ORD-004 Pagamento e expedição | `[~]` | Formulário e APIs protegidas para remessa, rastreio e reenvio de notificação implementados; falta etiqueta, transportadoras e reembolso | Iniciar dimensões, embalagem e frete por variante |
 | 18/11/2026 | CAT-001 Categorias | `[~]` | CRUD administrativo de categorias criado com ativação, posição e slug | Adicionar SEO completo, hierarquia e preview público |
 | 18/11/2026 | CAT-002 Tags | `[~]` | Tabelas `tags`/`product_tags`, CRUD e contagem de produtos criados | Associar tags ao formulário de produto e ativar filtros públicos |
 | 18/11/2026 | CUP-001 Cupons | `[~]` | CRUD administrativo de cupons percentuais/fixos, validade, limites e contador de usos criado | Adicionar frete grátis, escopos e regras de acúmulo |
