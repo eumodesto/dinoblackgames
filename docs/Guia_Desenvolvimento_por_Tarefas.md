@@ -168,12 +168,16 @@ Critérios de aceite:
 
 ### Tarefa ORD-002 — Busca, filtros e paginação
 
-**Status:** `[ ]`
+**Status:** `[~]`
 
 - Busca por número, nome, e-mail e SKU.
 - Filtro por status, período, pagamento e transportadora.
 - Paginação baseada em cursor ou limite seguro.
 - Exportação CSV sem segredos.
+
+Implementado nesta entrega: busca por número, cliente, e-mail e SKU; filtros de status do pedido,
+status de pagamento, transportadora e intervalo de datas; paginação segura de 25 registros por página.
+Pendente: exportação CSV com auditoria e limite próprio.
 
 ### Tarefa ORD-003 — Alteração de status e timeline
 
@@ -465,6 +469,7 @@ Uma tarefa só pode ser marcada como concluída quando:
 | 18/11/2026 | Auditoria inicial | `[x]` | Schema, rotas, páginas e integrações revisados | Executar ADM-001 e ORD-001 |
 | 18/11/2026 | ADM-001 Sidebar | `[~]` | Sidebar modular criada; links de módulos futuros aguardam as respectivas telas | Finalizar responsividade móvel e permissões por papel |
 | 18/11/2026 | ORD-001 Detalhe do pedido | `[x]` | Página, API protegida, itens, cliente, entrega, financeiro, pagamentos, envios, timeline e alteração segura de status implementados; TypeScript, ESLint e build aprovados | Evoluir para rastreio, etiqueta e ações de expedição |
+| 18/11/2026 | ORD-002 Busca, filtros e paginação | `[~]` | Busca por pedido/cliente/e-mail/SKU, filtros operacionais e paginação segura implementados; TypeScript aprovado | Adicionar exportação CSV auditada |
 | 18/11/2026 | CAT-001 Categorias | `[~]` | CRUD administrativo de categorias criado com ativação, posição e slug | Adicionar SEO completo, hierarquia e preview público |
 | 18/11/2026 | CAT-002 Tags | `[~]` | Tabelas `tags`/`product_tags`, CRUD e contagem de produtos criados | Associar tags ao formulário de produto e ativar filtros públicos |
 | 18/11/2026 | CUP-001 Cupons | `[~]` | CRUD administrativo de cupons percentuais/fixos, validade, limites e contador de usos criado | Adicionar frete grátis, escopos e regras de acúmulo |

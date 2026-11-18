@@ -496,10 +496,47 @@ export type OrderSummary = {
   itemCount: number;
 };
 
-export async function getOrders(status?: string, limit = 50): Promise<OrderSummary[]> {
+export type OrderFilters = {
+  query?: string;
+  status?: string;
+  paymentStatus?: string;
+  carrier?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function getOrders(filters: OrderFilters = {}): Promise<OrderSummary[]> {
   const sql = await getSql();
-  const cond = status ? "where o.status = $1" : "";
-  const params = status ? [status] : [];
+  const where: string[] = [];
+  const params: unknown[] = [];
+  const add = (sqlFragment: string, value: unknown) => {
+    params.push(value);
+    where.push(sqlFragment.replace("?", `$${params.length}`));
+  };
+
+  if (filters.status) add("o.status = ?::order_status", filters.status);
+  if (filters.paymentStatus) {
+    add("exists (select 1 from payments pf where pf.order_id = o.id and pf.status = ?::payment_status)", filters.paymentStatus);
+  }
+  if (filters.carrier) {
+    add("exists (select 1 from shipments sf where sf.order_id = o.id and sf.carrier ilike ?)", `%${filters.carrier}%`);
+  }
+  if (filters.from) add("o.placed_at >= ?::date", filters.from);
+  if (filters.to) add("o.placed_at < (?::date + interval '1 day')", filters.to);
+  if (filters.query) {
+    const query = `%${filters.query}%`;
+    params.push(query, query, query, query);
+    const p1 = params.length - 3;
+    const p2 = params.length - 2;
+    const p3 = params.length - 1;
+    const p4 = params.length;
+    where.push(`(o.number ilike $${p1} or o.customer_name ilike $${p2} or coalesce(o.customer_email, o.guest_email) ilike $${p3} or exists (select 1 from order_items oq join product_variants vq on vq.id = oq.variant_id where oq.order_id = o.id and vq.sku ilike $${p4}))`);
+  }
+  const limit = Math.min(Math.max(filters.limit ?? 25, 1), 100);
+  const offset = Math.max(filters.offset ?? 0, 0);
+  const cond = where.length ? `where ${where.join(" and ")}` : "";
   const rows = await sql.query<{
     id: string; number: string; status: string; total: string | number;
     customer_name: string | null; customer_email: string | null; placed_at: string;
@@ -508,7 +545,7 @@ export async function getOrders(status?: string, limit = 50): Promise<OrderSumma
     `select o.id, o.number, o.status::text, o.total, o.customer_name, coalesce(o.customer_email, o.guest_email) as customer_email,
             o.placed_at::text, (select count(*)::int from order_items oi where oi.order_id = o.id) as item_count
      from orders o ${cond}
-     order by o.placed_at desc limit ${Math.min(limit, 200)}`,
+     order by o.placed_at desc limit ${limit} offset ${offset}`,
     params,
   );
   return rows.map((r) => ({
