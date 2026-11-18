@@ -17,6 +17,13 @@ function jsonValue(value: unknown, fallback: unknown) {
   return value && typeof value === "object" ? value : fallback;
 }
 
+function optionalDimension(value: unknown, label: string) {
+  if (value === undefined || value === "" || value === null) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 200000) throw new Error(`${label} inválido.`);
+  return parsed || null;
+}
+
 function validate(body: Record<string, unknown>) {
   const name = text(body.name);
   const sku = text(body.sku);
@@ -69,7 +76,7 @@ export async function POST(req: Request) {
     const [variant] = await sql.query<{ id: string }>(
       `insert into product_variants (product_id, sku, option_values, price, compare_at, max_installments, weight_grams, width_mm, height_mm, length_mm)
        values ($1::uuid, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10) returning id`,
-      [product.id, input.sku, JSON.stringify(jsonValue(body.optionValues, {})), input.price, body.compareAt ? Number(body.compareAt) : null, Number(body.maxInstallments) || 10, Number(body.weightGrams) || null, Number(body.widthMm) || null, Number(body.heightMm) || null, Number(body.lengthMm) || null],
+      [product.id, input.sku, JSON.stringify(jsonValue(body.optionValues, {})), input.price, body.compareAt ? Number(body.compareAt) : null, Number(body.maxInstallments) || 10, optionalDimension(body.weightGrams, "Peso"), optionalDimension(body.widthMm, "Largura"), optionalDimension(body.heightMm, "Altura"), optionalDimension(body.lengthMm, "Comprimento")],
     );
     for (const [key, value] of facets) await sql.query("insert into product_facets (product_id, facet_key, facet_value) values ($1::uuid, $2, $3) on conflict do nothing", [product.id, key, value]);
     const image = text(body.imageUrl);

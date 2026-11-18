@@ -21,7 +21,7 @@ export function AdminProductForm({ productId }: ProductFormProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [type, setType] = useState("console");
-  const [form, setForm] = useState<Record<string, string>>({ status: "draft", condition: "novo", warrantyMonths: "12", maxInstallments: "10", stock: "0", minStock: "0" });
+  const [form, setForm] = useState<Record<string, string>>({ status: "draft", condition: "novo", warrantyMonths: "12", maxInstallments: "10", stock: "0", minStock: "0", weightGrams: "", widthMm: "", heightMm: "", lengthMm: "" });
 
   useEffect(() => {
     fetch("/api/admin/products").then((r) => r.json()).then(setMeta).catch(() => setMessage("Não foi possível carregar categorias."));
@@ -32,7 +32,7 @@ export function AdminProductForm({ productId }: ProductFormProps) {
         const m = p.media ?? {};
         const facets = Object.fromEntries((p.facets ?? []).map((f: { key: string; value: string }) => [f.key, f.value]));
         setType(facets.product_type ?? "console");
-        setForm({ name: p.name ?? "", sku: p.sku ?? "", categoryId: p.category_id ?? "", brand: p.brand ?? "", platform: facets.platform ?? "", releaseYear: facets.release_year ?? "", tagline: p.tagline ?? "", description: p.description ?? "", condition: p.condition ?? "novo", status: p.status ?? "draft", warrantyMonths: String(p.warranty_months ?? 12), warrantyText: p.warranty_text ?? "", price: String(v.price ?? ""), compareAt: v.compare_at ? String(v.compare_at) : "", maxInstallments: String(v.max_installments ?? 10), imageUrl: m.url ?? "" });
+        setForm({ name: p.name ?? "", sku: p.sku ?? "", categoryId: p.category_id ?? "", brand: p.brand ?? "", platform: facets.platform ?? "", releaseYear: facets.release_year ?? "", tagline: p.tagline ?? "", description: p.description ?? "", condition: p.condition ?? "novo", status: p.status ?? "draft", warrantyMonths: String(p.warranty_months ?? 12), warrantyText: p.warranty_text ?? "", price: String(v.price ?? ""), compareAt: v.compare_at ? String(v.compare_at) : "", maxInstallments: String(v.max_installments ?? 10), weightGrams: v.weight_grams ? String(v.weight_grams) : "", widthMm: v.width_mm ? String(v.width_mm) : "", heightMm: v.height_mm ? String(v.height_mm) : "", lengthMm: v.length_mm ? String(v.length_mm) : "", imageUrl: m.url ?? "" });
       }).finally(() => setLoading(false));
     }
   }, [productId]);
@@ -80,6 +80,7 @@ export function AdminProductForm({ productId }: ProductFormProps) {
       <label className="block"><span className={label}>Local do estoque</span><select className={input} value={form.locationId ?? ""} onChange={(e) => set("locationId", e.target.value)}><option value="">Não definir agora</option>{meta.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
       <p className="md:col-span-3 text-xs leading-5 text-zinc-500">O preço promocional é o valor cobrado no checkout. O preço original aparece riscado na loja quando for maior que o promocional.</p>
     </div>
+    <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-4"><div className="md:col-span-4"><h2 className="font-bold text-white">Dimensões para entrega</h2><p className="mt-1 text-xs text-zinc-500">Informe a embalagem pronta para envio. Peso em gramas; medidas em milímetros.</p></div><Field name="weightGrams" title="Peso (g)" type="number" placeholder="Ex.: 4500" /><Field name="heightMm" title="Altura (mm)" type="number" placeholder="Ex.: 150" /><Field name="widthMm" title="Largura (mm)" type="number" placeholder="Ex.: 400" /><Field name="lengthMm" title="Comprimento (mm)" type="number" placeholder="Ex.: 300" /></div>
     <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-2"><Field name="tagline" title="Resumo curto" /><Field name="warrantyText" title="Texto da garantia" /><label className="block md:col-span-2"><span className={label}>Descrição</span><textarea className={`${input} h-28 py-3`} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} /></label></div>
     {message && <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{message}</p>}
     <div className="flex gap-3"><button disabled={saving} className="rounded-xl bg-dino-red px-6 py-3 font-bold text-white disabled:opacity-50">{saving ? "Salvando..." : productId ? "Salvar alterações" : "Criar produto"}</button><button type="button" onClick={() => router.back()} className="rounded-xl border border-zinc-700 px-6 py-3 font-bold text-zinc-300">Cancelar</button></div>

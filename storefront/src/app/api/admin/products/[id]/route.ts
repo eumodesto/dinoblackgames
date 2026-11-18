@@ -1,6 +1,14 @@
 import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
 import { getSql } from "@/lib/server/sql";
 
+function optionalDimension(value: unknown, label: string) {
+  if (value === undefined) return undefined;
+  if (value === "" || value === null) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 200000) throw new Error(`${label} inválido.`);
+  return parsed || null;
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   return handle(async () => {
     const unauthorized = await requireAdminSession();
@@ -27,6 +35,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (value === undefined) continue;
       const cast = ["category_id"].includes(column) ? "::uuid" : ["condition"].includes(column) ? "::product_condition" : ["status"].includes(column) ? "::publish_status" : "";
       await sql.query(`update products set ${column} = $1${cast} where id = $2::uuid`, [value === "" ? null : value, id]);
+    }
+    const dimensions = [
+      optionalDimension(body.weightGrams, "Peso"),
+      optionalDimension(body.widthMm, "Largura"),
+      optionalDimension(body.heightMm, "Altura"),
+      optionalDimension(body.lengthMm, "Comprimento"),
+    ];
+    if (dimensions.some((value) => value !== undefined)) {
+      await sql.query("update product_variants set weight_grams = $1, width_mm = $2, height_mm = $3, length_mm = $4 where product_id = $5::uuid and is_active", [...dimensions, id]);
     }
     if (body.price !== undefined || body.compareAt !== undefined) await sql.query("update product_variants set price = coalesce($1, price), compare_at = $2 where product_id = $3::uuid and is_active", [body.price === undefined ? null : Number(body.price), body.compareAt ? Number(body.compareAt) : null, id]);
     if (body.imageUrl !== undefined) await sql.query("delete from product_media where product_id = $1::uuid", [id]);
