@@ -40,6 +40,15 @@ function pageUrl(params: SearchParams, page: number) {
   return `/admin/pedidos?${next.toString()}`;
 }
 
+function exportUrl(params: SearchParams) {
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key !== "page" && typeof value === "string" && value) next.set(key, value);
+  }
+  const query = next.toString();
+  return `/api/admin/orders/export${query ? `?${query}` : ""}`;
+}
+
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = (await searchParams) ?? {};
   const page = Math.max(Number(valueOf(params, "page")) || 1, 1);
@@ -80,6 +89,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
         </div>
         <button className="rounded-xl bg-dino-red px-4 py-2 text-sm font-bold text-white hover:bg-red-700 xl:col-span-1" type="submit">Filtrar</button>
         <Link href="/admin/pedidos" className="rounded-xl border border-zinc-700 px-4 py-2 text-center text-sm font-bold text-zinc-300 hover:border-zinc-500 hover:text-white">Limpar</Link>
+        <a href={exportUrl(params)} className="rounded-xl border border-emerald-700/60 px-4 py-2 text-center text-sm font-bold text-emerald-300 hover:border-emerald-500 hover:text-emerald-200">Exportar CSV</a>
       </form>
 
       {orders.length === 0 ? (
