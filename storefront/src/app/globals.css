@@ -30,6 +30,8 @@
   --color-dino-cyan: var(--dino-cyan);
   --color-page: var(--page-bg);
   --color-page-dark: var(--page-bg-dark);
+  --font-nunito: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-rubik: "Rubik", ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-nunito);
   --font-display: var(--font-rubik);
 }

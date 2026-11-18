@@ -17,6 +17,7 @@ import { env, mpMode } from "./env";
 import { MpError, mpCreatePayment, mpGetPayment, toSyncPayload, type MpPayment } from "./mp";
 import { findQuotedShipping, quoteShippingOptions } from "./shipping-quote";
 import { getSql } from "./sql";
+import { sendTransactionalEmail } from "./email";
 
 /** Erro com mensagem segura para mostrar ao cliente. */
 export class CheckoutError extends Error {
@@ -144,6 +145,14 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
       }
     }
     const r = row.r;
+    // O pedido já foi persistido; falha no Resend não pode desfazer a compra.
+    void sendTransactionalEmail({
+      to: customer.email,
+      template: "order_created",
+      variables: { name: customer.name, order_number: r.number, total: `R$ ${Number(r.total).toFixed(2).replace(".", ",")}` },
+    }).catch((error) => {
+      console.error("[checkout] pedido criado, mas confirmação por e-mail não foi enviada:", error instanceof Error ? error.message : error);
+    });
     return { number: r.number, token: r.token, total: Number(r.total), subtotal: Number(r.subtotal), discount: Number(r.discount), shipping: Number(r.shipping) };
   } catch (e) {
     throw translateDbError(e);

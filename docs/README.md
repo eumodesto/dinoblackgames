@@ -8,6 +8,8 @@
 
 ## Guia principal
 
+Para executar o backlog por tarefas e acompanhar o que está sendo feito, use o [Guia de desenvolvimento por tarefas](./Guia_Desenvolvimento_por_Tarefas.md). Ele é a referência operacional para fases, sidebar administrativa, critérios de aceite e registro de execução.
+
 O documento [Documento de Desenvolvimento do E-commerce DinoBlack](./Documento_Desenvolvimento_Ecommerce_DinoBlack.md) é a referência de produto, UX/UI, arquitetura, fases, critérios de aceite, testes e decisões pendentes do projeto.
 
 Complemento: [Plano da página de produto e da listagem com filtros](./Plano_Pagina_Produto.md), com diagnóstico, anatomia da página, variantes (novo, seminovo, raridade), filtros por categoria, modelo de dados, roadmap e decisões pendentes.

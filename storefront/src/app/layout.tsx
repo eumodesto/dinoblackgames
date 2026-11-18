@@ -1,23 +1,10 @@
 import type { Metadata } from "next";
-import { Nunito_Sans, Rubik } from "next/font/google";
 import { CartProvider } from "@/components/cart-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/header/SiteHeader";
 import { SiteFooter } from "@/components/footer/SiteFooter";
 import { SiteChrome } from "@/components/site-chrome";
 import "./globals.css";
-
-const nunito = Nunito_Sans({
-  variable: "--font-nunito",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin"],
-  weight: ["500", "700", "800", "900"],
-});
 
 export const metadata: Metadata = {
   title: "DinoBlack Games e Informática",
@@ -40,7 +27,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${nunito.variable} ${rubik.variable} min-h-screen bg-[#f1f3f6] antialiased dark:bg-[#050507]`}
+        className="min-h-screen bg-[#f1f3f6] antialiased dark:bg-[#050507]"
         suppressHydrationWarning
       >
         <ThemeProvider>

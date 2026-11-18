@@ -70,6 +70,19 @@ export const env = {
   get supabaseServiceKey() {
     return process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   },
+  get supabaseAnonKey() {
+    return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  },
+  /** Configuração do Resend; a chave nunca é persistida no banco. */
+  get resendApiKey() {
+    return process.env.RESEND_API_KEY ?? "";
+  },
+  get resendFromEmail() {
+    return process.env.RESEND_FROM_EMAIL ?? "";
+  },
+  get resendReplyTo() {
+    return process.env.RESEND_REPLY_TO ?? "";
+  },
 };
 
 export function checkoutReady() {

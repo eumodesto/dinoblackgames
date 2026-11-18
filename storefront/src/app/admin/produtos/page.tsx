@@ -34,6 +34,7 @@ export default async function AdminProductsPage() {
           <h1 className="font-display text-3xl font-black text-white">Produtos</h1>
           <p className="mt-1 text-sm text-zinc-500">{products.length} produtos no catálogo</p>
         </div>
+        <Link href="/admin/produtos/novo" className="rounded-xl bg-dino-red px-4 py-2.5 text-sm font-bold text-white transition hover:bg-dino-red-hover">Novo produto</Link>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-zinc-800">
@@ -54,7 +55,8 @@ export default async function AdminProductsPage() {
               return (
                 <tr key={p.id} className="transition hover:bg-zinc-900/50">
                   <td className="px-4 py-3">
-                    <Link href={`/produto/${p.slug}`} className="flex items-center gap-3 hover:text-dino-red">
+                    <div className="flex items-center gap-3">
+                    <Link href={`/produto/${p.slug}`} className="flex min-w-0 flex-1 items-center gap-3 hover:text-dino-red">
                       {p.image ? (
                         <Image src={p.image} alt="" width={40} height={40} className="h-10 w-10 rounded-lg bg-zinc-900 object-cover" />
                       ) : (
@@ -65,6 +67,8 @@ export default async function AdminProductsPage() {
                         <div className="text-xs text-zinc-500">{CONDITION_LABEL[p.condition] ?? p.condition}</div>
                       </div>
                     </Link>
+                    <Link href={`/admin/produtos/${p.id}`} className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-400 hover:border-dino-red hover:text-white">Editar</Link>
+                    </div>
                   </td>
                   <td className="hidden px-4 py-3 font-mono text-xs text-zinc-500 md:table-cell">{p.sku}</td>
                   <td className="hidden px-4 py-3 text-zinc-400 sm:table-cell">{p.categoryName}</td>

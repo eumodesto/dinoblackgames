@@ -1,4 +1,5 @@
 import { getOrders } from "@/lib/server/catalog";
+import Link from "next/link";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -57,7 +58,7 @@ export default async function AdminOrdersPage() {
                 return (
                   <tr key={o.id} className="transition hover:bg-zinc-900/50">
                     <td className="px-4 py-3">
-                      <span className="font-mono font-semibold text-white">#{o.number}</span>
+                      <Link href={`/admin/pedidos/${o.id}`} className="font-mono font-semibold text-white hover:text-dino-red">#{o.number}</Link>
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell">
                       <div className="text-zinc-300">{o.customerName ?? "—"}</div>

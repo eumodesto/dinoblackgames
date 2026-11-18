@@ -1,0 +1,9 @@
+import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
+import { getSql } from "@/lib/server/sql";
+
+function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function slugify(value: string) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+
+export async function GET() { return handle(async () => { const unauthorized = await requireAdminSession(); if (unauthorized) return unauthorized; const sql = await getSql(); return json({ tags: await sql.query("select t.id, t.slug, t.name, t.color, t.is_active, count(pt.product_id)::int as product_count from tags t left join product_tags pt on pt.tag_id = t.id group by t.id order by t.name") }); }); }
+
+export async function POST(req: Request) { return handle(async () => { const unauthorized = await requireAdminSession(); if (unauthorized) return unauthorized; const body = await readJson(req); const name = text(body.name); if (!name) return json({ error: "Nome da tag é obrigatório." }, 400); const sql = await getSql(); const [tag] = await sql.query("insert into tags (slug, name, color, is_active) values ($1, $2, $3, coalesce($4::boolean, true)) returning id, slug, name, color, is_active", [slugify(text(body.slug) || name), name, text(body.color) || null, body.isActive === undefined ? true : Boolean(body.isActive)]); return json({ tag }, 201); }); }

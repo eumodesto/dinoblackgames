@@ -523,6 +523,59 @@ export async function getOrders(status?: string, limit = 50): Promise<OrderSumma
   }));
 }
 
+export type AdminOrderDetail = {
+  order: Record<string, unknown>;
+  items: Record<string, unknown>[];
+  payments: Record<string, unknown>[];
+  shipments: Record<string, unknown>[];
+  events: Record<string, unknown>[];
+  returns: Record<string, unknown>[];
+};
+
+/** Detalhe operacional do pedido para a equipe autorizada. */
+export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDetail | null> {
+  const sql = await getSql();
+  const [order] = await sql.query<Record<string, unknown>>(
+    `select o.*, c.code as coupon_code
+     from orders o left join coupons c on c.id = o.coupon_id
+     where o.id = $1::uuid limit 1`,
+    [orderId],
+  );
+  if (!order) return null;
+  const [items, payments, shipments, events, returns] = await Promise.all([
+    sql.query<Record<string, unknown>>(
+      `select oi.*, p.name as product_name, p.slug as product_slug, v.sku as variant_sku,
+              u.serial_number, u.status as unit_status
+       from order_items oi
+       left join products p on p.id = oi.product_id
+       left join product_variants v on v.id = oi.variant_id
+       left join inventory_units u on u.id = oi.unit_id
+       where oi.order_id = $1::uuid order by oi.id`,
+      [orderId],
+    ),
+    sql.query<Record<string, unknown>>(
+      "select id, method, status, amount, installments, provider, provider_ref, status_detail, pix_expires_at, paid_at, created_at, updated_at from payments where order_id = $1::uuid order by created_at desc",
+      [orderId],
+    ),
+    sql.query<Record<string, unknown>>(
+      "select id, status, carrier, service, tracking_code, label_url, shipped_at, delivered_at, events, created_at from shipments where order_id = $1::uuid order by created_at desc",
+      [orderId],
+    ),
+    sql.query<Record<string, unknown>>(
+      `select oe.id, oe.type, oe.from_status, oe.to_status, oe.message, oe.created_at,
+              p.full_name as actor_name
+       from order_events oe left join profiles p on p.id = oe.actor_id
+       where oe.order_id = $1::uuid order by oe.created_at asc, oe.id asc`,
+      [orderId],
+    ),
+    sql.query<Record<string, unknown>>(
+      "select id, order_item_id, kind, status, reason, resolution, created_at, updated_at from return_requests where order_id = $1::uuid order by created_at desc",
+      [orderId],
+    ),
+  ]);
+  return { order, items, payments, shipments, events, returns };
+}
+
 // ---------------------------------------------------------------------------
 // Admin: dashboard KPIs
 // ---------------------------------------------------------------------------
@@ -568,6 +621,8 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
 // ---------------------------------------------------------------------------
 
 export async function updateOrderStatus(orderId: string, newStatus: string, actorId?: string): Promise<void> {
+  const allowed = new Set(["pending_payment", "paid", "preparing", "shipped", "delivered", "cancelled", "returned"]);
+  if (!allowed.has(newStatus)) throw new Error("Status de pedido inválido.");
   const sql = await getSql();
   const [order] = await sql.query<{ id: string; status: string }>(
     "select id, status::text from orders where id = $1::uuid",

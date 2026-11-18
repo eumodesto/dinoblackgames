@@ -7,6 +7,8 @@
 
 > Este é o documento vivo do **estado e do plano de execução**. O escopo de produto, as jornadas e os critérios de aceite estão no [Documento de Desenvolvimento do E-commerce](./Documento_Desenvolvimento_Ecommerce_DinoBlack.md); o índice de toda a documentação está em [README.md](./README.md).
 
+> Para executar o backlog em tarefas, atualizar a sidebar e registrar cada entrega com evidência, consulte também o [Guia de desenvolvimento por tarefas](./Guia_Desenvolvimento_por_Tarefas.md).
+
 ## 1. Objetivo
 
 Concluir a transformação do storefront em uma operação de e-commerce confiável, com catálogo real, checkout integrado ao Mercado Pago, estoque consistente, frete rastreável, gestão administrativa e base preparada para contas de clientes.

@@ -1,9 +1,18 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ADMIN_COOKIE, adminSessionToken, safeEqual } from "../admin-auth";
 import { CheckoutError } from "./checkout";
 import { DbNotConfiguredError } from "./sql";
 
 export const noStore = { "Cache-Control": "no-store" };
+
+export async function requireAdminSession(): Promise<Response | null> {
+  const expected = await adminSessionToken();
+  const cookie = (await cookies()).get(ADMIN_COOKIE)?.value ?? "";
+  if (expected && cookie && safeEqual(cookie, expected)) return null;
+  return json({ error: "Não autorizado." }, 401);
+}
 
 export function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: noStore });
