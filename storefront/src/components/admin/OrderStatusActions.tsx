@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AdminSelect } from "./AdminSelect";
 
 const STATUSES = [
   ["pending_payment", "Aguardando pagamento"],
@@ -35,5 +36,5 @@ export function OrderStatusActions({ orderId, currentStatus }: { orderId: string
     }
   }
 
-  return <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"><h2 className="font-bold text-white">Ação do pedido</h2><div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={status} onChange={(event) => setStatus(event.target.value)} className="h-11 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white"><option disabled value="">Selecione o status</option>{STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button onClick={save} disabled={saving || status === currentStatus} className="h-11 rounded-xl bg-dino-red px-4 text-sm font-bold text-white hover:bg-dino-red-hover disabled:opacity-50">{saving ? "Salvando…" : "Atualizar status"}</button></div>{message && <p className="mt-3 text-xs text-zinc-400" role="status">{message}</p>}<p className="mt-3 text-xs leading-5 text-zinc-500">Cancelamentos usam a rotina transacional do banco para liberar estoque e registrar o evento.</p></div>;
+  return <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"><h2 className="font-bold text-white">Ação do pedido</h2><div className="mt-4 flex flex-col gap-3 sm:flex-row"><AdminSelect value={status} onValueChange={setStatus} options={[{ value: "", label: "Selecione o status" }, ...STATUSES.map(([value, label]) => ({ value, label }))]} aria-label="Novo status do pedido" className="flex-1" /><button onClick={save} disabled={saving || status === currentStatus} className="h-11 rounded-xl bg-dino-red px-4 text-sm font-bold text-white hover:bg-dino-red-hover disabled:opacity-50">{saving ? "Salvando…" : "Atualizar status"}</button></div>{message && <p className="mt-3 text-xs text-zinc-400" role="status">{message}</p>}<p className="mt-3 text-xs leading-5 text-zinc-500">Cancelamentos usam a rotina transacional do banco para liberar estoque e registrar o evento.</p></div>;
 }

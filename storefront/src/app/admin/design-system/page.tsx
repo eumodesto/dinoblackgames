@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { AdminSelect } from "@/components/admin/AdminSelect";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/admin-field/field";
 import { ArrowUpRight, Box, Download, ShoppingBag } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -96,10 +98,14 @@ export default function AdminDesignSystemPage() {
         </div>
       </Section>
 
-      <Section title="Formulário" lead="Campos nativos herdam o estilo automaticamente dentro do admin.">
+      <Section title="Formulário" lead="Texto e data são nativos e herdam o estilo; listas usam o Autocomplete (AdminSelect).">
         <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 700 }}>Nome<input type="text" placeholder="Ex.: PlayStation 5 Slim" className="px-3 py-2.5" /></label>
-          <label style={{ display: "grid", gap: 5, fontSize: 11, fontWeight: 700 }}>Status<select className="px-3 py-2.5"><option>Rascunho</option><option>Publicado</option></select></label>
+          <Field>
+            <FieldLabel>Status</FieldLabel>
+            <AdminSelect defaultValue="draft" aria-label="Status" options={[{ value: "draft", label: "Rascunho" }, { value: "published", label: "Publicado" }, { value: "archived", label: "Arquivado" }]} />
+            <FieldDescription>Campo com busca e lista suspensa (Autocomplete).</FieldDescription>
+          </Field>
         </div>
       </Section>
     </div>

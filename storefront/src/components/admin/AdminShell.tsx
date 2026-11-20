@@ -25,15 +25,77 @@ function isActive(pathname: string, href: string) {
   return href === "/admin" ? pathname === href : pathname.startsWith(href);
 }
 
-function Dock({ pathname, side = false }: { pathname: string; side?: boolean }) {
+// Barra lateral de ícones (desktop): atalhos principais, com dica ao passar o mouse.
+function SideDock({ pathname }: { pathname: string }) {
   return (
-    <nav className={side ? "gd-dock gd-dock-side" : "gd-dock gd-dock-bottom"} aria-label={side ? "Atalhos do admin" : "Navegação do admin"}>
-      {DOCK.map(({ href, label, short, icon: Icon }) => (
+    <nav className="gd-dock gd-dock-side" aria-label="Atalhos do admin">
+      {DOCK.map(({ href, label, icon: Icon }) => (
         <Link key={href} href={href} aria-label={label} aria-current={isActive(pathname, href) ? "page" : undefined}>
+          <Icon aria-hidden="true" />
+          <span className="gd-dock-tip" aria-hidden="true">{label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+// Dock inferior: no celular desliza com o dedo; no desktop também rola com a roda do mouse e arrasta com o mouse.
+function Dock({ pathname }: { pathname: string }) {
+  const nav = useRef<HTMLElement>(null);
+  const drag = useRef({ active: false, moved: false, startX: 0, startScroll: 0 });
+
+  useEffect(() => {
+    const el = nav.current;
+    if (!el) return;
+    // Roda do mouse (vertical) vira rolagem horizontal quando o dock tem o que rolar.
+    const onWheel = (event: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      el.scrollLeft += event.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Mantém o item atual visível ao trocar de página.
+  useEffect(() => {
+    nav.current?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [pathname]);
+
+  function onPointerDown(event: React.PointerEvent<HTMLElement>) {
+    if (event.pointerType !== "mouse" || event.button !== 0 || !nav.current) return;
+    drag.current = { active: true, moved: false, startX: event.clientX, startScroll: nav.current.scrollLeft };
+  }
+  function onPointerMove(event: React.PointerEvent<HTMLElement>) {
+    const state = drag.current;
+    if (!state.active || !nav.current) return;
+    const dx = event.clientX - state.startX;
+    if (!state.moved && Math.abs(dx) > 5) {
+      state.moved = true;
+      nav.current.setPointerCapture(event.pointerId);
+      nav.current.dataset.dragging = "true";
+    }
+    if (state.moved) nav.current.scrollLeft = state.startScroll - dx;
+  }
+  function endDrag(event: React.PointerEvent<HTMLElement>) {
+    const el = nav.current;
+    if (el && drag.current.moved) {
+      el.releasePointerCapture?.(event.pointerId);
+      delete el.dataset.dragging;
+    }
+    drag.current.active = false;
+  }
+
+  return (
+    <nav ref={nav} className="gd-dock gd-dock-bottom" aria-label="Navegação do admin"
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}
+      // Depois de arrastar, o clique que o navegador gera ao soltar não deve abrir um link.
+      onClickCapture={(event) => { if (drag.current.moved) { event.preventDefault(); event.stopPropagation(); drag.current.moved = false; } }}>
+      {DOCK.map(({ href, label, short, icon: Icon }) => (
+        <Link key={href} href={href} aria-label={label} draggable={false} aria-current={isActive(pathname, href) ? "page" : undefined}>
           <Icon aria-hidden="true" />
           <span className="gd-dock-text" aria-hidden="true">{label}</span>
           <span className="gd-dock-short" aria-hidden="true">{short}</span>
-          {side && <span className="gd-dock-tip" aria-hidden="true">{label}</span>}
         </Link>
       ))}
     </nav>
@@ -147,10 +209,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </header>
 
         <div className="gd-stage-wrap">
-          <Dock pathname={pathname} side />
           <main className="gd-stage">
             <div className="gd-stage-scroll">{children}</div>
           </main>
+          <SideDock pathname={pathname} />
           <Dock pathname={pathname} />
         </div>
         <footer className="gd-footer"><span>DinoBlack Games e Informática</span></footer>

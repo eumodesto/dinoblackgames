@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AdminSelect } from "./AdminSelect";
 
 type Meta = { categories: { id: string; name: string }[]; locations: { id: string; name: string }[] };
 type ProductFormProps = { productId?: string };
@@ -60,8 +61,8 @@ export function AdminProductForm({ productId }: ProductFormProps) {
     <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-2">
       <Field name="name" title="Nome comercial *" placeholder="Ex.: PlayStation 5 Slim 1TB" />
       <Field name="sku" title="SKU *" placeholder="DB-PS5-001" />
-      <label className="block"><span className={label}>Tipo de produto *</span><select className={input} value={type} onChange={(e) => setType(e.target.value)}>{TYPES.map(([value, title]) => <option key={value} value={value}>{title}</option>)}</select></label>
-      <label className="block"><span className={label}>Categoria *</span><select className={input} value={form.categoryId ?? ""} onChange={(e) => set("categoryId", e.target.value)} required><option value="">Selecione...</option>{meta.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <label className="block"><span className={label}>Tipo de produto *</span><AdminSelect value={type} onValueChange={setType} options={TYPES.map(([value, title]) => ({ value, label: title }))} aria-label="Tipo de produto" /></label>
+      <label className="block"><span className={label}>Categoria *</span><AdminSelect value={form.categoryId ?? ""} onValueChange={(value) => set("categoryId", value)} required options={[{ value: "", label: "Selecione..." }, ...meta.categories.map((c) => ({ value: c.id, label: c.name }))]} aria-label="Categoria" /></label>
       <Field name="brand" title="Marca" placeholder="Sony, Nintendo, Microsoft..." />
       <Field name="platform" title="Plataforma" placeholder="PlayStation 5, Xbox Series, Switch..." />
       <Field name="releaseYear" title="Ano / geração" placeholder="2025" />
@@ -69,15 +70,15 @@ export function AdminProductForm({ productId }: ProductFormProps) {
       <div className="md:col-span-2"><p className="text-xs text-zinc-500">{typeHint}. Esses campos alimentam filtros e especificações estruturadas.</p></div>
     </div>
     <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-3">
-      <label className="block"><span className={label}>Condição</span><select className={input} value={form.condition} onChange={(e) => set("condition", e.target.value)}><option value="novo">Novo</option><option value="seminovo">Seminovo</option><option value="raridade">Raridade</option><option value="pre_venda">Pré-venda</option></select></label>
-      <label className="block"><span className={label}>Status</span><select className={input} value={form.status} onChange={(e) => set("status", e.target.value)}><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="scheduled">Agendado</option><option value="archived">Arquivado</option></select></label>
+      <label className="block"><span className={label}>Condição</span><AdminSelect value={form.condition} onValueChange={(value) => set("condition", value)} options={[{ value: "novo", label: "Novo" }, { value: "seminovo", label: "Seminovo" }, { value: "raridade", label: "Raridade" }, { value: "pre_venda", label: "Pré-venda" }]} aria-label="Condição" /></label>
+      <label className="block"><span className={label}>Status</span><AdminSelect value={form.status} onValueChange={(value) => set("status", value)} options={[{ value: "draft", label: "Rascunho" }, { value: "published", label: "Publicado" }, { value: "scheduled", label: "Agendado" }, { value: "archived", label: "Arquivado" }]} aria-label="Status" /></label>
       <Field name="price" title="Preço promocional (R$) *" type="number" placeholder="0,00" />
       <Field name="compareAt" title="Preço original (R$)" type="number" placeholder="Deixe vazio se não houver promoção" />
       <Field name="stock" title="Estoque inicial" type="number" />
       <Field name="minStock" title="Estoque mínimo" type="number" />
       <Field name="warrantyMonths" title="Garantia (meses)" type="number" />
       <Field name="maxInstallments" title="Máx. parcelas" type="number" />
-      <label className="block"><span className={label}>Local do estoque</span><select className={input} value={form.locationId ?? ""} onChange={(e) => set("locationId", e.target.value)}><option value="">Não definir agora</option>{meta.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
+      <label className="block"><span className={label}>Local do estoque</span><AdminSelect value={form.locationId ?? ""} onValueChange={(value) => set("locationId", value)} options={[{ value: "", label: "Não definir agora" }, ...meta.locations.map((l) => ({ value: l.id, label: l.name }))]} aria-label="Local do estoque" /></label>
       <p className="md:col-span-3 text-xs leading-5 text-zinc-500">O preço promocional é o valor cobrado no checkout. O preço original aparece riscado na loja quando for maior que o promocional.</p>
     </div>
     <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-4"><div className="md:col-span-4"><h2 className="font-bold text-white">Dimensões para entrega</h2><p className="mt-1 text-xs text-zinc-500">Informe a embalagem pronta para envio. Peso em gramas; medidas em milímetros.</p></div><Field name="weightGrams" title="Peso (g)" type="number" placeholder="Ex.: 4500" /><Field name="heightMm" title="Altura (mm)" type="number" placeholder="Ex.: 150" /><Field name="widthMm" title="Largura (mm)" type="number" placeholder="Ex.: 400" /><Field name="lengthMm" title="Comprimento (mm)" type="number" placeholder="Ex.: 300" /></div>

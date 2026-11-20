@@ -153,28 +153,38 @@
   min-block-size: max(605px, calc(100svh - 165px));
   border-radius: inherit;
   padding: clamp(19px, 2.15vw, 35px) clamp(25px, 3.2vw, 49px) 41px;
+  /* A barra lateral invade ~30px do painel: reserva esse espaço mais um respiro leve. */
+  padding-inline-start: calc(clamp(25px, 3.2vw, 49px) + 30px);
 }
 
 .gd-dock { position: absolute; z-index: 3; display: flex; align-items: center; gap: 3px; padding: 4px; border-radius: 999px; }
 .gd-dock-side { flex-direction: column; left: -24px; top: clamp(66px, 16vh, 153px); }
-.gd-dock-bottom { left: 50%; bottom: -24px; translate: -50% 0; }
+.gd-dock-side a { padding: 0; }
+.gd-dock-side .gd-dock-text { display: none; }
+.gd-dock-tip {
+  display: none; position: absolute; left: calc(100% + 7px); z-index: 1; pointer-events: none;
+  color: var(--gd-ink); background: var(--gd-surface); padding: 6px 9px; border: 1px solid var(--gd-rim);
+  border-radius: 7px; box-shadow: 0 3px 8px rgb(var(--gd-dark-shadow) / 17%); white-space: nowrap;
+}
+.gd-dock-side a:is(:hover, :focus-visible) .gd-dock-tip { display: inline; }
+.gd-dock-bottom {
+  left: 50%; bottom: -24px; translate: -50% 0; max-inline-size: calc(100% - 24px);
+  /* Rola com a roda do mouse, arrasta com o mouse e desliza com o dedo (ver Dock em AdminShell). */
+  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-snap-type: x proximity; touch-action: pan-x; cursor: grab;
+}
+.gd-dock-bottom::-webkit-scrollbar { display: none; }
+.gd-dock-bottom[data-dragging="true"] { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+.gd-dock-bottom a { flex: 0 0 auto; scroll-snap-align: center; -webkit-user-drag: none; }
 .gd-dock a {
   position: relative; z-index: 1; display: flex; gap: 6px; justify-content: center; align-items: center;
   min-inline-size: 44px; min-block-size: 44px; padding: 0 13px; border-radius: 999px;
   font-size: 11px; font-weight: 800; white-space: nowrap;
 }
-.gd-dock-side a { padding: 0; }
 .gd-dock a svg { width: 16px; height: 16px; stroke-width: 1.9; }
 .gd-dock a[aria-current="page"] { background: var(--gd-pick); color: var(--gd-pick-ink); box-shadow: inset 0 1px 0 white, 0 2px 7px rgb(var(--gd-dark-shadow) / 16%); }
 .gd-dock a:not([aria-current="page"]):hover { background: var(--gd-inner); }
 .gd-dock a[aria-current="page"] svg { color: #da2230; }
-.gd-dock-side .gd-dock-text, .gd-dock-short { display: none; }
-.gd-dock-tip {
-  display: none; position: absolute; left: calc(100% + 7px); z-index: 1; pointer-events: none;
-  color: var(--gd-ink); background: var(--gd-surface); padding: 6px 9px; border: 1px solid var(--gd-rim);
-  border-radius: 7px; box-shadow: 0 3px 8px rgb(var(--gd-dark-shadow) / 17%);
-}
-.gd-dock-side a:is(:hover, :focus-visible) .gd-dock-tip { display: inline; }
+.gd-dock-short { display: none; }
 
 .gd-footer { padding: 33px 3px 1px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .gd-footer > * {
@@ -322,7 +332,7 @@
 .gd-app main :is(.overflow-x-auto, .overflow-auto) { scrollbar-width: thin; scrollbar-color: var(--gd-line) transparent; }
 
 /* ---------- Responsivo ---------- */
-@media (max-width: 1060px) { .gd-surround { inline-size: calc(100% - 74px); } .gd-stage-scroll { padding-inline: 29px; } }
+@media (max-width: 1060px) { .gd-surround { inline-size: calc(100% - 74px); } .gd-stage-scroll { padding-inline: 29px; padding-inline-start: 60px; } }
 @media (max-width: 760px) {
   .gd-surround { padding-top: 11px; padding-bottom: calc(73px + env(safe-area-inset-bottom)); inline-size: calc(100% - 24px); }
   .gd-top { grid-template-columns: minmax(0, 1fr) auto; padding: 7px 9px; gap: 6px 12px; border-radius: 21px; }
@@ -333,8 +343,8 @@
   .gd-stage-scroll { min-block-size: 0; padding: 15px 13px 17px; }
   .gd-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gd-dock-side { display: none; }
-  .gd-dock-bottom { position: fixed; inset: auto 11px calc(9px + env(safe-area-inset-bottom)); translate: none; justify-content: space-between; }
-  .gd-dock-bottom a { flex: 1; flex-direction: column; gap: 2px; padding: 3px 5px; min-block-size: 47px; line-height: 1.2; font-size: 9.5px; }
+  .gd-dock-bottom { position: fixed; inset: auto 11px calc(9px + env(safe-area-inset-bottom)); translate: none; max-inline-size: none; justify-content: safe center; }
+  .gd-dock-bottom a { flex: 0 0 auto; min-inline-size: 68px; flex-direction: column; gap: 2px; padding: 3px 5px; min-block-size: 47px; line-height: 1.2; font-size: 9.5px; }
   .gd-dock-bottom a svg { width: 15px; height: 15px; }
   .gd-dock-bottom .gd-dock-text { display: none; }
   .gd-dock-bottom .gd-dock-short { display: inline; }
@@ -355,9 +365,45 @@
 .gd-dialog.gd-dialog-drop {
   position: fixed; margin: 0; inset-inline-end: auto; inset-block-end: auto;
   max-inline-size: none; overflow: auto; border-radius: 22px;
-  scrollbar-width: thin; scrollbar-color: var(--gd-line) transparent;
+  scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch;
 }
+.gd-dialog.gd-dialog-drop::-webkit-scrollbar { display: none; }
 .gd-dialog-drop::backdrop { background: rgb(0 0 0 / 14%); backdrop-filter: none; }
 .gd-dialog-drop .gd-dialog-inner { padding: 14px; }
 .gd-dialog-drop .gd-dialog-inner h2 { font-size: 16px; letter-spacing: -.02em; }
 .gd-dialog-drop .gd-dialog-inner > header { margin-bottom: 10px; }
+
+/* ---------- Campos: Field + Autocomplete (substitui o <select> nativo) ---------- */
+.gd-field { display: grid; gap: 6px; min-inline-size: 0; }
+.gd-field-label { font-size: 11px; font-weight: 750; color: var(--gd-muted); }
+.gd-field-desc { font-size: 11px; color: var(--gd-muted); }
+.gd-field-error { font-size: 11px; color: var(--gd-coral); }
+.gd-filter-status { font-size: 11px; color: var(--gd-muted); align-self: center; min-block-size: 1em; margin: 0; }
+.gd-ac-wrap { position: relative; min-inline-size: 0; inline-size: 100%; }
+.gd-ac { position: relative; display: flex; align-items: center; }
+.gd-app .gd-ac-input {
+  inline-size: 100%; min-block-size: 40px; padding: 8px 36px 8px 12px; border: 1px solid var(--gd-line); border-radius: 12px;
+  background: var(--gd-inner); color: var(--gd-ink); font: inherit; font-size: 13px; box-shadow: inset 0 1px 0 var(--gd-gloss); text-overflow: ellipsis;
+}
+.gd-app .gd-ac-input:focus { outline: 2px solid var(--gd-focus); outline-offset: 1px; }
+.gd-app .gd-ac-input:disabled { opacity: .55; cursor: not-allowed; }
+.gd-ac-trigger {
+  position: absolute; inset-inline-end: 8px; display: grid; place-items: center; inline-size: 24px; block-size: 24px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--gd-muted); padding: 0;
+}
+.gd-ac-trigger svg { inline-size: 15px; block-size: 15px; transition: transform .15s ease; }
+.gd-ac-trigger[data-popup-open] svg { transform: rotate(180deg); }
+.gd-ac-positioner { z-index: 60; }
+.gd-ac-popup {
+  min-inline-size: var(--anchor-width); max-block-size: min(320px, var(--available-height, 320px)); overflow: auto;
+  border: 1px solid var(--gd-rim); border-radius: 14px; padding: 5px; background: var(--gd-surface); color: var(--gd-ink);
+  box-shadow: 0 14px 40px rgb(var(--gd-dark-shadow) / 28%); font-family: "Manrope Variable", Manrope, system-ui, sans-serif; font-size: 13px;
+  scrollbar-width: thin; scrollbar-color: var(--gd-line) transparent;
+}
+.gd-ac-list { display: grid; gap: 2px; }
+.gd-ac-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 9px; cursor: pointer; user-select: none; }
+.gd-ac-item[data-highlighted] { background: var(--gd-raised); }
+.gd-ac-item[data-selected] { font-weight: 800; }
+.gd-ac-item svg { inline-size: 14px; block-size: 14px; color: var(--gd-coral); flex: none; }
+.gd-ac-empty { padding: 10px; color: var(--gd-muted); font-size: 12px; }
+.gd-ac-empty:empty { display: none; }

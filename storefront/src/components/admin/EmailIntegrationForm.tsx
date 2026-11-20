@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminSelect } from "./AdminSelect";
 
 const TEMPLATE_KEYS = [
   "account_created",
@@ -128,7 +129,7 @@ export default function EmailIntegrationForm() {
         <h2 className="text-lg font-bold text-white">Enviar teste</h2>
         <div className="mt-4 flex flex-col gap-3 md:flex-row">
           <input value={testTo} onChange={(event) => setTestTo(event.target.value)} placeholder="seu@email.com" type="email" className="flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-white" />
-          <select value={testTemplate} onChange={(event) => setTestTemplate(event.target.value as TemplateKey)} className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-white">{TEMPLATE_KEYS.map((key) => <option key={key} value={key}>{LABELS[key]}</option>)}</select>
+          <AdminSelect value={testTemplate} onValueChange={(value) => setTestTemplate(value as TemplateKey)} options={TEMPLATE_KEYS.map((key) => ({ value: key, label: LABELS[key] }))} aria-label="Modelo de e-mail do teste" className="min-w-[220px]" />
           <button onClick={sendTest} disabled={!testTo || !configured} className="rounded-xl border border-zinc-600 px-4 py-2.5 text-sm font-bold text-white hover:border-dino-red disabled:opacity-50">Enviar teste</button>
         </div>
         <p className="mt-3 text-xs text-zinc-500">{status}</p>
