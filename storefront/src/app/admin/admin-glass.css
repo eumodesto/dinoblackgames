@@ -100,7 +100,9 @@
 }
 
 /* ---------- Shell ---------- */
-.gd-surround { inline-size: min(calc(100% - 100px), 1440px); margin-inline: auto; padding-block: 24px 8px; }
+.gd-surround { inline-size: calc(100% - 100px); margin-inline: auto; padding-block: 24px 8px; }
+/* Largura total: as páginas não limitam mais o conteúdo (max-w-* no contêiner raiz de cada página). */
+.gd-stage-scroll > [class*="max-w-"] { max-inline-size: none; }
 .gd-top, .gd-dock {
   border: 1px solid var(--gd-rim);
   background: linear-gradient(165deg, var(--gd-gloss), transparent 32% 73%, var(--gd-gloss)), var(--gd-rail);
