@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const GROUPS = [
+export const GROUPS = [
   { label: "Visão geral", items: [{ href: "/admin", label: "Dashboard" }] },
   { label: "Operação", items: [{ href: "/admin/pedidos", label: "Pedidos" }, { href: "/admin/estoque", label: "Estoque" }] },
   { label: "Catálogo", items: [{ href: "/admin/produtos", label: "Produtos" }, { href: "/admin/categorias", label: "Categorias" }, { href: "/admin/tags", label: "Tags" }, { href: "/admin/cupons", label: "Cupons" }] },
