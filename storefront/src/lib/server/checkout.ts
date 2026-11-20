@@ -42,7 +42,7 @@ export function parseItems(raw: unknown): CartItemInput[] {
     const slug = str(o.slug, 120);
     const qty = Number(o.qty);
     if (!slug || !Number.isInteger(qty) || qty < 1 || qty > 20) throw new CheckoutError("Item inválido no carrinho.");
-    return { slug, qty, color: str(o.color, 60) || undefined, storage: str(o.storage, 60) || undefined };
+    return { slug, qty, color: str(o.color, 60) || undefined, storage: str(o.storage, 60) || undefined, condition: str(o.condition, 60) || undefined };
   });
 }
 
@@ -82,7 +82,7 @@ export function parsePaymentMethod(value: unknown): "pix" | "credit_card" | null
   return value === "pix" || value === "credit_card" ? value : null;
 }
 
-const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, qty }) => ({ slug, color, storage, qty })));
+const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, condition, qty }) => ({ slug, color, storage, condition, qty })));
 
 type QuoteLineServer = QuoteLine & { variantId?: string; weightGrams?: number };
 type QuoteRow = Omit<QuoteResponse, "shipping" | "lines"> & { lines: QuoteLineServer[] };

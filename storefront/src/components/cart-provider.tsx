@@ -16,6 +16,7 @@ export type CartLine = {
   qty: number;
   color?: string;
   storage?: string;
+  condition?: string;
 };
 
 type CartContextValue = {
@@ -25,7 +26,7 @@ type CartContextValue = {
   setOpen: (open: boolean) => void;
   count: number;
   subtotal: number;
-  addItem: (product: ProductCard, extras?: { color?: string; storage?: string; qty?: number }) => void;
+  addItem: (product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; qty?: number }) => void;
   removeItem: (key: string) => void;
   updateQty: (key: string, qty: number) => void;
   clear: () => void;
@@ -36,13 +37,14 @@ const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "dinoblack-cart-v2";
 const MAX_QTY = 20;
 
-export const lineKey = (slug: string, color?: string, storage?: string) => `${slug}|${color ?? ""}|${storage ?? ""}`;
+export const lineKey = (slug: string, color?: string, storage?: string, condition?: string) => `${slug}|${color ?? ""}|${storage ?? ""}|${condition ?? ""}`;
 
 type SavedLine = {
   slug: string;
   qty: number;
   color?: string;
   storage?: string;
+  condition?: string;
   product: ProductCard;
 };
 
@@ -54,11 +56,12 @@ function read(): CartLine[] {
     return saved.flatMap((s) => {
       if (!s.product || !s.product.slug || !Number.isInteger(s.qty) || s.qty < 1) return [];
       return [{
-        key: lineKey(s.slug, s.color, s.storage),
+        key: lineKey(s.slug, s.color, s.storage, s.condition),
         product: s.product,
         qty: Math.min(MAX_QTY, s.qty),
         color: s.color,
         storage: s.storage,
+        condition: s.condition,
       }];
     });
   } catch {
@@ -86,6 +89,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           qty: l.qty,
           color: l.color,
           storage: l.storage,
+          condition: l.condition,
           product: {
             id: l.product.id,
             slug: l.product.slug,
@@ -107,15 +111,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const addItem = useCallback((product: ProductCard, extras?: { color?: string; storage?: string; qty?: number }) => {
-    const key = lineKey(product.slug, extras?.color, extras?.storage);
+  const addItem = useCallback((product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; qty?: number }) => {
+    const key = lineKey(product.slug, extras?.color, extras?.storage, extras?.condition);
     const add = Math.max(1, Math.min(MAX_QTY, extras?.qty ?? 1));
     setItems((prev) => {
       const existing = prev.find((l) => l.key === key);
       if (existing) {
         return prev.map((l) => (l.key === key ? { ...l, qty: Math.min(MAX_QTY, l.qty + add) } : l));
       }
-      return [...prev, { key, product, qty: add, color: extras?.color, storage: extras?.storage }];
+      return [...prev, { key, product, qty: add, color: extras?.color, storage: extras?.storage, condition: extras?.condition }];
     });
     setOpen(true);
   }, []);

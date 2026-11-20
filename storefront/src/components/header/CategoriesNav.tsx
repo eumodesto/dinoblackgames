@@ -16,6 +16,8 @@ import {
 export function CategoriesNav() {
   const { categories: CATEGORIES, ready } = useStoreCategories();
   const [open, setOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const active = CATEGORIES.find((c) => c.id === activeId) ?? CATEGORIES[0];
   const menuIconRef = useRef<AlignRightIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -52,11 +54,9 @@ export function CategoriesNav() {
           </button>
 
           {open && (
-            <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="px-4 pb-2 pt-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                Categorias de produtos
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            <div className="absolute left-0 top-[calc(100%+10px)] z-50 flex w-[min(760px,92vw)] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="w-60 shrink-0 border-r border-gray-100 py-2 dark:border-zinc-800">
+                <div className="px-4 pb-2 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Categorias de produtos</div>
                 {ready && CATEGORIES.length === 0 && (
                   <p className="px-4 py-3 text-sm text-gray-500 dark:text-zinc-400">Nenhuma categoria disponível.</p>
                 )}
@@ -64,15 +64,41 @@ export function CategoriesNav() {
                   <a
                     key={cat.id}
                     href={cat.href}
-                    className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-800 transition hover:bg-gray-50 hover:text-dino-red dark:text-zinc-200 dark:hover:bg-zinc-900"
+                    onMouseEnter={() => setActiveId(cat.id)}
+                    onFocus={() => setActiveId(cat.id)}
+                    className={`flex items-center justify-between px-4 py-3 text-sm font-semibold transition ${active?.id === cat.id ? "bg-gray-50 text-dino-red dark:bg-zinc-900" : "text-gray-800 hover:text-dino-red dark:text-zinc-200"}`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-zinc-600" />
-                      {cat.name}
-                    </span>
-                    <span className="text-gray-300">›</span>
+                    {cat.name}
+                    {cat.children.length > 0 && <span className="text-gray-300">›</span>}
                   </a>
                 ))}
+              </div>
+              <div className="max-h-[70vh] min-w-0 flex-1 overflow-y-auto p-5">
+                {active && (
+                  <>
+                    <a href={active.href} className="text-xs font-bold uppercase tracking-wide text-dino-red hover:underline">Ver tudo em {active.name} ›</a>
+                    {active.children.length === 0 ? (
+                      <p className="mt-3 text-sm text-gray-500 dark:text-zinc-400">Em breve novos produtos nesta categoria.</p>
+                    ) : (
+                      <div className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+                        {active.children.map((sub) => (
+                          <div key={sub.id}>
+                            <a href={sub.href} className="text-sm font-black text-gray-900 transition hover:text-dino-red dark:text-white">{sub.name}</a>
+                            {sub.children.length > 0 && (
+                              <ul className="mt-1.5 space-y-1">
+                                {sub.children.map((leaf) => (
+                                  <li key={leaf.id}>
+                                    <a href={leaf.href} className="text-sm text-gray-600 transition hover:text-dino-red dark:text-zinc-400">{leaf.name}</a>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}

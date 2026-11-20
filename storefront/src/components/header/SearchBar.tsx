@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useStoreCategories } from "./useStoreCategories";
+import { CategoryAccordion } from "./CategoryAccordion";
 const TRENDING_SEARCHES = [
   "PlayStation 5",
   "Switch OLED",
@@ -23,7 +24,7 @@ type SearchBarProps = {
 };
 
 export function SearchBar({ withCategories = false }: SearchBarProps) {
-  const { categories: CATEGORIES, ready: categoriesReady } = useStoreCategories();
+  const { categories: CATEGORIES, tree, ready: categoriesReady } = useStoreCategories();
   const [open, setOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -156,20 +157,7 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
             {categoriesReady && CATEGORIES.length === 0 && (
               <p className="px-4 py-3 text-sm text-gray-500 dark:text-zinc-400">Nenhuma categoria disponível.</p>
             )}
-            {CATEGORIES.map((cat) => (
-              <a
-                key={cat.id}
-                href={cat.href}
-                className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-800 transition hover:bg-gray-50 hover:text-dino-red dark:text-zinc-200 dark:hover:bg-zinc-900"
-                onClick={() => setCatsOpen(false)}
-              >
-                <span className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-zinc-600" />
-                  {cat.name}
-                </span>
-                <span className="text-gray-300">›</span>
-              </a>
-            ))}
+            {CATEGORIES.length > 0 && <CategoryAccordion tree={tree} onNavigate={() => setCatsOpen(false)} />}
           </div>
         </div>
       )}

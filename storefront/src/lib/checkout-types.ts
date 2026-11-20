@@ -4,6 +4,7 @@ export type CartItemInput = {
   slug: string;
   color?: string;
   storage?: string;
+  condition?: string;
   qty: number;
 };
 

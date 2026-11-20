@@ -120,6 +120,11 @@ export function CartDrawer() {
                         {line.storage}
                       </span>
                     )}
+                    {line.condition && (
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        {line.condition}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">

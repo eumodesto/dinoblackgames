@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { ProductCarousel } from "@/components/home/ProductCarousel";
 import { BuyBox, type BuyBoxProduct } from "@/components/product/BuyBox";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { ProductVideo } from "@/components/product/ProductVideo";
 import { SectionNav } from "@/components/product/SectionNav";
 import {
   getProductBySlug,
@@ -19,6 +20,9 @@ const CONDITION_LABEL: Record<string, string> = {
   raridade: "Raridade",
   pre_venda: "Pré-venda",
 };
+
+/** Parágrafos da descrição: linhas em branco separam blocos. */
+const PARAGRAPH_BREAK = /\n\s*\n/;
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -73,6 +77,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   const nav = [
     { id: "visao-geral", label: "Visão geral" },
+    ...(product.description ? [{ id: "sobre", label: "Sobre o produto" }] : []),
     ...(product.unit ? [{ id: "laudo", label: "Laudo da unidade" }] : []),
     { id: "especificacoes", label: "Especificações" },
     { id: "na-caixa", label: "Na caixa" },
@@ -106,6 +111,7 @@ export default async function ProductPage({ params }: PageProps) {
     warrantyText: product.warrantyText,
     maxInstallments: product.maxInstallments,
     options: product.options,
+    variants: product.variants,
   };
 
   const relatedCards = related.map((p) => ({
@@ -167,6 +173,7 @@ export default async function ProductPage({ params }: PageProps) {
             images={product.gallery}
             badge={isUnique ? (CONDITION_LABEL[product.condition] ?? product.condition) : product.badge ? `★ ${product.badge}` : undefined}
           />
+          {product.videoUrl && <ProductVideo url={product.videoUrl} title={product.name} />}
         </div>
         <BuyBox product={buyBoxProduct} />
       </div>
@@ -193,6 +200,16 @@ export default async function ProductPage({ params }: PageProps) {
           </div>
         </div>
       </Block>
+
+      {product.description && (
+        <Block id="sobre" title="Sobre o produto">
+          <div className="max-w-3xl space-y-4 text-sm leading-relaxed text-gray-700 dark:text-zinc-300">
+            {product.description.split(PARAGRAPH_BREAK).map((paragraph, index) => (
+              <p key={index} className="whitespace-pre-line">{paragraph}</p>
+            ))}
+          </div>
+        </Block>
+      )}
 
       {product.unit && (
         <Block

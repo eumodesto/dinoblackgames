@@ -42,6 +42,8 @@ export type BuyBoxProduct = {
   warrantyText: string | null;
   maxInstallments: number;
   options: ProductOption[];
+  /** Uma entrada por variação vendável (preço e estoque próprios). */
+  variants?: { options: Record<string, string>; price: number; compareAt: number | null; available: number }[];
 };
 
 function Stars({ value }: { value: number }) {
@@ -82,14 +84,19 @@ const svgProps = {
 export function BuyBox({ product }: { product: BuyBoxProduct }) {
   const { addItem } = useCart();
   const isUnique = product.condition === "seminovo" || product.condition === "raridade";
-  const soldOut = product.available === 0;
-  const lowStock = product.available > 0 && product.available <= 5;
 
   const [selected, setSelected] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       product.options.map((o) => [o.id, (o.values.find((v) => v.available) ?? o.values[0]).label]),
     ),
   );
+  const variant = (product.variants ?? []).find((v) => Object.entries(selected).every(([key, value]) => v.options[key] === value));
+  const price = variant?.price ?? product.price;
+  const compareAt = variant ? variant.compareAt : product.compareAt;
+  const discount = compareAt && compareAt > price ? Math.round((1 - price / compareAt) * 100) : null;
+  const available = variant ? variant.available : product.available;
+  const soldOut = available === 0;
+  const lowStock = available > 0 && available <= 5;
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [cep, setCep] = useState("");
@@ -121,11 +128,11 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
       id: product.id,
       slug: product.slug,
       name: product.name,
-      price: product.price,
-      compareAt: product.compareAt,
+      price: price,
+      compareAt: compareAt,
       image: product.image,
     };
-    addItem(cartProduct, { color: selected.color, storage: selected.storage, qty: isUnique ? 1 : qty });
+    addItem(cartProduct, { color: selected.color, storage: selected.storage, condition: selected.condition, qty: isUnique ? 1 : qty });
     setAdded(true);
   }
 
@@ -146,7 +153,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cep: digits,
-          items: [{ qty: isUnique ? 1 : qty, unitPrice: product.price }],
+          items: [{ qty: isUnique ? 1 : qty, unitPrice: price }],
         }),
       });
       const data = (await res.json()) as { shipping?: ShippingOption[]; error?: string };
@@ -162,7 +169,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
     }
   }
 
-  const hasDiscount = Boolean(product.compareAt && product.discount);
+  const hasDiscount = Boolean(compareAt && discount);
   const whatsapp = waLink(`Olá! Tenho uma dúvida sobre: ${product.name} (${product.sku})`);
   const warrantyLabel = product.warrantyMonths >= 12
     ? `${product.warrantyMonths} meses`
@@ -204,18 +211,18 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
       <div className="rounded-2xl bg-gray-50 p-4 dark:bg-zinc-900">
         {hasDiscount && (
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm text-gray-400 line-through">{formatBRL(product.compareAt!)}</span>
+            <span className="font-mono text-sm text-gray-400 line-through">{formatBRL(compareAt!)}</span>
             <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-black text-white">
-              −{product.discount}%
+              −{discount}%
             </span>
           </div>
         )}
         <div className="font-mono text-3xl font-black tracking-tight text-gray-900 dark:text-white">
-          {formatBRL(product.price)}
+          {formatBRL(price)}
         </div>
         <div className="mt-1 text-sm text-gray-600 dark:text-zinc-400">
           ou {product.maxInstallments}x de{" "}
-          <strong className="text-gray-900 dark:text-white">{formatBRL(installmentValue(product.price))}</strong> sem juros
+          <strong className="text-gray-900 dark:text-white">{formatBRL(installmentValue(price))}</strong> sem juros
         </div>
       </div>
 
@@ -262,7 +269,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
           <div>
             <div className="mb-1 flex justify-between text-xs">
               <span className="font-bold text-dino-red">
-                {soldOut ? "Sem estoque" : `Só ${product.available} no estoque`}
+                {soldOut ? "Sem estoque" : `Só ${available} no estoque`}
               </span>
               <span className="text-gray-500 dark:text-zinc-400">Quase esgotando</span>
             </div>
@@ -295,7 +302,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
               <button
                 type="button"
                 aria-label="Aumentar quantidade"
-                onClick={() => setQty((q) => Math.min(product.available || 10, q + 1))}
+                onClick={() => setQty((q) => Math.min(available || 10, q + 1))}
                 className="h-full w-11 text-lg font-bold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
               >
                 +
@@ -418,7 +425,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="truncate text-xs text-gray-500 dark:text-zinc-400">{product.name}</div>
-            <div className="font-mono text-lg font-black text-gray-900 dark:text-white">{formatBRL(product.price)}</div>
+            <div className="font-mono text-lg font-black text-gray-900 dark:text-white">{formatBRL(price)}</div>
           </div>
           <button
             type="button"

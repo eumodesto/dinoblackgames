@@ -33,6 +33,7 @@ export type CategoryCard = {
   name: string;
   image: string | null;
   href: string;
+  parentId: string | null;
 };
 
 export type HeroSlide = {
@@ -62,6 +63,8 @@ export type UnitReport = {
   tested: string[];
   warrantyDays: number;
 };
+
+export type VariantInfo = { options: Record<string, string>; price: number; compareAt: number | null; available: number };
 
 export type ProductDetail = {
   id: string;
@@ -93,6 +96,8 @@ export type ProductDetail = {
   faq: Faq[];
   unit: UnitReport | null;
   facets: Record<string, string[]>;
+  videoUrl: string | null;
+  variants: VariantInfo[];
 };
 
 // ---------------------------------------------------------------------------
@@ -151,16 +156,21 @@ function toListing(r: ListingRow): ProductListing {
 
 export async function getCategories(): Promise<CategoryCard[]> {
   const sql = await getSql();
-  const rows = await sql.query<{ id: string; slug: string; name: string; image_url: string | null }>(
-    "select id, slug, name, image_url from categories where is_active order by position",
+  const rows = await sql.query<{ id: string; slug: string; name: string; image_url: string | null; parent_id: string | null }>(
+    "select id, slug, name, image_url, parent_id from categories where is_active order by position, name",
   );
-  return rows.map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    name: r.name,
-    image: r.image_url,
-    href: `/loja?categoria=${r.slug}`,
-  }));
+  // Categoria cuja mãe está oculta no admin também some (a árvore inteira abaixo dela).
+  const active = new Set(rows.map((r) => r.id));
+  return rows
+    .filter((r) => !r.parent_id || active.has(r.parent_id))
+    .map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
+      image: r.image_url,
+      href: `/loja?categoria=${r.slug}`,
+      parentId: r.parent_id,
+    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -229,12 +239,12 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
 
   if (filters.q) {
     n++;
-    conditions.push(`(lower(name) like '%' || lower($${n}) || '%' or lower(category_name) like '%' || lower($${n}) || '%')`);
+    conditions.push(`(lower(name) like '%' || lower($${n}) || '%' or lower(category_name) like '%' || lower($${n}) || '%' or id in (select pt.product_id from product_tags pt join tags t on t.id = pt.tag_id where t.is_active and lower(t.name) like '%' || lower($${n}) || '%'))`);
     params.push(filters.q);
   }
   if (filters.categoria) {
     n++;
-    conditions.push(`category_slug = $${n}`);
+    conditions.push(`category_slug in (with recursive branch as (select id, slug from categories where slug = $${n} union all select c.id, c.slug from categories c join branch b on c.parent_id = b.id) select slug from branch)`);
     params.push(filters.categoria);
   }
   if (filters.condicao?.length) {
@@ -275,7 +285,8 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
     params.push(filters.collectionSlug);
   }
 
-  const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
+  conditions.push("visibility <> 'hidden'"); // produto oculto só abre pelo link direto
+  const where = `where ${conditions.join(" and ")}`;
 
   let orderBy: string;
   switch (filters.ordem) {
@@ -345,7 +356,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     badge: string | null; sold_count: number; rating: string | number | null;
     warranty_months: number; warranty_text: string | null;
     highlights: Highlight[]; specs: SpecGroup[]; in_box: string[]; faq: Faq[];
-    category_id: string;
+    category_id: string; video_url: string | null;
   }>(
     "select * from products where slug = $1 and status = 'published'",
     [slug],
@@ -373,6 +384,19 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   const facets = listing[0]?.facets ?? {};
 
   const options = await loadOptions(sql, product.id);
+  const variantRows = await sql.query<{ option_values: Record<string, string>; price: string | number; compare_at: string | number | null; avail: string | number }>(
+    `select v.option_values, effective_price(v.id) as price, greatest(coalesce(v.compare_at, v.price), v.price) as compare_at,
+       coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il where il.variant_id = v.id), 0)
+       + (select count(*) from inventory_units u where u.variant_id = v.id and u.status = 'disponivel')::int as avail
+     from product_variants v where v.product_id = $1 and v.is_active order by v.price`,
+    [product.id],
+  );
+  const variants: VariantInfo[] = variantRows.map((v) => ({
+    options: v.option_values ?? {},
+    price: Number(v.price),
+    compareAt: Number(v.compare_at) > Number(v.price) ? Number(v.compare_at) : null,
+    available: Number(v.avail),
+  }));
 
   const maxInstallments = await sql.query<{ m: number }>(
     "select coalesce(max(max_installments), 10) as m from product_variants where product_id = $1 and is_active",
@@ -431,6 +455,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     faq: product.faq ?? [],
     unit,
     facets,
+    videoUrl: product.video_url ?? null,
+    variants,
   };
 }
 
@@ -473,9 +499,9 @@ async function loadOptions(sql: Sql, productId: string): Promise<ProductOption[]
 export async function getRelatedProducts(productId: string, categorySlug: string, limit = 6): Promise<ProductListing[]> {
   const sql = await getSql();
   const rows = await sql.query<ListingRow>(
-    `(select * from v_product_listing where category_slug = $1 and id != $2 order by sold_count desc limit $3)
+    `(select * from v_product_listing where category_slug = $1 and id != $2 and visibility <> 'hidden' order by sold_count desc limit $3)
      union all
-     (select * from v_product_listing where category_slug != $1 and id != $2 order by sold_count desc limit $3)`,
+     (select * from v_product_listing where category_slug != $1 and id != $2 and visibility <> 'hidden' order by sold_count desc limit $3)`,
     [categorySlug, productId, limit],
   );
   return maskHiddenCategory(rows.slice(0, limit).map(toListing), await hiddenCategorySlugs());
@@ -488,7 +514,7 @@ export async function getRelatedProducts(productId: string, categorySlug: string
 export async function getAllProductSlugs(): Promise<string[]> {
   const sql = await getSql();
   const rows = await sql.query<{ slug: string }>(
-    "select slug from products where status = 'published' order by slug",
+    "select slug from products where status = 'published' and visibility <> 'hidden' order by slug",
   );
   return rows.map((r) => r.slug);
 }

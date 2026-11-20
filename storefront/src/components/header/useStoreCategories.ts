@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-export type StoreCategory = { id: string; name: string; slug: string; href: string };
+export type StoreCategory = { id: string; name: string; slug: string; href: string; parentId: string | null };
+export type StoreCategoryNode = StoreCategory & { children: StoreCategoryNode[] };
 
 // Uma busca compartilhada por todos os componentes do cabeçalho; renova a cada minuto
 // (ocultar/mostrar uma categoria no admin aparece na loja em até esse tempo).
@@ -24,7 +25,21 @@ async function load(): Promise<StoreCategory[]> {
   return pending;
 }
 
-/** Categorias ativas do admin. `ready` indica que a primeira busca terminou. */
+/** Lista plana (já na ordem do admin) → árvore. Categoria cuja mãe não veio (oculta) é descartada. */
+export function buildCategoryTree(items: StoreCategory[]): StoreCategoryNode[] {
+  const nodes = new Map<string, StoreCategoryNode>(items.map((c) => [c.id, { ...c, children: [] }]));
+  const roots: StoreCategoryNode[] = [];
+  for (const node of nodes.values()) {
+    if (!node.parentId) roots.push(node);
+    else nodes.get(node.parentId)?.children.push(node);
+  }
+  return roots;
+}
+
+/**
+ * Categorias ativas do admin. `categories` são só as principais (para seletores simples);
+ * `tree` traz principais → subcategorias → itens. `ready` indica que a primeira busca terminou.
+ */
 export function useStoreCategories() {
   const [items, setItems] = useState<StoreCategory[]>(cache?.items ?? []);
   const [ready, setReady] = useState(cache !== null);
@@ -33,5 +48,6 @@ export function useStoreCategories() {
     load().then((result) => { if (alive) { setItems(result); setReady(true); } });
     return () => { alive = false; };
   }, []);
-  return { categories: items, ready };
+  const tree = useMemo(() => buildCategoryTree(items), [items]);
+  return { categories: tree, tree, ready };
 }

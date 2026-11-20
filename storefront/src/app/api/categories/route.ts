@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const categories = await getCategories();
     return NextResponse.json(
-      { categories: categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, href: c.href })) },
+      { categories: categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, href: c.href, parentId: c.parentId })) },
       { headers: { "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120" } },
     );
   } catch (error) {

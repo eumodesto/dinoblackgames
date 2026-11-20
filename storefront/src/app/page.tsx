@@ -36,7 +36,7 @@ export default async function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f1f3f6] transition-colors duration-300 dark:bg-[#050507]">
       <HeroBanners slides={slides} deals={deals} />
-      <CategorySection categories={categories} />
+      <CategorySection categories={categories.filter((c) => !c.parentId)} />
       <section className="container mx-auto space-y-6 px-4 py-4">
         <div>
           <ProductCarousel

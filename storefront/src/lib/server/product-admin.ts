@@ -1,0 +1,130 @@
+import "server-only";
+import { CheckoutError } from "./checkout";
+import { getSql } from "./sql";
+import { normalizeTags, parseVideoUrl, slugify } from "../catalog-normalize";
+import { applyProductHighlights, prepareProductHighlights } from "./highlights";
+
+export const PRODUCT_TYPES = ["console", "jogo", "acessorio", "pc", "notebook", "periferico", "retro", "gift", "hardware"] as const;
+const TYPE_LABEL: Record<string, string> = { console: "Console", jogo: "Jogo", acessorio: "Acessório", pc: "PC Gamer", notebook: "Notebook", periferico: "Periférico", retro: "Retrô", gift: "Gift Card", hardware: "Hardware" };
+const CONDITIONS = new Set(["novo", "seminovo", "raridade", "pre_venda"]);
+const STATUSES = new Set(["draft", "scheduled", "published", "archived"]);
+const MAX_IMAGES = 20;
+
+function text(value: unknown, fallback = "") {
+  return typeof value === "string" ? value.trim() : fallback;
+}
+function intOrNull(value: unknown, label: string, max = 1_000_000) {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0 || n > max) throw new CheckoutError(`${label} inválido.`);
+  return n || null;
+}
+function money(value: unknown, label: string) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 10_000_000) throw new CheckoutError(`${label} inválido.`);
+  return Math.round(n * 100) / 100;
+}
+
+type Variant = {
+  id?: string; sku?: string; options: Record<string, string>; price: number; compareAt: number | null; stock: number | null; minStock: number;
+  maxInstallments: number; weightGrams: number | null; widthMm: number | null; heightMm: number | null; lengthMm: number | null; active: boolean;
+};
+
+function parseVariants(body: Record<string, unknown>, shared: { weightGrams: number | null; widthMm: number | null; heightMm: number | null; lengthMm: number | null }): Variant[] {
+  const raw = Array.isArray(body.variants) ? body.variants : [];
+  if (raw.length === 0) throw new CheckoutError("Informe ao menos uma variação com preço.");
+  if (raw.length > 60) throw new CheckoutError("Muitas variações (máximo 60).");
+  return raw.map((entry, index) => {
+    const v = (entry ?? {}) as Record<string, unknown>;
+    const options = Object.fromEntries(Object.entries((v.options ?? {}) as Record<string, unknown>).map(([k, val]) => [text(k), text(val)]).filter(([k, val]) => k && val));
+    const price = money(v.price, `Preço da variação ${index + 1}`);
+    const compare = v.compareAt === "" || v.compareAt == null ? null : money(v.compareAt, "Preço original");
+    const installments = Number(v.maxInstallments) || 10;
+    if (installments < 1 || installments > 12) throw new CheckoutError("Parcelas devem ficar entre 1 e 12.");
+    return {
+      id: text(v.id) || undefined, sku: text(v.sku) || undefined, options, price,
+      compareAt: compare != null && compare > price ? compare : null,
+      stock: v.stock === "" || v.stock == null ? null : Math.max(0, Math.trunc(Number(v.stock)) || 0),
+      minStock: Math.max(0, Math.trunc(Number(v.minStock)) || 0), maxInstallments: installments,
+      ...shared, active: v.active !== false,
+    };
+  });
+}
+
+/** Valida o corpo do formulário e grava tudo numa transação (função save_product do banco). */
+export async function saveAdminProduct(body: Record<string, unknown>, id?: string) {
+  const name = text(body.name);
+  const categoryId = text(body.categoryId);
+  const productType = text(body.productType, "console");
+  const condition = text(body.condition, "novo");
+  const status = text(body.status, "draft");
+  const visibility = text(body.visibility, "visible");
+  if (!id && (!name || !categoryId)) throw new CheckoutError("Nome e categoria são obrigatórios.");
+  if (!(PRODUCT_TYPES as readonly string[]).includes(productType)) throw new CheckoutError("Tipo de produto inválido.");
+  if (!CONDITIONS.has(condition)) throw new CheckoutError("Condição inválida.");
+  if (!STATUSES.has(status)) throw new CheckoutError("Status inválido.");
+  if (visibility !== "visible" && visibility !== "hidden") throw new CheckoutError("Visibilidade inválida.");
+
+  const videoUrl = text(body.videoUrl);
+  const video = videoUrl ? parseVideoUrl(videoUrl) : null;
+  if (videoUrl && !video) throw new CheckoutError("Link de vídeo inválido (use YouTube ou Vimeo).");
+
+  const shared = {
+    weightGrams: intOrNull(body.weightGrams, "Peso", 200_000), widthMm: intOrNull(body.widthMm, "Largura", 200_000),
+    heightMm: intOrNull(body.heightMm, "Altura", 200_000), lengthMm: intOrNull(body.lengthMm, "Comprimento", 200_000),
+  };
+  const variants = parseVariants(body, shared);
+
+  const options = (Array.isArray(body.options) ? body.options : []).map((o, i) => {
+    const entry = (o ?? {}) as Record<string, unknown>;
+    const optName = text(entry.name);
+    const values = [...new Set((Array.isArray(entry.values) ? entry.values : []).map((v) => text(v)).filter(Boolean))];
+    return { code: text(entry.code) || slugify(optName).replace(/-/g, "_"), name: optName, values, position: i };
+  }).filter((o) => o.name && o.values.length);
+  for (const v of variants) {
+    for (const o of options) if (!v.options[o.code]) throw new CheckoutError(`Escolha o valor de "${o.name}" em todas as variações.`);
+  }
+
+  const media = (Array.isArray(body.media) ? body.media : []).slice(0, MAX_IMAGES).map((m) => {
+    const entry = (m ?? {}) as Record<string, unknown>;
+    const url = text(entry.url);
+    if (!/^https?:\/\//i.test(url)) throw new CheckoutError("Link de imagem inválido.");
+    return { url, alt: text(entry.alt) || name, width: Number(entry.width) || null, height: Number(entry.height) || null, bytes: Number(entry.bytes) || null };
+  });
+
+  const tags = normalizeTags(Array.isArray(body.tags) ? body.tags.map((t) => text(t)) : [], new Map(), { name }, 12);
+  const highlightOps = await prepareProductHighlights(id ?? null, body.homeHighlights); // valida antes de gravar
+
+  const payload: Record<string, unknown> = {
+    ...(id ? { id } : {}), name, categoryId: categoryId || undefined, productType, typeLabel: TYPE_LABEL[productType], condition, status, visibility,
+    sku: text(body.sku) || undefined, slug: id ? undefined : text(body.slug) || slugify(name),
+    brand: text(body.brand), platform: text(body.platform), releaseYear: text(body.releaseYear),
+    tagline: text(body.tagline), description: text(body.description), badge: text(body.badge),
+    warrantyMonths: Math.max(0, Math.trunc(Number(body.warrantyMonths) || 0)), warrantyText: text(body.warrantyText),
+    seoTitle: text(body.seoTitle), seoDescription: text(body.seoDescription), videoUrl: video?.url ?? "",
+    specs: Array.isArray(body.specs) ? body.specs : undefined,
+    tags, media, options, variants, locationId: text(body.locationId) || undefined,
+  };
+  const sql = await getSql();
+  const [row] = await sql.query<{ saved: { id: string; sku: string; slug: string } }>("select save_product($1::jsonb) as saved", [JSON.stringify(payload)]);
+  await applyProductHighlights(row.saved.id, highlightOps);
+  return row.saved;
+}
+
+/** Tudo que o formulário de edição precisa de um produto. */
+export async function loadAdminProduct(id: string) {
+  const sql = await getSql();
+  const [product] = await sql.query<Record<string, unknown>>(
+    "select p.*, c.name as category_name from products p join categories c on c.id = p.category_id where p.id = $1::uuid",
+    [id],
+  );
+  if (!product) return null;
+  const [media, options, variants, tags, facets] = await Promise.all([
+    sql.query("select url, alt, width, height, bytes, position from product_media where product_id = $1::uuid and kind = 'image' order by position", [id]),
+    sql.query("select o.code, o.name, coalesce((select jsonb_agg(v.label order by v.position) from product_option_values v where v.option_id = o.id), '[]'::jsonb) as values from product_options o where o.product_id = $1::uuid order by o.position", [id]),
+    sql.query("select v.id, v.sku, v.option_values as options, v.price, v.compare_at, v.max_installments, v.weight_grams, v.width_mm, v.height_mm, v.length_mm, v.is_active, coalesce((select sum(il.on_hand) from inventory_levels il where il.variant_id = v.id), 0)::int as stock, coalesce((select max(il.min_level) from inventory_levels il where il.variant_id = v.id), 0)::int as min_stock from product_variants v where v.product_id = $1::uuid and v.is_active order by v.price, v.created_at", [id]),
+    sql.query<{ name: string }>("select t.name from product_tags pt join tags t on t.id = pt.tag_id where pt.product_id = $1::uuid order by t.name", [id]),
+    sql.query<{ key: string; value: string }>("select facet_key as key, facet_value as value from product_facets where product_id = $1::uuid", [id]),
+  ]);
+  return { product, media, options, variants, tags: tags.map((t) => t.name), facets };
+}

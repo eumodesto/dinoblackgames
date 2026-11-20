@@ -181,7 +181,7 @@ export function CheckoutView() {
 
   // ---- cotação no servidor (preço, estoque, frete e cupom vêm do banco)
   const cartItems = useMemo(
-    () => items.map((l) => ({ slug: l.product.slug, color: l.color, storage: l.storage, qty: l.qty })),
+    () => items.map((l) => ({ slug: l.product.slug, color: l.color, storage: l.storage, condition: l.condition, qty: l.qty })),
     [items],
   );
   const cepDigits = onlyDigits(address.cep);
@@ -434,7 +434,7 @@ export function CheckoutView() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 text-sm font-bold text-gray-900 dark:text-white">{line.product.name}</p>
-                <p className="text-xs text-gray-500 dark:text-zinc-400">{[line.color, line.storage].filter(Boolean).join(" · ")}</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">{[line.color, line.storage, line.condition].filter(Boolean).join(" · ")}</p>
                 {bad && <p role="alert" className="mt-0.5 text-xs font-bold text-dino-red">{q.reason ?? "Indisponível"}</p>}
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   {locked ? (
