@@ -11,7 +11,7 @@ export const emptyProductFilters: ProductsFilterValues = { q: "", categoria: "",
 
 const STATUS: SelectOption[] = [{ value: "", label: "Todos os status" }, { value: "published", label: "Publicado" }, { value: "draft", label: "Rascunho" }, { value: "scheduled", label: "Agendado" }, { value: "archived", label: "Arquivado" }];
 const CONDITION: SelectOption[] = [{ value: "", label: "Todas as condições" }, { value: "novo", label: "Novo" }, { value: "seminovo", label: "Seminovo" }, { value: "raridade", label: "Raridade" }, { value: "pre_venda", label: "Pré-venda" }];
-const STOCK: SelectOption[] = [{ value: "", label: "Qualquer estoque" }, { value: "com", label: "Com estoque" }, { value: "baixo", label: "Estoque baixo (1 a 5)" }, { value: "sem", label: "Sem estoque" }];
+const STOCK: SelectOption[] = [{ value: "", label: "Qualquer estoque" }, { value: "com", label: "Com estoque" }, { value: "baixo", label: "Estoque baixo (1 a 5)" }, { value: "alerta", label: "Em alerta (esgotado ou abaixo do mínimo)" }, { value: "sem", label: "Sem estoque" }];
 const VISIBILITY: SelectOption[] = [{ value: "", label: "Qualquer visibilidade" }, { value: "visible", label: "Visível na loja" }, { value: "hidden", label: "Oculto" }];
 
 function toQuery(values: ProductsFilterValues) {

@@ -16,25 +16,34 @@ export function FunnelPanel({ funnel, today }: { funnel: Funnel; today: string }
   const maxDay = Math.max(1, ...daily.map((d) => d.sessions));
   const segmentLabel = [segment.dispositivo && DEVICE[segment.dispositivo], segment.origem && (segment.origem === "direto" ? "origem direta" : `origem ${segment.origem}`)].filter(Boolean).join(" · ");
 
-  const tiles: [string, string, string][] = [
-    segmented
-      ? ["Chegaram ao pagamento", pct(ratio(created, top)), "pagamento gerado ÷ sessões do segmento"]
-      : ["Conversão geral", pct(ratio(funnel.paidOrders, top)), "compras pagas ÷ sessões"],
-    ["Abandono de carrinho", pct(carts > 0 ? Math.max(0, (carts - created) / carts) : null), "colocaram no carrinho e não geraram pagamento"],
-    segmented
-      ? ["Pagamentos gerados", nf.format(created), "no segmento escolhido"]
-      : ["Pagamentos gerados e não pagos", nf.format(Math.max(0, created - funnel.paidOrders)), "Pix não pago ou cartão recusado"],
-    ["Busca usada", `${nf.format(side.searched)} sessões`, `${pct(ratio(side.searched, top))} das sessões`],
-    ["Viram produto esgotado", `${nf.format(side.stockOut)} sessões`, "perda por estoque, não por interesse"],
-    ["Cupom aplicado", `${nf.format(side.coupon)} sessões`, "chegaram ao checkout com cupom válido"],
+  // Detalhe de cada etapa no balão (passar o mouse): descrição, % da etapa anterior e perda.
+  const vizSteps = steps.map((step, i) => {
+    const prev = i > 0 ? steps[i - 1].count : null;
+    const rate = prev === null ? null : ratio(step.count, prev);
+    const detail = prev === null ? "" : rate !== null && rate > 1 ? " · sem sessão rastreada" : ` · ${pct(rate)} da etapa anterior${prev - step.count > 0 ? ` (−${nf.format(prev - step.count)})` : ""}`;
+    return { short: step.short, count: step.count, title: `${step.label}: ${nf.format(step.count)}${detail}\n${step.hint}` };
+  });
+
+  const tiles: [string, string][] = [
+    segmented ? ["Chegaram ao pagamento", pct(ratio(created, top))] : ["Conversão geral", pct(ratio(funnel.paidOrders, top))],
+    ["Abandono de carrinho", pct(carts > 0 ? Math.max(0, (carts - created) / carts) : null)],
+    segmented ? ["Pagamentos gerados", nf.format(created)] : ["Gerados e não pagos", nf.format(Math.max(0, created - funnel.paidOrders))],
+    ["Busca usada", nf.format(side.searched)],
+    ["Viram produto esgotado", nf.format(side.stockOut)],
+    ["Cupom aplicado", nf.format(side.coupon)],
   ];
+  const tileHint: Record<string, string> = {
+    "Conversão geral": "Compras pagas ÷ sessões", "Chegaram ao pagamento": "Pagamento gerado ÷ sessões do segmento", "Abandono de carrinho": "Colocaram no carrinho e não geraram pagamento",
+    "Gerados e não pagos": "Pix não pago ou cartão recusado", "Pagamentos gerados": "No segmento escolhido", "Busca usada": "Sessões que usaram a busca",
+    "Viram produto esgotado": "Sessões — perda por estoque, não por interesse", "Cupom aplicado": "Sessões com cupom válido no checkout",
+  };
 
   return (
     <section className="gd-panel" aria-labelledby="funnel-title">
       <header className="gd-panel-head" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 id="funnel-title">Funil da jornada</h2>
-          <p>{range.label}{segmentLabel ? ` · ${segmentLabel}` : ""} · contagem por sessão (visita), horário de Brasília</p>
+          <p>{range.label}{segmentLabel ? ` · ${segmentLabel}` : ""} · por sessão, horário de Brasília · passe o mouse nas etapas para ver a perda</p>
         </div>
         <FunnelFilters
           periodo={range.key} de={range.de} ate={range.ate} max={today}
@@ -44,66 +53,33 @@ export function FunnelPanel({ funnel, today }: { funnel: Funnel; today: string }
       </header>
 
       {empty && (
-        <p role="status" style={{ margin: "0 0 12px", padding: "10px 12px", borderRadius: 12, background: "var(--gd-card-light)", color: "var(--gd-muted)", fontSize: 13 }}>
+        <p role="status" style={{ margin: "0 0 8px", padding: "8px 12px", borderRadius: 12, background: "var(--gd-card-light)", color: "var(--gd-muted)", fontSize: 12 }}>
           {segmented ? "Nenhuma sessão neste segmento e período." : "Ainda sem visitas neste período. Os eventos começam a ser gravados assim que o site recebe acessos (visitas ao painel admin e bots não contam)."}
         </p>
       )}
 
-      <FunnelViz steps={steps.map((s) => ({ short: s.short, count: s.count }))} />
+      <FunnelViz steps={vizSteps} />
 
       {segmented && (
-        <p style={{ margin: "8px 0 0", color: "var(--gd-muted)", fontSize: 12 }}>
+        <p style={{ margin: "4px 0 0", color: "var(--gd-muted)", fontSize: 11 }}>
           Com segmento ativo a etapa “Compra paga” não aparece: os pedidos não guardam o dispositivo nem a origem da sessão.
         </p>
       )}
 
-      <div style={{ overflowX: "auto", marginTop: 12 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ color: "var(--gd-muted)", fontSize: 11, textAlign: "right" }}>
-              <th style={{ textAlign: "left", fontWeight: 650, paddingBottom: 6 }}>Etapa</th>
-              <th style={{ fontWeight: 650 }}>Sessões</th><th style={{ fontWeight: 650 }}>Da etapa anterior</th><th style={{ fontWeight: 650 }}>Perda</th>
-            </tr>
-          </thead>
-          <tbody>
-            {steps.map((step, i) => {
-              const prev = i > 0 ? steps[i - 1].count : null;
-              const rate = prev === null ? null : ratio(step.count, prev);
-              const invalid = rate !== null && rate > 1; // pedido pago sem sessão rastreada (ex.: antes do rastreamento)
-              return (
-                <tr key={step.id} style={{ borderTop: "1px solid var(--gd-line)", textAlign: "right" }}>
-                  <td style={{ textAlign: "left", padding: "8px 0" }}>
-                    <div style={{ fontWeight: 650 }}>{i + 1}. {step.label}</div>
-                    <small style={{ color: "var(--gd-muted)" }}>{step.hint}</small>
-                  </td>
-                  <td style={{ fontWeight: 800, fontSize: 15 }}>{nf.format(step.count)}</td>
-                  <td>{prev === null ? "—" : invalid ? "sem sessão rastreada" : pct(rate)}</td>
-                  <td style={{ color: "var(--gd-muted)" }}>{prev !== null && !invalid && prev - step.count > 0 ? `−${nf.format(prev - step.count)}` : "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", marginTop: 16 }}>
-        {tiles.map(([title, value, hint]) => (
-          <div key={title} style={{ padding: "10px 12px", borderRadius: 14, background: "var(--gd-card-light)", border: "1px solid var(--gd-line)" }}>
+      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", marginTop: 10 }}>
+        {tiles.map(([title, value]) => (
+          <div key={title} title={tileHint[title]} style={{ padding: "7px 10px", borderRadius: 12, background: "var(--gd-card-light)", border: "1px solid var(--gd-line)" }}>
             <small style={{ color: "var(--gd-muted)", fontWeight: 650 }}>{title}</small>
-            <div style={{ fontSize: 18, fontWeight: 800, margin: "2px 0" }}>{value}</div>
-            <small style={{ color: "var(--gd-muted)" }}>{hint}</small>
+            <div style={{ fontSize: 16, fontWeight: 800 }}>{value}</div>
           </div>
         ))}
       </div>
 
       {daily.length > 1 && (
-        <div style={{ marginTop: 16 }}>
-          <small style={{ color: "var(--gd-muted)", fontWeight: 650 }}>Sessões por dia</small>
-          <div role="img" aria-label="Sessões por dia" style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 56, marginTop: 6 }}>
-            {daily.map((d) => (
-              <div key={d.day} title={`${d.day.split("-").reverse().join("/")}: ${d.sessions}`} style={{ flex: 1, minWidth: 2, height: `${Math.max(6, (d.sessions / maxDay) * 100)}%`, background: "var(--gd-coral)", opacity: 0.8, borderRadius: 3 }} />
-            ))}
-          </div>
+        <div role="img" aria-label="Sessões por dia" title="Sessões por dia" style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 32, marginTop: 10 }}>
+          {daily.map((d) => (
+            <div key={d.day} title={`${d.day.split("-").reverse().join("/")}: ${d.sessions} sessões`} style={{ flex: 1, minWidth: 2, height: `${Math.max(8, (d.sessions / maxDay) * 100)}%`, background: "var(--gd-coral)", opacity: 0.8, borderRadius: 3 }} />
+          ))}
         </div>
       )}
     </section>

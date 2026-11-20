@@ -846,7 +846,7 @@ export async function getAdminProducts(opts: AdminProductFilters = {}): Promise<
     (opts.categoria ?? "").slice(0, 80),
     ONE_OF(opts.status, ["draft", "scheduled", "published", "archived"]),
     ONE_OF(opts.condicao, ["novo", "seminovo", "raridade", "pre_venda"]),
-    ONE_OF(opts.estoque, ["com", "sem", "baixo"]),
+    ONE_OF(opts.estoque, ["com", "sem", "baixo", "alerta"]),
     ONE_OF(opts.visibilidade, ["visible", "hidden"]),
     PRICE(opts.precoMin),
     PRICE(opts.precoMax),
@@ -865,7 +865,7 @@ export async function getAdminProducts(opts: AdminProductFilters = {}): Promise<
         and ($2 = '' or cat_slug in (with recursive branch as (select id, slug from categories where slug = $2 union all select c2.id, c2.slug from categories c2 join branch b on c2.parent_id = b.id) select slug from branch))
         and ($3 = '' or status = $3)
         and ($4 = '' or condition = $4)
-        and ($5 = '' or ($5 = 'com' and avail > 0) or ($5 = 'sem' and avail <= 0) or ($5 = 'baixo' and avail between 1 and 5))
+        and ($5 = '' or ($5 = 'com' and avail > 0) or ($5 = 'sem' and avail <= 0) or ($5 = 'baixo' and avail between 1 and 5) or ($5 = 'alerta' and exists (select 1 from v_inventory_alerts a join product_variants av on av.id = a.variant_id where av.product_id = base.id)))
         and ($6 = '' or visibility = $6)
         and price >= coalesce(nullif($7, '')::numeric, 0)
         and price <= coalesce(nullif($8, '')::numeric, 1000000000)

@@ -432,3 +432,9 @@
 }
 .gd-tabs a:not([aria-current="page"]):hover { background: var(--gd-raised); }
 .gd-tabs a[aria-current="page"] { background: var(--gd-primary); color: var(--gd-primary-ink); }
+
+/* Cartões de métrica que levam à gestão */
+a.gd-metric { color: inherit; text-decoration: none; cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+a.gd-metric:hover { transform: translateY(-2px); border-color: var(--gd-edge-light); box-shadow: 0 10px 28px -12px rgb(var(--gd-dark-shadow) / 45%); }
+a.gd-metric:focus-visible { outline: 2px solid var(--gd-focus); outline-offset: 2px; }
+a.gd-metric:active { transform: translateY(0); }

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { FunnelChart, type FunnelStage } from "@/components/ui/funnel-chart";
 
-export type FunnelVizStep = { short: string; count: number };
+export type FunnelVizStep = { short: string; count: number; title?: string };
 
 const pct = (p: number) => (p > 0 && p < 1 ? "<1%" : p < 10 && p % 1 !== 0 ? `${p.toFixed(1).replace(".", ",")}%` : `${Math.round(p)}%`);
 
-/** Funil visual: horizontal em telas largas e vertical no celular. O % de cada etapa é sobre as sessões. */
+/** Funil visual compacto: horizontal em telas largas e vertical no celular. O % de cada etapa é sobre as sessões. */
 export function FunnelViz({ steps }: { steps: FunnelVizStep[] }) {
   const [wide, setWide] = useState(true);
   useEffect(() => {
@@ -25,22 +25,23 @@ export function FunnelViz({ steps }: { steps: FunnelVizStep[] }) {
     label: s.short,
     value: Math.min(s.count, top),
     displayValue: s.count.toLocaleString("pt-BR"),
+    title: s.title,
     ...(i === steps.length - 1 ? { color: "var(--gd-teal)" } : {}),
   }));
 
   return (
-    <div className={wide ? "mx-auto w-full" : "mx-auto w-[78%] max-w-sm"}>
+    <div className={wide ? "mx-auto w-full" : "mx-auto w-[70%] max-w-xs"}>
       <FunnelChart
         data={data}
         orientation={wide ? "horizontal" : "vertical"}
         color="var(--gd-coral)"
         layers={3}
-        gap={wide ? 4 : 6}
+        gap={wide ? 3 : 4}
         labelLayout="grouped"
         labelAlign="center"
         labelOrientation="vertical"
         formatPercentage={pct}
-        style={wide ? { aspectRatio: "3.4 / 1" } : { aspectRatio: "1 / 2.4" }}
+        style={wide ? { aspectRatio: "5 / 1" } : { aspectRatio: "1 / 2" }}
       />
     </div>
   );

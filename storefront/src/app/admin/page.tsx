@@ -8,13 +8,13 @@ function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function Kpi({ label, value, sub, icon: Icon, tone }: { label: string; value: string | number; sub?: string; icon: LucideIcon; tone?: "featured" }) {
+function Kpi({ label, value, sub, icon: Icon, tone, href }: { label: string; value: string | number; sub?: string; icon: LucideIcon; tone?: "featured"; href: string }) {
   return (
-    <article className="gd-metric" data-tone={tone}>
+    <Link href={href} className="gd-metric" data-tone={tone} aria-label={`${label}: ${value}. Abrir gestão`}>
       <div className="gd-metric-head"><span>{label}</span><span className="gd-metric-icon" aria-hidden="true"><Icon /></span></div>
       <strong className="gd-metric-value">{value}</strong>
       {sub && <div className="gd-metric-caption">{sub}</div>}
-    </article>
+    </Link>
   );
 }
 
@@ -51,10 +51,10 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       </header>
 
       <div className="gd-metric-grid">
-        <Kpi label="Receita" value={formatBRL(kpis.revenue)} sub={`${kpis.paidOrders} pedidos pagos`} icon={CircleDollarSign} tone="featured" />
-        <Kpi label="Pedidos" value={kpis.totalOrders} sub={`${kpis.pendingOrders} aguardando pagamento`} icon={ShoppingBag} />
-        <Kpi label="Produtos publicados" value={kpis.publishedProducts} sub={`${kpis.totalProducts} no total`} icon={Box} />
-        <Kpi label="Alertas de estoque" value={kpis.inventoryAlerts} sub="Itens com estoque baixo" icon={TriangleAlert} />
+        <Kpi label="Receita" value={formatBRL(kpis.revenue)} sub={`${kpis.paidOrders} pedidos pagos`} icon={CircleDollarSign} tone="featured" href="/admin/pedidos?status=paid" />
+        <Kpi label="Pedidos" value={kpis.totalOrders} sub={`${kpis.pendingOrders} aguardando pagamento`} icon={ShoppingBag} href="/admin/pedidos" />
+        <Kpi label="Produtos publicados" value={kpis.publishedProducts} sub={`${kpis.totalProducts} no total`} icon={Box} href="/admin/produtos?status=published" />
+        <Kpi label="Alertas de estoque" value={kpis.inventoryAlerts} sub="Itens com estoque baixo" icon={TriangleAlert} href="/admin/produtos?estoque=alerta" />
       </div>
 
       <FunnelPanel funnel={funnel} today={today} />

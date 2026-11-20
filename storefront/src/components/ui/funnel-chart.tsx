@@ -13,6 +13,8 @@ export interface FunnelStage {
   label: string;
   value: number;
   displayValue?: string;
+  /** Texto do balão (title) ao passar o mouse sobre a etapa. */
+  title?: string;
   color?: string;
   gradient?: FunnelGradientStop[];
 }
@@ -258,7 +260,7 @@ export function FunnelChart({
             const pos: CSSProperties = horiz ? { left: (segW + gap) * i, width: segW, top: 0, height: H } : { top: (segH + gap) * i, height: segH, left: 0, width: W };
             const dimmed = hoveredIndex !== null && hoveredIndex !== i;
             return (
-              <motion.div animate={{ opacity: dimmed ? 0.4 : 1 }} className="absolute cursor-pointer" key={`lbl-${stage.label}`} onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
+              <motion.div animate={{ opacity: dimmed ? 0.4 : 1 }} className="absolute cursor-pointer" key={`lbl-${stage.label}`} title={stage.title} onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
                 style={{ ...pos, zIndex: 20 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
                 <SegmentLabel align={labelAlign} formatPercentage={formatPercentage} formatValue={formatValue} index={i} isHorizontal={horiz} layout={labelLayout} orientation={labelOrientation}
                   pct={pct} showLabels={showLabels} showPercentage={showPercentage} showValues={showValues} stage={stage} staggerDelay={staggerDelay} />
