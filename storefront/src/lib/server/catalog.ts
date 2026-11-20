@@ -819,23 +819,76 @@ export type AdminProduct = {
   available: number;
 };
 
-export async function getAdminProducts(): Promise<AdminProduct[]> {
+export const ADMIN_PAGE_SIZE = 25;
+
+export type AdminProductFilters = {
+  page?: number;
+  q?: string;
+  categoria?: string;
+  status?: string;
+  condicao?: string;
+  estoque?: string; // com | sem | baixo
+  visibilidade?: string;
+  precoMin?: string;
+  precoMax?: string;
+};
+
+const ONE_OF = (value: string | undefined, allowed: string[]) => (value && allowed.includes(value) ? value : "");
+const PRICE = (value: string | undefined) => { const n = Number(String(value ?? "").replace(",", ".")); return Number.isFinite(n) && n >= 0 && value !== "" ? String(n) : ""; };
+
+/** Uma página do catálogo no admin, com busca (nome, SKU, categoria) e filtros combináveis. */
+export async function getAdminProducts(opts: AdminProductFilters = {}): Promise<{ items: AdminProduct[]; total: number; page: number; pages: number }> {
   const sql = await getSql();
+  const q = (opts.q ?? "").trim().slice(0, 80);
+  const requested = Math.max(1, Math.trunc(opts.page ?? 1) || 1);
+  const params = [
+    q,
+    (opts.categoria ?? "").slice(0, 80),
+    ONE_OF(opts.status, ["draft", "scheduled", "published", "archived"]),
+    ONE_OF(opts.condicao, ["novo", "seminovo", "raridade", "pre_venda"]),
+    ONE_OF(opts.estoque, ["com", "sem", "baixo"]),
+    ONE_OF(opts.visibilidade, ["visible", "hidden"]),
+    PRICE(opts.precoMin),
+    PRICE(opts.precoMax),
+  ];
+  const base = `with base as (
+      select p.id, p.slug, p.sku, p.name, p.condition::text as condition, p.status::text as status, p.visibility, p.updated_at,
+             c.name as cat_name, c.slug as cat_slug,
+             coalesce((select v.price from product_variants v where v.product_id = p.id and v.is_active order by v.price limit 1), 0) as price,
+             (select m.url from product_media m where m.product_id = p.id order by m.position limit 1) as image,
+             coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il join product_variants v on v.id = il.variant_id where v.product_id = p.id), 0)::int
+               + (select count(*) from inventory_units u where u.product_id = p.id and u.status = 'disponivel')::int as avail
+      from products p join categories c on c.id = p.category_id
+    ), filtered as (
+      select * from base
+      where ($1 = '' or name ilike '%' || $1 || '%' or sku ilike '%' || $1 || '%' or cat_name ilike '%' || $1 || '%')
+        and ($2 = '' or cat_slug in (with recursive branch as (select id, slug from categories where slug = $2 union all select c2.id, c2.slug from categories c2 join branch b on c2.parent_id = b.id) select slug from branch))
+        and ($3 = '' or status = $3)
+        and ($4 = '' or condition = $4)
+        and ($5 = '' or ($5 = 'com' and avail > 0) or ($5 = 'sem' and avail <= 0) or ($5 = 'baixo' and avail between 1 and 5))
+        and ($6 = '' or visibility = $6)
+        and price >= coalesce(nullif($7, '')::numeric, 0)
+        and price <= coalesce(nullif($8, '')::numeric, 1000000000)
+    )`;
   const rows = await sql.query<{
-    id: string; slug: string; sku: string; name: string; condition: string; status: string;
+    total: number; id: string; slug: string; sku: string; name: string; condition: string; status: string;
     cat_name: string; price: string | number; image: string | null; avail: number;
   }>(
-    `select p.id, p.slug, p.sku, p.name, p.condition::text, p.status::text,
-            c.name as cat_name,
-            coalesce((select v.price from product_variants v where v.product_id = p.id and v.is_active order by v.price limit 1), 0) as price,
-            (select m.url from product_media m where m.product_id = p.id order by m.position limit 1) as image,
-            coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il join product_variants v on v.id = il.variant_id where v.product_id = p.id), 0)::int
-              + (select count(*) from inventory_units u where u.product_id = p.id and u.status = 'disponivel')::int as avail
-     from products p
-     join categories c on c.id = p.category_id
-     order by p.status = 'published' desc, p.updated_at desc`,
+    `${base}
+     select (select count(*) from filtered)::int as total, id, slug, sku, name, condition, status, cat_name, price, image, avail
+     from filtered
+     order by status = 'published' desc, updated_at desc, id
+     limit ${ADMIN_PAGE_SIZE} offset ${(requested - 1) * ADMIN_PAGE_SIZE}`,
+    params,
   );
-  return rows.map((r) => ({
+  let total = rows[0]?.total ?? 0;
+  if (rows.length === 0 && requested > 1) {
+    [{ n: total }] = await sql.query<{ n: number }>(`${base} select count(*)::int as n from filtered`, params);
+  }
+  const pages = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+  // página além do fim (ex.: link antigo ou filtro novo): volta para a última
+  if (rows.length === 0 && requested > pages) return getAdminProducts({ ...opts, page: pages });
+  const items = rows.map((r) => ({
     id: r.id,
     slug: r.slug,
     sku: r.sku,
@@ -847,4 +900,17 @@ export async function getAdminProducts(): Promise<AdminProduct[]> {
     image: r.image,
     available: r.avail,
   }));
+  return { items, total, page: requested, pages };
+}
+
+/** Categorias em ordem de árvore, com o caminho "Principal › Sub › Item" (para filtros e formulários do admin). */
+export async function getAdminCategoryOptions(): Promise<{ slug: string; label: string }[]> {
+  const sql = await getSql();
+  return sql.query<{ slug: string; label: string }>(
+    `with recursive t as (
+       select id, slug, name::text as label, lpad(position::text, 4, '0') || name as ord from categories where parent_id is null
+       union all
+       select c.id, c.slug, t.label || ' › ' || c.name, t.ord || '.' || lpad(c.position::text, 4, '0') || c.name from categories c join t on c.parent_id = t.id
+     ) select slug, label from t order by ord`,
+  );
 }
