@@ -1,5 +1,6 @@
 import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
 import { getSql } from "@/lib/server/sql";
+import { applyProductHighlights, getAdminHighlights, prepareProductHighlights } from "@/lib/server/highlights";
 
 const PRODUCT_TYPES = new Set(["console", "jogo", "acessorio", "pc", "notebook", "periferico", "retro"]);
 const CONDITIONS = new Set(["novo", "seminovo", "raridade", "pre_venda"]);
@@ -49,7 +50,8 @@ export async function GET() {
       sql.query("select id, name from categories where is_active order by position, name"),
       sql.query("select id, name from stock_locations order by name"),
     ]);
-    return json({ categories, locations });
+    const { usedByOthers, limits } = await getAdminHighlights(null);
+    return json({ categories, locations, highlightUsage: { used: usedByOthers, limits } });
   });
 }
 
@@ -59,6 +61,7 @@ export async function POST(req: Request) {
     if (unauthorized) return unauthorized;
     const body = await readJson(req);
     const input = validate(body);
+    const highlightOps = await prepareProductHighlights(null, body.homeHighlights); // valida antes de criar qualquer coisa
     const sql = await getSql();
     const slug = text(body.slug) || slugify(input.name);
     const facets = [
@@ -83,6 +86,7 @@ export async function POST(req: Request) {
     if (image) await sql.query("insert into product_media (product_id, url, alt, position) values ($1::uuid, $2, $3, 0)", [product.id, image, input.name]);
     const locationId = text(body.locationId);
     if (locationId && input.condition === "novo") await sql.query("insert into inventory_levels (variant_id, location_id, on_hand, min_level) values ($1::uuid, $2::uuid, $3, $4)", [variant.id, locationId, Math.max(0, Number(body.stock) || 0), Math.max(0, Number(body.minStock) || 0)]);
+    await applyProductHighlights(product.id, highlightOps);
     return json({ id: product.id, slug });
   });
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSelect } from "./AdminSelect";
+import { ProductHighlightsSection, defaultUsage, emptyHighlight, emptyHighlights, isoToLocalInput, localInputToIso, type HighlightUsage, type HighlightsState } from "./ProductHighlightsSection";
 
 type Meta = { categories: { id: string; name: string }[]; locations: { id: string; name: string }[] };
 type ProductFormProps = { productId?: string };
@@ -22,10 +23,12 @@ export function AdminProductForm({ productId }: ProductFormProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [type, setType] = useState("console");
+  const [highlights, setHighlights] = useState<HighlightsState>(emptyHighlights);
+  const [usage, setUsage] = useState<HighlightUsage>(defaultUsage);
   const [form, setForm] = useState<Record<string, string>>({ status: "draft", condition: "novo", warrantyMonths: "12", maxInstallments: "10", stock: "0", minStock: "0", weightGrams: "", widthMm: "", heightMm: "", lengthMm: "" });
 
   useEffect(() => {
-    fetch("/api/admin/products").then((r) => r.json()).then(setMeta).catch(() => setMessage("Não foi possível carregar categorias."));
+    fetch("/api/admin/products").then((r) => r.json()).then((data) => { setMeta(data); if (!productId && data.highlightUsage) setUsage(data.highlightUsage); }).catch(() => setMessage("Não foi possível carregar categorias."));
     if (productId) {
       fetch(`/api/admin/products/${productId}`).then((r) => r.json()).then((data) => {
         const p = data.product;
@@ -33,6 +36,11 @@ export function AdminProductForm({ productId }: ProductFormProps) {
         const m = p.media ?? {};
         const facets = Object.fromEntries((p.facets ?? []).map((f: { key: string; value: string }) => [f.key, f.value]));
         setType(facets.product_type ?? "console");
+        if (data.homeHighlights) {
+          const fromApi = (slot: "hero" | "flash") => ({ ...emptyHighlight(), ...data.homeHighlights[slot], endsAt: isoToLocalInput(data.homeHighlights[slot]?.endsAt ?? "") });
+          setHighlights({ hero: fromApi("hero"), flash: fromApi("flash") });
+        }
+        if (data.highlightUsage) setUsage(data.highlightUsage);
         setForm({ name: p.name ?? "", sku: p.sku ?? "", categoryId: p.category_id ?? "", brand: p.brand ?? "", platform: facets.platform ?? "", releaseYear: facets.release_year ?? "", tagline: p.tagline ?? "", description: p.description ?? "", condition: p.condition ?? "novo", status: p.status ?? "draft", warrantyMonths: String(p.warranty_months ?? 12), warrantyText: p.warranty_text ?? "", price: String(v.price ?? ""), compareAt: v.compare_at ? String(v.compare_at) : "", maxInstallments: String(v.max_installments ?? 10), weightGrams: v.weight_grams ? String(v.weight_grams) : "", widthMm: v.width_mm ? String(v.width_mm) : "", heightMm: v.height_mm ? String(v.height_mm) : "", lengthMm: v.length_mm ? String(v.length_mm) : "", imageUrl: m.url ?? "" });
       }).finally(() => setLoading(false));
     }
@@ -46,7 +54,7 @@ export function AdminProductForm({ productId }: ProductFormProps) {
     const specs = [
       ["Especificações principais", Object.entries(form).filter(([key, value]) => ["model", "cpu", "gpu", "ram", "storage", "screen", "connection", "compatibility", "edition", "language", "classification", "powerSupply", "operatingSystem"].includes(key) && value).map(([key, value]) => [key, value])],
     ].filter(([, rows]) => rows.length);
-    const body = { ...form, productType: type, specs: specs.map(([group, rows]) => ({ group, rows })), highlights: [], inBox: [], faq: [] };
+    const body = { ...form, homeHighlights: { hero: { ...highlights.hero }, flash: { ...highlights.flash, endsAt: localInputToIso(highlights.flash.endsAt) } }, productType: type, specs: specs.map(([group, rows]) => ({ group, rows })), highlights: [], inBox: [], faq: [] };
     const response = await fetch(productId ? `/api/admin/products/${productId}` : "/api/admin/products", { method: productId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await response.json();
     setSaving(false);
@@ -83,6 +91,7 @@ export function AdminProductForm({ productId }: ProductFormProps) {
     </div>
     <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-4"><div className="md:col-span-4"><h2 className="font-bold text-white">Dimensões para entrega</h2><p className="mt-1 text-xs text-zinc-500">Informe a embalagem pronta para envio. Peso em gramas; medidas em milímetros.</p></div><Field name="weightGrams" title="Peso (g)" type="number" placeholder="Ex.: 4500" /><Field name="heightMm" title="Altura (mm)" type="number" placeholder="Ex.: 150" /><Field name="widthMm" title="Largura (mm)" type="number" placeholder="Ex.: 400" /><Field name="lengthMm" title="Comprimento (mm)" type="number" placeholder="Ex.: 300" /></div>
     <div className="grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 md:grid-cols-2"><Field name="tagline" title="Resumo curto" /><Field name="warrantyText" title="Texto da garantia" /><label className="block md:col-span-2"><span className={label}>Descrição</span><textarea className={`${input} h-28 py-3`} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} /></label></div>
+    <ProductHighlightsSection value={highlights} onChange={setHighlights} usage={usage} />
     {message && <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{message}</p>}
     <div className="flex gap-3"><button disabled={saving} className="rounded-xl bg-dino-red px-6 py-3 font-bold text-white disabled:opacity-50">{saving ? "Salvando..." : productId ? "Salvar alterações" : "Criar produto"}</button><button type="button" onClick={() => router.back()} className="rounded-xl border border-zinc-700 px-6 py-3 font-bold text-zinc-300">Cancelar</button></div>
   </form>;
