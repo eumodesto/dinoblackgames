@@ -75,15 +75,22 @@ function Slot({ title, hint, used, limit, enabled, onToggle, children }: { title
 }
 
 /** Seção "Destaque na página inicial" do cadastro/edição do produto: slider (até 10) e Flash Drop (até 5). */
-export function ProductHighlightsSection({ value, onChange, usage }: { value: HighlightsState; onChange: (next: HighlightsState) => void; usage: HighlightUsage }) {
+export function ProductHighlightsSection({ value, onChange, usage, published = true }: { value: HighlightsState; onChange: (next: HighlightsState) => void; usage: HighlightUsage; published?: boolean }) {
   const set = (slot: "hero" | "flash", patch: Partial<HighlightFormState>) => onChange({ ...value, [slot]: { ...value[slot], ...patch } });
   const { hero, flash } = value;
+  const flashEnded = flash.enabled && flash.endsAt !== "" && new Date(flash.endsAt).getTime() <= Date.now();
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
       <div>
         <h2 className="font-bold text-white">Destaque na página inicial</h2>
         <p className="mt-1 text-xs text-zinc-500">Escolha onde este produto aparece no banner da home. Nome, imagem, preço, desconto, avaliação, vendidos e estoque vêm do próprio cadastro. Só produtos <strong>publicados</strong> aparecem.</p>
       </div>
+      {!published && (hero.enabled || flash.enabled) && (
+        <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">Este produto não está publicado, então o destaque não aparece na home. Mude o status para <strong>Publicado</strong> para ele entrar no banner.</p>
+      )}
+      {flashEnded && (
+        <p role="alert" className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">A data de fim do Flash Drop já passou, então ele não aparece mais. Ajuste a data ou deixe vazio.</p>
+      )}
 
       <Slot title="Slider principal (esquerda)" hint="Slide grande com título, texto e botão que leva à página do produto." used={usage.used.hero} limit={usage.limits.hero} enabled={hero.enabled} onToggle={(enabled) => set("hero", { enabled })}>
         <Text title="Texto acima do título" value={hero.eyebrow} onChange={(eyebrow) => set("hero", { eyebrow })} placeholder="Ex.: Performance para jogo e criação" max={80} />

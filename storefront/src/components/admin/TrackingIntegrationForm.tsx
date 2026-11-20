@@ -23,7 +23,7 @@ function Badge({ tone, children }: { tone: "ok" | "warn" | "off"; children: Reac
 
 function Section({ icon, title, subtitle, badge, children }: { icon: IntegrationSlug; title: string; subtitle: string; badge: ReactNode; children: ReactNode }) {
   return (
-    <section className={card}>
+    <section id={icon} className={`${card} scroll-mt-28`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <IntegrationIcon slug={icon} />

@@ -277,7 +277,7 @@ async function queryListings(filters: ShopFilters, withTotal: boolean): Promise<
   }
   if (filters.condicao?.length) {
     n++;
-    conditions.push(`condition = any($${n}::text[])`);
+    conditions.push(`condition::text = any($${n}::text[])`);
     params.push(filters.condicao);
   }
   if (filters.plataforma?.length) {
@@ -659,7 +659,7 @@ export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDe
   const [items, payments, shipments, events, returns] = await Promise.all([
     sql.query<Record<string, unknown>>(
       `select oi.*, p.name as product_name, p.slug as product_slug, v.sku as variant_sku,
-              u.serial_number, u.status as unit_status
+              u.serial as serial_number, u.status as unit_status
        from order_items oi
        left join products p on p.id = oi.product_id
        left join product_variants v on v.id = oi.variant_id

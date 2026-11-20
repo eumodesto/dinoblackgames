@@ -163,7 +163,7 @@ export function AdminProductForm({ productId }: { productId?: string }) {
   );
   const cell = "h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-white outline-none focus:border-dino-red";
 
-  return <form onSubmit={submit} className="max-w-5xl space-y-6">
+  return <form onSubmit={submit} className="space-y-6">
     <div className={`${card} md:grid-cols-2`}>
       {field("name", "Nome comercial *", { placeholder: "Ex.: PlayStation 5 Slim 1TB" })}
       {field("sku", "ID DinoBlack (SKU)", { placeholder: "Gerado automaticamente: DB-JGO-00001", readOnly: Boolean(productId) })}
@@ -345,7 +345,7 @@ export function AdminProductForm({ productId }: { productId?: string }) {
       </div>
     </div>
 
-    <ProductHighlightsSection value={highlights} onChange={setHighlights} usage={usage} />
+    <ProductHighlightsSection value={highlights} onChange={setHighlights} usage={usage} published={form.status === "published"} />
     {message && <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{message}</p>}
     <div className="flex gap-3"><button disabled={saving || uploading} className="rounded-xl bg-dino-red px-6 py-3 font-bold text-white disabled:opacity-50">{saving ? "Salvando..." : productId ? "Salvar alterações" : "Criar produto"}</button><button type="button" onClick={() => router.back()} className="rounded-xl border border-zinc-700 px-6 py-3 font-bold text-zinc-300">Cancelar</button></div>
   </form>;

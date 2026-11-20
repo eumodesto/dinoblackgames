@@ -327,6 +327,13 @@
 }
 .gd-app :is(input, select, textarea):focus { outline: 2px solid var(--gd-focus); outline-offset: 1px; }
 
+/* barra do editor de texto: segue o tema (claro e escuro) com contraste suficiente nos ícones */
+.gd-app .gd-rte-bar { background: var(--gd-raised); border-bottom: 1px solid var(--gd-line); }
+.gd-app .gd-rte-btn { color: var(--gd-ink); background: transparent; border: 1px solid transparent; }
+.gd-app .gd-rte-btn:hover { background: var(--gd-inner); border-color: var(--gd-line); }
+.gd-app .gd-rte-btn:active { background: color-mix(in srgb, var(--gd-ink) 12%, transparent); }
+.gd-app .gd-rte-sep { background: var(--gd-line); }
+
 /* campo de etiquetas/valores: UMA caixa só (chips + campo de digitação sem moldura própria) */
 .gd-app .gd-chips {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: 44px; padding: 6px 10px;

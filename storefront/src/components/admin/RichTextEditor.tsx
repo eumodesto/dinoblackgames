@@ -5,7 +5,7 @@ import { RichText } from "@/components/RichText";
 
 type Props = { value: string; onChange: (value: string) => void; label?: string; placeholder?: string; maxLength?: number };
 
-const btn = "grid h-9 min-w-9 place-items-center rounded-lg px-2 text-sm font-bold text-zinc-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-dino-red";
+const btn = "gd-rte-btn grid h-9 min-w-9 place-items-center rounded-lg px-2 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-dino-red";
 
 /**
  * Editor de texto formatado do admin: barra de ferramentas sobre um campo de texto (Markdown simples),
@@ -83,17 +83,17 @@ export function RichTextEditor({ value, onChange, label = "Descrição", placeho
       </div>
 
       <div className="mt-1 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 focus-within:border-dino-red">
-        <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-800 bg-zinc-900/70 p-1.5" role="toolbar" aria-label="Formatação">
+        <div className="gd-rte-bar flex flex-wrap items-center gap-0.5 p-1.5" role="toolbar" aria-label="Formatação">
           {tool("Título (H2)", <span className="text-xs">H2</span>, () => prefixLines("## "))}
           {tool("Subtítulo (H3)", <span className="text-xs">H3</span>, () => prefixLines("### "))}
-          <span className="mx-1 h-5 w-px bg-zinc-700" aria-hidden />
+          <span className="gd-rte-sep mx-1 h-5 w-px" aria-hidden />
           {tool("Negrito (Ctrl+B)", <strong>B</strong>, () => wrap("**"))}
           {tool("Itálico (Ctrl+I)", <em className="font-serif">I</em>, () => wrap("*"))}
-          <span className="mx-1 h-5 w-px bg-zinc-700" aria-hidden />
+          <span className="gd-rte-sep mx-1 h-5 w-px" aria-hidden />
           {tool("Lista com marcadores", <span aria-hidden>• ―</span>, () => prefixLines("- "))}
           {tool("Lista numerada", <span aria-hidden className="text-xs">1.</span>, () => prefixLines((i) => `${i + 1}. `))}
           {tool("Citação", <span aria-hidden>❝</span>, () => prefixLines("> "))}
-          <span className="mx-1 h-5 w-px bg-zinc-700" aria-hidden />
+          <span className="gd-rte-sep mx-1 h-5 w-px" aria-hidden />
           {tool("Link (Ctrl+K)", <span aria-hidden>🔗</span>, link)}
           {tool("Linha separadora", <span aria-hidden>―</span>, divider)}
         </div>
