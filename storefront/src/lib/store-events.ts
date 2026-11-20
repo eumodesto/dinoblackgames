@@ -30,7 +30,8 @@ export type EventInfo = {
 
 export const EVENT_INFO: Record<StoreEvent, EventInfo> = {
   "order.created": { label: "Novo pedido", description: "Cliente finalizou o pedido e a loja reservou o estoque.", customer: "order_created", admin: "admin_new_order", core: true },
-  "order.pending": { label: "Pagamento pendente", description: "O pedido continua sem pagamento depois do tempo configurado.", customer: "payment_pending_reminder", admin: "admin_payment_pending", core: true },
+  // Sem e-mail aqui: os lembretes por e-mail têm o próprio tempo em Integrações → E-mail e rodam em scanPendingEmails().
+  "order.pending": { label: "Pagamento pendente", description: "O pedido continua sem pagamento depois do tempo configurado nesta página.", core: true },
   "order.paid": { label: "Pagamento aprovado", description: "O pagamento foi confirmado.", customer: "order_paid" },
   "order.payment_failed": { label: "Pagamento recusado", description: "O Mercado Pago recusou o pagamento; o cliente pode tentar de novo.", customer: "payment_failed" },
   "order.preparing": { label: "Em preparação", description: "A equipe começou a separar o pedido.", customer: "order_preparing" },

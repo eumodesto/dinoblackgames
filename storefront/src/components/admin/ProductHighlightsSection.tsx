@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { AdminImageField } from "./AdminImageField";
 
 export type HighlightFormState = {
   enabled: boolean;
@@ -90,7 +91,7 @@ export function ProductHighlightsSection({ value, onChange, usage }: { value: Hi
         <Text title="Título do slide" value={hero.headline} onChange={(headline) => set("hero", { headline })} placeholder="Vazio = nome do produto" max={120} />
         <Text title="Texto do botão" value={hero.ctaLabel} onChange={(ctaLabel) => set("hero", { ctaLabel })} placeholder="Explorar agora" max={40} />
         <div className="md:col-span-2"><Text title="Frase de apoio" value={hero.description} onChange={(description) => set("hero", { description })} placeholder="Vazio = resumo curto do produto" max={220} /></div>
-        <div className="md:col-span-2"><Text title="Imagem de fundo (URL)" value={hero.imageUrl} onChange={(imageUrl) => set("hero", { imageUrl })} placeholder="Vazio = imagem principal do produto. Prefira uma imagem larga (ex.: 1600×700)." /></div>
+        <div className="md:col-span-2"><AdminImageField uploadName="destaque-home" title="Imagem de fundo" value={hero.imageUrl} onChange={(imageUrl) => set("hero", { imageUrl })} placeholder="Ou cole um link. Vazio = imagem principal do produto. Prefira uma imagem larga (ex.: 1600×700)." /></div>
       </Slot>
 
       <Slot title="Flash Drop (direita)" hint="Cartão da oferta do dia, com contagem regressiva, avaliação e barra de estoque." used={usage.used.flash} limit={usage.limits.flash} enabled={flash.enabled} onToggle={(enabled) => set("flash", { enabled })}>

@@ -5,6 +5,8 @@ export type CartItemInput = {
   color?: string;
   storage?: string;
   condition?: string;
+  /** Demais opções escolhidas (Memória RAM, Edição…): o servidor acha a variação por todas elas. */
+  options?: Record<string, string>;
   qty: number;
 };
 
@@ -18,6 +20,11 @@ export type QuoteLine = {
   qty: number;
   unitPrice?: number;
   listPrice?: number;
+  /** Preço no Pix desta linha (se houver) e se o servidor já o aplicou à cotação. */
+  cashPrice?: number | null;
+  cashApplied?: boolean;
+  /** Preço antes do Pix (só quando o Pix foi aplicado). */
+  cashListPrice?: number;
   available?: number;
   unique?: boolean;
   ok: boolean;

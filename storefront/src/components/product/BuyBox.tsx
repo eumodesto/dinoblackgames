@@ -7,6 +7,8 @@ import { formatBRL, type ProductCard } from "@/lib/types";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
 import type { ShippingOption } from "@/lib/shipping";
 import { waLink } from "@/lib/whatsapp";
+import { colorSwatch, isColorOption } from "@/lib/variant-options";
+import { useVariantImage } from "./variant-image";
 
 const CONDITION_LABEL: Record<string, string> = {
   novo: "Novo",
@@ -44,7 +46,7 @@ export type BuyBoxProduct = {
   maxInstallments: number;
   options: ProductOption[];
   /** Uma entrada por variação vendável (preço e estoque próprios). */
-  variants?: { options: Record<string, string>; price: number; compareAt: number | null; available: number }[];
+  variants?: { options: Record<string, string>; price: number; compareAt: number | null; available: number; cashPrice?: number | null; image?: string | null }[];
 };
 
 function Stars({ value }: { value: number }) {
@@ -92,10 +94,26 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
     ),
   );
   const variant = (product.variants ?? []).find((v) => Object.entries(selected).every(([key, value]) => v.options[key] === value));
+  // Escolher um valor que não existe junto com as outras escolhas (ex.: 16 GB só em Novo) leva às demais opções da primeira variação que tem esse valor.
+  function chooseOption(id: string, label: string) {
+    setSelected((s) => {
+      const next = { ...s, [id]: label };
+      const all = product.variants ?? [];
+      if (all.some((v) => Object.entries(next).every(([k, val]) => v.options[k] === val))) return next;
+      const alt = all.find((v) => v.options[id] === label && v.available > 0) ?? all.find((v) => v.options[id] === label);
+      return alt ? { ...next, ...Object.fromEntries(Object.entries(alt.options).filter(([k]) => k in next)) } : next;
+    });
+  }
   const price = variant?.price ?? product.price;
   const compareAt = variant ? variant.compareAt : product.compareAt;
   const discount = compareAt && compareAt > price ? Math.round((1 - price / compareAt) * 100) : null;
+  const cashPrice = variant?.cashPrice && variant.cashPrice < price ? variant.cashPrice : null;
+  const cashOff = cashPrice ? Math.round((1 - cashPrice / price) * 100) : 0;
   const available = variant ? variant.available : product.available;
+  // A variação escolhida define a foto principal da galeria.
+  const { setImage } = useVariantImage();
+  const variantImage = variant?.image ?? null;
+  useEffect(() => { setImage(variantImage); }, [variantImage, setImage]);
   const soldOut = available === 0;
   const lowStock = available > 0 && available <= 5;
   const [qty, setQty] = useState(1);
@@ -136,9 +154,11 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
       name: product.name,
       price: price,
       compareAt: compareAt,
-      image: product.image,
+      image: variantImage ?? product.image,
     };
-    addItem(cartProduct, { color: selected.color, storage: selected.storage, condition: selected.condition, qty: isUnique ? 1 : qty });
+    // Cor, armazenamento e condição seguem nos campos de sempre; as demais opções (RAM, edição, voltagem…) vão em `options`.
+    const extra = Object.fromEntries(Object.entries(selected).filter(([k]) => k !== "color" && k !== "storage" && k !== "condition"));
+    addItem(cartProduct, { color: selected.color, storage: selected.storage, condition: selected.condition, options: Object.keys(extra).length ? extra : undefined, qty: isUnique ? 1 : qty });
     setAdded(true);
   }
 
@@ -226,6 +246,11 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
         <div className="font-mono text-3xl font-black tracking-tight text-gray-900 dark:text-white">
           {formatBRL(price)}
         </div>
+        {cashPrice && (
+          <div className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-400">
+            {formatBRL(cashPrice)} no Pix{cashOff > 0 ? <span className="ml-1.5 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[11px] font-black">{cashOff}% off</span> : null}
+          </div>
+        )}
         <div className="mt-1 text-sm text-gray-600 dark:text-zinc-400">
           ou {product.maxInstallments}x de{" "}
           <strong className="text-gray-900 dark:text-white">{formatBRL(installmentValue(price))}</strong> sem juros
@@ -240,9 +265,31 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
             </span>
             <span className="text-xs text-gray-500 dark:text-zinc-400">{selected[option.id]}</span>
           </div>
-          <div role="radiogroup" aria-labelledby={`opt-${option.id}`} className="flex flex-wrap gap-2">
+          <div role="radiogroup" aria-labelledby={`opt-${option.id}`} className={`flex flex-wrap ${isColorOption(option.id, option.name) ? "gap-3" : "gap-2"}`}>
             {option.values.map((value) => {
               const checked = selected[option.id] === value.label;
+              const swatch = isColorOption(option.id, option.name) ? colorSwatch(value.label) : null;
+              if (swatch) {
+                // Cor: bolinha com o nome ao lado; esgotada fica riscada e desabilitada.
+                return (
+                  <button
+                    key={value.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={checked}
+                    aria-label={`${value.label}${value.available ? "" : " (esgotado)"}`}
+                    title={value.label}
+                    disabled={!value.available}
+                    onClick={() => chooseOption(option.id, value.label)}
+                    className={`group relative grid h-11 w-11 place-items-center rounded-full border-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red ${
+                      checked ? "border-dino-red" : "border-gray-200 hover:border-gray-400 dark:border-zinc-700 dark:hover:border-zinc-500"
+                    } disabled:cursor-not-allowed disabled:opacity-40`}
+                  >
+                    <span className="h-7 w-7 rounded-full border border-black/15 shadow-inner dark:border-white/20" style={{ background: swatch }} />
+                    {!value.available && <span aria-hidden className="absolute h-0.5 w-8 -rotate-45 rounded bg-gray-500" />}
+                  </button>
+                );
+              }
               return (
                 <button
                   key={value.label}
@@ -250,7 +297,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
                   role="radio"
                   aria-checked={checked}
                   disabled={!value.available}
-                  onClick={() => setSelected((s) => ({ ...s, [option.id]: value.label }))}
+                  onClick={() => chooseOption(option.id, value.label)}
                   className={`min-h-11 rounded-xl border-2 px-4 text-sm font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red ${
                     checked
                       ? "border-dino-red bg-dino-red/10 text-gray-900 dark:text-white"

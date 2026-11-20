@@ -8,7 +8,7 @@ export const GROUPS = [
   { label: "Operação", items: [{ href: "/admin/pedidos", label: "Pedidos" }, { href: "/admin/estoque", label: "Estoque" }] },
   { label: "Catálogo", items: [{ href: "/admin/produtos", label: "Produtos" }, { href: "/admin/categorias", label: "Categorias" }, { href: "/admin/tags", label: "Tags" }, { href: "/admin/cupons", label: "Cupons" }] },
   { label: "Integrações", items: [{ href: "/admin/configuracoes/integracoes/email", label: "E-mail / Resend" }, { href: "/admin/configuracoes/integracoes/analytics", label: "Analytics" }, { href: "/admin/configuracoes/integracoes/ads", label: "Google Ads" }, { href: "/admin/configuracoes/integracoes/meta", label: "Meta Pixel" }, { href: "/admin/configuracoes/integracoes/frete", label: "Frete" }] },
-  { label: "Sistema", items: [{ href: "/admin/configuracoes", label: "Configurações" }, { href: "/admin/design-system", label: "Design system" }] },
+  { label: "Sistema", items: [{ href: "/admin/usuarios", label: "Usuários" }, { href: "/admin/configuracoes", label: "Configurações" }, { href: "/admin/design-system", label: "Design system" }] },
 ];
 
 export function AdminSidebar() {

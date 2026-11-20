@@ -1,4 +1,4 @@
-import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_KEYS, EMAIL_VARIABLES, type EmailTemplate } from "@/lib/email-templates";
+import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_KEYS, EMAIL_VARIABLES, PAY_WINDOW_MINUTES, SEND_AFTER_MAX, SEND_AFTER_MIN, validSendAfter, type EmailTemplate } from "@/lib/email-templates";
 import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
 import { getEmailConfig, getEmailTemplates, parseEmailList, renderEmail, resendConfigured, sampleEmailData, sendTransactionalEmail } from "@/lib/server/email";
 import { getSql } from "@/lib/server/sql";
@@ -25,7 +25,10 @@ function cleanTemplates(input: unknown): Record<string, EmailTemplate> | null {
     if (!subject.trim()) return null;
     // O botão só leva a http(s), e-mail ou telefone (ou a uma variável): nada de javascript:.
     if (buttonUrl && !/^(\{\{|https?:|mailto:|tel:)/i.test(buttonUrl.trim())) return null;
-    result[key] = { name: name.trim(), subject: subject.trim(), title: title.trim(), body, buttonLabel: buttonLabel.trim(), buttonUrl: buttonUrl.trim(), enabled: item.enabled, showItems: item.showItems };
+    // E-mails disparados por tempo precisam de um tempo válido (antes do vencimento do pedido).
+    const delayed = EMAIL_TEMPLATES.find((m) => m.key === key)?.delayed === true;
+    if (delayed && !validSendAfter(item.sendAfterMinutes)) return null;
+    result[key] = { name: name.trim(), subject: subject.trim(), title: title.trim(), body, buttonLabel: buttonLabel.trim(), buttonUrl: buttonUrl.trim(), enabled: item.enabled, showItems: item.showItems, ...(delayed ? { sendAfterMinutes: item.sendAfterMinutes as number } : {}) };
   }
   return result;
 }
@@ -49,8 +52,9 @@ export const GET = () => handle(async () => {
     replyTo: config.replyTo,
     adminRecipients: config.adminRecipients,
     templates: await getEmailTemplates(),
-    meta: EMAIL_TEMPLATES.map(({ key, audience, label, when, defaults }) => ({ key, audience, label, when, defaults })),
+    meta: EMAIL_TEMPLATES.map(({ key, audience, label, when, defaults, delayed }) => ({ key, audience, label, when, defaults, delayed: delayed === true })),
     variables: EMAIL_VARIABLES,
+    limits: { sendAfterMin: SEND_AFTER_MIN, sendAfterMax: SEND_AFTER_MAX, payWindow: PAY_WINDOW_MINUTES },
   });
 });
 

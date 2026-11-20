@@ -17,9 +17,17 @@ export type EmailTemplate = {
   buttonUrl: string;
   /** Mostra a tabela com foto, nome, quantidade e preço dos produtos do pedido. */
   showItems: boolean;
+  /** Só nos e-mails disparados por tempo (lembrete de pagamento pendente): minutos sem pagamento até o envio. */
+  sendAfterMinutes?: number;
 };
 
-export type EmailTemplateMeta = { key: string; audience: EmailAudience; label: string; when: string; defaults: EmailTemplate };
+export type EmailTemplateMeta = { key: string; audience: EmailAudience; label: string; when: string; defaults: EmailTemplate; /** E-mail disparado por tempo: o editor mostra "Quando enviar". */ delayed?: boolean };
+
+/** O pedido vence aos 30 minutos sem pagamento; o lembrete precisa sair antes disso. */
+export const PAY_WINDOW_MINUTES = 30;
+export const SEND_AFTER_MIN = 1;
+export const SEND_AFTER_MAX = PAY_WINDOW_MINUTES - 1;
+export const SEND_AFTER_DEFAULT = 15;
 
 const ORDER_BTN = { buttonLabel: "Acompanhar pedido", buttonUrl: "{{order_url}}" };
 const ADMIN_BTN = { buttonLabel: "Abrir pedido no painel", buttonUrl: "{{admin_url}}" };
@@ -36,8 +44,8 @@ export const EMAIL_TEMPLATES: EmailTemplateMeta[] = [
   { key: "order_created", audience: "customer", label: "Pedido recebido", when: "Quando o cliente finaliza o pedido (aguardando pagamento).",
     defaults: t({ name: "Pedido recebido", subject: "Recebemos o seu pedido {{order_number}}", title: "Pedido recebido!",
       body: "<p>Olá, {{name}}. Recebemos o pedido <strong>{{order_number}}</strong> e já reservamos os seus itens.</p><p>Assim que o pagamento for confirmado, começamos a separar tudo. Total: <strong>{{total}}</strong>.</p>", showItems: true, ...ORDER_BTN }) },
-  { key: "payment_pending_reminder", audience: "customer", label: "Pagamento pendente (lembrete)", when: "Quando o pedido segue sem pagamento depois do tempo definido em Webhooks.",
-    defaults: t({ name: "Pagamento pendente", subject: "Falta pouco para garantir o pedido {{order_number}}", title: "Seu pagamento ainda está pendente",
+  { key: "payment_pending_reminder", audience: "customer", label: "Pagamento pendente (lembrete)", delayed: true, when: "Quando o pedido segue sem pagamento depois do tempo definido abaixo. Envios, cliques e compras aparecem no Dashboard.",
+    defaults: t({ name: "Pagamento pendente", subject: "Falta pouco para garantir o pedido {{order_number}}", title: "Seu pagamento ainda está pendente", sendAfterMinutes: SEND_AFTER_DEFAULT,
       body: "<p>Olá, {{name}}. Seus itens estão reservados, mas o pagamento do pedido <strong>{{order_number}}</strong> ainda não foi confirmado.</p><p>Finalize em poucos minutos para não perder a reserva.</p>", showItems: true, buttonLabel: "Pagar agora", buttonUrl: "{{order_url}}" }) },
   { key: "order_paid", audience: "customer", label: "Pagamento aprovado", when: "Quando o pagamento é confirmado.",
     defaults: t({ name: "Pagamento aprovado", subject: "Pagamento aprovado: pedido {{order_number}}", title: "Pagamento aprovado!",
@@ -77,8 +85,8 @@ export const EMAIL_TEMPLATES: EmailTemplateMeta[] = [
   { key: "admin_new_order", audience: "admin", label: "Novo pedido", when: "Quando um cliente faz um pedido.",
     defaults: t({ name: "Novo pedido", subject: "Novo pedido {{order_number}}: {{total}}", title: "Novo pedido recebido",
       body: "<p>Cliente: <strong>{{name}}</strong> ({{customer_email}})</p><p>Pedido <strong>{{order_number}}</strong> · {{total}} · {{payment_method}}</p><p>Status: {{status}}</p>", showItems: true, ...ADMIN_BTN }) },
-  { key: "admin_payment_pending", audience: "admin", label: "Pagamento pendente", when: "Quando um pedido fica sem pagamento além do tempo definido em Webhooks.",
-    defaults: t({ name: "Pagamento pendente", subject: "Pedido {{order_number}} segue sem pagamento", title: "Pedido com pagamento pendente",
+  { key: "admin_payment_pending", audience: "admin", label: "Pagamento pendente", delayed: true, when: "Quando um pedido fica sem pagamento além do tempo definido abaixo.",
+    defaults: t({ name: "Pagamento pendente", subject: "Pedido {{order_number}} segue sem pagamento", title: "Pedido com pagamento pendente", sendAfterMinutes: SEND_AFTER_DEFAULT,
       body: "<p>O pedido <strong>{{order_number}}</strong> de <strong>{{name}}</strong> ({{total}}) está sem pagamento há {{pending_minutes}} minutos.</p><p>Vale chamar o cliente antes que a reserva expire.</p>", showItems: true, ...ADMIN_BTN }) },
   { key: "admin_order_cancelled", audience: "admin", label: "Pedido cancelado", when: "Quando um pedido é cancelado.",
     defaults: t({ name: "Pedido cancelado", subject: "Pedido {{order_number}} cancelado", title: "Pedido cancelado",
@@ -105,6 +113,8 @@ export const EMAIL_TEMPLATES: EmailTemplateMeta[] = [
 export const EMAIL_TEMPLATE_KEYS = EMAIL_TEMPLATES.map((m) => m.key);
 export type EmailTemplateKey = string;
 export const AUDIENCE_LABEL: Record<EmailAudience, string> = { customer: "Clientes", admin: "Equipe (administradores)", staff: "Usuários do painel" };
+
+export const validSendAfter = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= SEND_AFTER_MIN && value <= SEND_AFTER_MAX;
 
 /** Variáveis que os templates aceitam, para o editor mostrar. */
 export const EMAIL_VARIABLES: [string, string][] = [

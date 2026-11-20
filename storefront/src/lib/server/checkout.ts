@@ -46,7 +46,9 @@ export function parseItems(raw: unknown): CartItemInput[] {
     const slug = str(o.slug, 120);
     const qty = Number(o.qty);
     if (!slug || !Number.isInteger(qty) || qty < 1 || qty > 20) throw new CheckoutError("Item inválido no carrinho.");
-    return { slug, qty, color: str(o.color, 60) || undefined, storage: str(o.storage, 60) || undefined, condition: str(o.condition, 60) || undefined };
+    const rawOptions = o.options && typeof o.options === "object" && !Array.isArray(o.options) ? Object.entries(o.options as Record<string, unknown>).slice(0, 6) : [];
+    const options = Object.fromEntries(rawOptions.map(([k, v]) => [str(k, 40), str(v, 80)]).filter(([k, v]) => k && v));
+    return { slug, qty, color: str(o.color, 60) || undefined, storage: str(o.storage, 60) || undefined, condition: str(o.condition, 60) || undefined, ...(Object.keys(options).length ? { options } : {}) };
   });
 }
 
@@ -86,7 +88,7 @@ export function parsePaymentMethod(value: unknown): "pix" | "credit_card" | null
   return value === "pix" || value === "credit_card" ? value : null;
 }
 
-const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, condition, qty }) => ({ slug, color, storage, condition, qty })));
+const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, condition, options, qty }) => ({ slug, color, storage, condition, options, qty })));
 
 type QuoteLineServer = QuoteLine & { variantId?: string; weightGrams?: number };
 type QuoteRow = Omit<QuoteResponse, "shipping" | "lines"> & { lines: QuoteLineServer[] };

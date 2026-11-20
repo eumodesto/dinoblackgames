@@ -18,6 +18,8 @@ export type CartLine = {
   color?: string;
   storage?: string;
   condition?: string;
+  /** Demais opções escolhidas (Memória RAM, Edição, Voltagem…). Cor, armazenamento e condição ficam nos campos acima. */
+  options?: Record<string, string>;
 };
 
 type CartContextValue = {
@@ -27,7 +29,7 @@ type CartContextValue = {
   setOpen: (open: boolean) => void;
   count: number;
   subtotal: number;
-  addItem: (product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; qty?: number }) => void;
+  addItem: (product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; options?: Record<string, string>; qty?: number }) => void;
   removeItem: (key: string) => void;
   updateQty: (key: string, qty: number) => void;
   clear: () => void;
@@ -38,7 +40,8 @@ const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "dinoblack-cart-v2";
 const MAX_QTY = 20;
 
-export const lineKey = (slug: string, color?: string, storage?: string, condition?: string) => `${slug}|${color ?? ""}|${storage ?? ""}|${condition ?? ""}`;
+const optionsKey = (options?: Record<string, string>) => (options && Object.keys(options).length ? `|${JSON.stringify(Object.entries(options).sort(([a], [b]) => a.localeCompare(b)))}` : "");
+export const lineKey = (slug: string, color?: string, storage?: string, condition?: string, options?: Record<string, string>) => `${slug}|${color ?? ""}|${storage ?? ""}|${condition ?? ""}${optionsKey(options)}`;
 
 type SavedLine = {
   slug: string;
@@ -46,6 +49,7 @@ type SavedLine = {
   color?: string;
   storage?: string;
   condition?: string;
+  options?: Record<string, string>;
   product: ProductCard;
 };
 
@@ -57,12 +61,13 @@ function read(): CartLine[] {
     return saved.flatMap((s) => {
       if (!s.product || !s.product.slug || !Number.isInteger(s.qty) || s.qty < 1) return [];
       return [{
-        key: lineKey(s.slug, s.color, s.storage, s.condition),
+        key: lineKey(s.slug, s.color, s.storage, s.condition, s.options),
         product: s.product,
         qty: Math.min(MAX_QTY, s.qty),
         color: s.color,
         storage: s.storage,
         condition: s.condition,
+        options: s.options,
       }];
     });
   } catch {
@@ -91,6 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           color: l.color,
           storage: l.storage,
           condition: l.condition,
+          options: l.options,
           product: {
             id: l.product.id,
             slug: l.product.slug,
@@ -112,8 +118,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const addItem = useCallback((product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; qty?: number }) => {
-    const key = lineKey(product.slug, extras?.color, extras?.storage, extras?.condition);
+  const addItem = useCallback((product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; options?: Record<string, string>; qty?: number }) => {
+    const key = lineKey(product.slug, extras?.color, extras?.storage, extras?.condition, extras?.options);
     const add = Math.max(1, Math.min(MAX_QTY, extras?.qty ?? 1));
     track("add_to_cart", { slug: product.slug, value: product.price * add });
     setItems((prev) => {
@@ -121,7 +127,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (existing) {
         return prev.map((l) => (l.key === key ? { ...l, qty: Math.min(MAX_QTY, l.qty + add) } : l));
       }
-      return [...prev, { key, product, qty: add, color: extras?.color, storage: extras?.storage, condition: extras?.condition }];
+      return [...prev, { key, product, qty: add, color: extras?.color, storage: extras?.storage, condition: extras?.condition, options: extras?.options }];
     });
     setOpen(true);
   }, []);

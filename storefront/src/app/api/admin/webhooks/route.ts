@@ -1,6 +1,6 @@
 import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
 import { env } from "@/lib/server/env";
-import { scanPendingOrders } from "@/lib/server/notify";
+import { scanPendingWebhooks } from "@/lib/server/notify";
 import { getWebhooksConfig, listDeliveries, maskSecret, regenerateSecret, retryFailedDeliveries, saveWebhooksConfig, sendTestWebhook } from "@/lib/server/webhooks";
 import { EVENT_INFO, STORE_EVENTS } from "@/lib/store-events";
 import { cleanWebhooksInput, PAY_WINDOW_MINUTES, PENDING_MAX, PENDING_MIN } from "@/lib/webhooks-config";
@@ -59,7 +59,7 @@ export const POST = (req: Request) => handle(async () => {
     return secret ? json({ secret }) : json({ error: "Destino não encontrado." }, 404);
   }
   if (body.action === "scan") {
-    const pending = await scanPendingOrders();
+    const pending = await scanPendingWebhooks();
     const retried = await retryFailedDeliveries();
     return json({ pending, retried, deliveries: await listDeliveries(25) });
   }

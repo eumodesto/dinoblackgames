@@ -3,6 +3,7 @@ import { ADMIN_PAGE_SIZE, getAdminCategoryOptions, getAdminProducts } from "@/li
 import { ProductsFilters, type ProductsFilterValues } from "@/components/admin/ProductsFilters";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { ProductsTable } from "@/components/admin/ProductsTable";
+import { ProductsImportExport } from "@/components/admin/ProductsImportExport";
 
 // Lê o catálogo do banco em tempo de execução. Sem isto o Next tenta pré-renderizar a página
 // durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
@@ -35,13 +36,18 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           <h1 className="font-display text-3xl font-black text-white">Produtos</h1>
           <p className="mt-1 text-sm text-zinc-500">{filtered ? `${total} resultado${total === 1 ? "" : "s"} com os filtros aplicados` : `${total} produtos no catálogo`}</p>
         </div>
-        <Link href="/admin/produtos/novo" className="rounded-xl bg-dino-red px-4 py-2.5 text-sm font-bold text-white transition hover:bg-dino-red-hover">Novo produto</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <ProductsImportExport />
+          <Link href="/admin/produtos/novo" className="rounded-xl bg-dino-red px-4 py-2.5 text-sm font-bold text-white transition hover:bg-dino-red-hover">Novo produto</Link>
+        </div>
       </div>
+
+      <div id="products-import-slot" className="empty:hidden" />
 
       <ProductsFilters initial={filters} categories={categories} />
 
       <ProductsTable
-        products={products.map((p) => ({ id: p.id, name: p.name, sku: p.sku, condition: p.condition, categoryName: p.categoryName, price: p.price, available: p.available, status: p.status, image: p.image }))}
+        products={products.map((p) => ({ id: p.id, slug: p.slug, name: p.name, sku: p.sku, condition: p.condition, categoryName: p.categoryName, price: p.price, available: p.available, status: p.status, image: p.image }))}
         categories={categories.map((c) => ({ id: c.id, label: c.label }))}
       />
 

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type TouchEvent } from "react";
 import { ChevronButton } from "@/components/ui/ChevronButton";
+import { useVariantImage } from "./variant-image";
 type GalleryImage = { src: string; alt: string; position?: string };
 
 export function ProductGallery({ images, badge }: { images: GalleryImage[]; badge?: string }) {
@@ -12,6 +13,19 @@ export function ProductGallery({ images, badge }: { images: GalleryImage[]; badg
   const touch = useRef<{ x: number; y: number } | null>(null);
   const current = images[index];
   const total = images.length;
+
+  // Escolher uma variação (caixa de compra) mostra a foto dela; variação sem foto própria volta para a capa.
+  const { image: variantImage } = useVariantImage();
+  const firstVariantSync = useRef(true);
+  useEffect(() => {
+    if (firstVariantSync.current) {
+      firstVariantSync.current = false;
+      if (!variantImage) return;
+    }
+    if (!variantImage) return setIndex(0);
+    const found = images.findIndex((img) => img.src === variantImage);
+    if (found >= 0) setIndex(found);
+  }, [variantImage, images]);
 
   // Mantém a miniatura ativa visível no slider.
   useEffect(() => {

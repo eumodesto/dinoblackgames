@@ -1,5 +1,5 @@
 import "server-only";
-import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_KEYS, defaultTemplate, type EmailTemplate, type EmailTemplateKey } from "@/lib/email-templates";
+import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_KEYS, defaultTemplate, validSendAfter, type EmailTemplate, type EmailTemplateKey } from "@/lib/email-templates";
 import { env } from "./env";
 import { renderBrandedEmail, type EmailItem, type EmailTotals } from "./email-layout";
 import { getSql } from "./sql";
@@ -44,6 +44,7 @@ export async function getEmailTemplates(): Promise<EmailTemplates> {
         buttonLabel: asText(s.buttonLabel, d.buttonLabel, 80),
         buttonUrl: asText(s.buttonUrl, d.buttonUrl, 500),
         showItems: typeof s.showItems === "boolean" ? s.showItems : d.showItems,
+        ...(d.sendAfterMinutes !== undefined ? { sendAfterMinutes: validSendAfter(s.sendAfterMinutes) ? s.sendAfterMinutes : d.sendAfterMinutes } : {}),
       };
     }
   } catch {

@@ -1,17 +1,23 @@
 import "server-only";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ADMIN_COOKIE, adminSessionToken, safeEqual } from "../admin-auth";
+import { currentAdmin } from "./admin-users";
 import { CheckoutError } from "./checkout";
 import { DbNotConfiguredError } from "./sql";
 
 export const noStore = { "Cache-Control": "no-store" };
 
 export async function requireAdminSession(): Promise<Response | null> {
-  const expected = await adminSessionToken();
-  const cookie = (await cookies()).get(ADMIN_COOKIE)?.value ?? "";
-  if (expected && cookie && safeEqual(cookie, expected)) return null;
+  // Acesso principal ou usuário cadastrado ativo (conferido no banco). O que cada perfil pode abrir é decidido no middleware.
+  if (await currentAdmin()) return null;
   return json({ error: "Não autorizado." }, 401);
+}
+
+/** Só Super Admin (e o acesso principal): cadastro de usuários. */
+export async function requireSuperAdmin(): Promise<{ response: Response } | { uid: string | null }> {
+  const admin = await currentAdmin();
+  if (!admin) return { response: json({ error: "Não autorizado." }, 401) };
+  if (admin.access !== "all") return { response: json({ error: "Só o Super Admin gerencia usuários." }, 403) };
+  return { uid: admin.uid };
 }
 
 export function json(data: unknown, status = 200) {

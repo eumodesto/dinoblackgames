@@ -7,12 +7,15 @@ import { ProductCarousel } from "@/components/home/ProductCarousel";
 import { BuyBox, type BuyBoxProduct } from "@/components/product/BuyBox";
 import { ProductAbout } from "@/components/product/ProductAbout";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { VariantImageProvider } from "@/components/product/variant-image";
 import { ProductVideo } from "@/components/product/ProductVideo";
 import { SectionNav } from "@/components/product/SectionNav";
 import {
   getProductBySlug,
   getRelatedProducts,
 } from "@/lib/server/catalog";
+import { canAccess } from "@/lib/admin-permissions";
+import { currentAdmin } from "@/lib/server/admin-users";
 import { WA_SELL_USED } from "@/lib/whatsapp";
 
 const CONDITION_LABEL: Record<string, string> = {
@@ -22,7 +25,19 @@ const CONDITION_LABEL: Record<string, string> = {
   pre_venda: "Pré-venda",
 };
 
-type PageProps = { params: Promise<{ slug: string }> };
+type PageProps = { params: Promise<{ slug: string }>; searchParams: Promise<{ preview?: string }> };
+
+/** Pré-visualização do painel (olho da lista de produtos): só vale com sessão do admin; para o público, rascunho continua 404. */
+async function wantsPreview(searchParams: PageProps["searchParams"]) {
+  const { preview } = await searchParams;
+  if (preview !== "1") return false;
+  try {
+    const admin = await currentAdmin();
+    return Boolean(admin && !admin.mustChangePassword && canAccess(admin.access, "/admin/produtos"));
+  } catch {
+    return false;
+  }
+}
 
 // Product data is served from the runtime database. Keeping this route dynamic
 // prevents a production build from requiring DATABASE_URL just to enumerate
@@ -31,11 +46,13 @@ export const dynamic = "force-dynamic";
 
 export const dynamicParams = true;
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const preview = await wantsPreview(searchParams);
+  const product = await getProductBySlug(slug, { preview });
   if (!product) return { title: "Produto não encontrado · DinoBlack Games" };
   return {
+    ...(preview ? { robots: { index: false, follow: false } } : {}),
     title: `${product.name} · DinoBlack Games`,
     description: product.tagline,
     openGraph: {
@@ -64,9 +81,10 @@ function Block({ id, title, lead, children }: { id: string; title: string; lead?
   );
 }
 
-export default async function ProductPage({ params }: PageProps) {
+export default async function ProductPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const preview = await wantsPreview(searchParams);
+  const product = await getProductBySlug(slug, { preview });
   if (!product) notFound();
 
   const related = await getRelatedProducts(product.id, product.categorySlug);
@@ -145,6 +163,11 @@ export default async function ProductPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 pb-20 pt-5 text-gray-800 dark:text-zinc-200">
+      {preview && (
+        <p role="status" className="mb-4 rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+          Pré-visualização do painel: é assim que o cliente vê esta página. Rascunhos e arquivados só aparecem para você; o cliente só os vê depois de publicados.
+        </p>
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
@@ -168,6 +191,7 @@ export default async function ProductPage({ params }: PageProps) {
         </ol>
       </nav>
 
+      <VariantImageProvider>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
         {/* No celular a coluna vira "contents": galeria, compra e só depois o vídeo, para o preço aparecer cedo. */}
         <div className="contents lg:block lg:self-start lg:sticky lg:top-24">
@@ -187,6 +211,7 @@ export default async function ProductPage({ params }: PageProps) {
           <BuyBox product={buyBoxProduct} />
         </div>
       </div>
+      </VariantImageProvider>
 
       <SectionNav items={nav} className="mt-10" />
 

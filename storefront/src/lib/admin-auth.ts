@@ -34,7 +34,7 @@ export async function adminSessionToken(): Promise<string | null> {
 // "sv" é a versão da sessão: quando o cadastro muda (perfil, permissões, senha, desativação), a versão sobe
 // e as sessões antigas deixam de valer (conferido no servidor em requireAdminSession e no layout do painel).
 
-export type StaffSession = { uid: string; role: AdminRole; perms: Permission[]; name: string; sv: number; exp: number };
+export type StaffSession = { uid: string; role: AdminRole; perms: Permission[]; name: string; sv: number; mc: boolean; exp: number };
 export type AdminSession = { kind: "root" } | ({ kind: "staff" } & StaffSession);
 
 function sessionSecret() {
@@ -75,7 +75,7 @@ export async function readSession(cookie: string | undefined | null): Promise<Ad
   try {
     const p = JSON.parse(new TextDecoder().decode(fromBase64Url(data))) as StaffSession;
     if (!p.uid || !isRole(p.role) || !Array.isArray(p.perms) || typeof p.exp !== "number" || p.exp < Date.now() / 1000) return null;
-    return { kind: "staff", ...p, perms: p.perms.filter(isPermission) };
+    return { kind: "staff", ...p, mc: p.mc === true, perms: p.perms.filter(isPermission) };
   } catch {
     return null;
   }

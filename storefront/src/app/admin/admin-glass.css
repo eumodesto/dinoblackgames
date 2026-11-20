@@ -114,6 +114,8 @@
 .gd-top {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 400px) minmax(0, 1fr);
   align-items: center; gap: 12px; min-block-size: 60px; border-radius: 999px; padding: 6px 9px 6px 13px;
+  /* Menu fixo: acompanha a rolagem da página (o vidro desfocado deixa o conteúdo legível por baixo). */
+  position: sticky; top: 10px; z-index: 50;
 }
 .gd-brand { display: flex; align-items: center; gap: 12px; min-inline-size: 0; padding-inline-start: 3px; }
 .gd-logo-img { display: block; block-size: 46px; inline-size: auto; flex: none; filter: drop-shadow(0 1px 2px rgb(var(--gd-dark-shadow) / 18%)); }
@@ -324,6 +326,25 @@
   box-shadow: inset 0 1px 0 var(--gd-gloss);
 }
 .gd-app :is(input, select, textarea):focus { outline: 2px solid var(--gd-focus); outline-offset: 1px; }
+
+/* campo de etiquetas/valores: UMA caixa só (chips + campo de digitação sem moldura própria) */
+.gd-app .gd-chips {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-block-size: 44px; padding: 6px 10px;
+  background: var(--gd-inner); border: 1px solid var(--gd-line); border-radius: 12px; box-shadow: inset 0 1px 0 var(--gd-gloss);
+  cursor: text; transition: border-color .15s, box-shadow .15s;
+}
+.gd-app .gd-chips:focus-within { border-color: var(--gd-coral); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gd-coral) 22%, transparent); }
+.gd-app input.gd-bare.gd-bare { background: transparent; border: 0; border-radius: 0; box-shadow: none; outline: none; padding: 4px 2px; block-size: 28px; flex: 1 1 140px; min-inline-size: 120px; }
+.gd-app input.gd-bare.gd-bare:focus { outline: none; }
+.gd-app .gd-chips .gd-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 11px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: color-mix(in srgb, var(--gd-ink) 10%, transparent); color: var(--gd-ink);
+}
+.gd-app .gd-chips .gd-chip button {
+  display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 999px; line-height: 1; font-size: 11px;
+  background: transparent; color: var(--gd-muted); border: 0; cursor: pointer;
+}
+.gd-app .gd-chips .gd-chip button:hover { background: color-mix(in srgb, var(--gd-coral) 25%, transparent); color: var(--gd-coral); }
 .gd-app select option { color: var(--gd-ink); background: var(--gd-surface); }
 .gd-app :is(.rounded-2xl, .rounded-xl):is(.border) { border-radius: 20px; }
 
@@ -338,7 +359,7 @@
 @media (max-width: 1060px) { .gd-surround { inline-size: calc(100% - 74px); } .gd-stage-scroll { padding-inline: 29px; padding-inline-start: 60px; } }
 @media (max-width: 760px) {
   .gd-surround { padding-top: 11px; padding-bottom: calc(73px + env(safe-area-inset-bottom)); inline-size: calc(100% - 24px); }
-  .gd-top { grid-template-columns: minmax(0, 1fr) auto; padding: 7px 9px; gap: 6px 12px; border-radius: 21px; }
+  .gd-top { grid-template-columns: minmax(0, 1fr) auto; padding: 7px 9px; gap: 6px 12px; border-radius: 21px; top: 6px; }
   .gd-ask { grid-area: 2 / 1 / 3 / -1; min-block-size: 41px; }
   .gd-top-actions { grid-area: 1 / 2; }
   .gd-top-actions .gd-icon-button { width: 41px; min-inline-size: 41px; min-block-size: 41px; }

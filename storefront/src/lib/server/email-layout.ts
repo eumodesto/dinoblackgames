@@ -20,9 +20,23 @@ const INK = "#0a0a0b";
 const FONT = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const WHATSAPP_URL = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}`;
 
+// Domínio público da loja, usado só para imagens quando o site configurado não é acessível de fora (localhost, http).
+const PUBLIC_ASSET_FALLBACK = "https://dinoblackgames.vercel.app";
+
+/**
+ * Base das imagens do e-mail. Quem recebe o e-mail abre as imagens pela internet: um endereço localhost ou http não carrega
+ * (e o Gmail bloqueia http). Sem um site https público configurado, usa EMAIL_ASSET_URL ou o domínio da loja no ar.
+ */
+export function assetBase(siteUrl: string) {
+  const configured = (process.env.EMAIL_ASSET_URL ?? "").replace(/\/$/, "");
+  if (configured.startsWith("https://")) return configured;
+  const isPublicHttps = /^https:\/\//i.test(siteUrl) && !/^https:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(siteUrl);
+  return isPublicHttps ? siteUrl.replace(/\/$/, "") : PUBLIC_ASSET_FALLBACK;
+}
+
 export const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
 const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const absolute = (url: string | null, siteUrl: string) => (!url ? null : /^https?:\/\//i.test(url) ? url : siteUrl ? `${siteUrl}${url.startsWith("/") ? "" : "/"}${url}` : null);
+const absolute = (url: string | null, siteUrl: string) => (!url ? null : /^https?:\/\//i.test(url) ? url : `${assetBase(siteUrl)}${url.startsWith("/") ? "" : "/"}${url}`);
 /** Só http(s), mailto e tel entram em links; qualquer outra coisa (javascript:) vira "#". */
 const safeUrl = (url: string) => (/^(https?:|mailto:|tel:)/i.test(url.trim()) ? url.trim() : "#");
 
@@ -52,9 +66,10 @@ function itemsBlock(items: EmailItem[], totals: EmailTotals | undefined, siteUrl
 /** Monta o e-mail completo: cabeçalho da marca, conteúdo, produtos, botão e rodapé com contato e redes sociais. */
 export function renderBrandedEmail(input: EmailLayoutInput): string {
   const { siteUrl } = input;
-  const logoUrl = siteUrl.startsWith("https://") || siteUrl.startsWith("http://") ? `${siteUrl}/brand/logo.png` : "";
+  const logoUrl = `${assetBase(siteUrl)}/brand/logo.png`;
+  // O arquivo é 900×450 (2:1): largura e altura explícitas evitam que o e-mail abra com a imagem gigante antes de carregar.
   const logo = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" height="44" alt="${escapeHtml(FOOTER_BRAND)}" style="display:block;height:44px;width:auto;border:0">`
+    ? `<img src="${escapeHtml(logoUrl)}" width="88" height="44" alt="${escapeHtml(FOOTER_BRAND)}" style="display:block;width:88px;height:44px;border:0;outline:none;text-decoration:none">`
     : `<span style="font-family:${FONT};font-size:20px;font-weight:900;color:${INK};letter-spacing:-0.3px">Dino<span style="color:${RED}">Black</span> Games</span>`;
   const button = input.button?.label
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px"><tr><td style="border-radius:12px;background:${RED}"><a href="${escapeHtml(safeUrl(input.button.url))}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:15px;font-weight:800;color:#ffffff;text-decoration:none;border-radius:12px">${escapeHtml(input.button.label)}</a></td></tr></table>`

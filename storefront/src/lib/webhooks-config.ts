@@ -1,7 +1,8 @@
+import { PAY_WINDOW_MINUTES } from "./email-templates";
 import { STORE_EVENTS, isStoreEvent, type StoreEvent } from "./store-events";
 
 /** O pedido vence aos 30 minutos sem pagamento; o aviso de "pendente" precisa vir antes disso. */
-export const PAY_WINDOW_MINUTES = 30;
+export { PAY_WINDOW_MINUTES };
 export const PENDING_MIN = 1;
 export const PENDING_MAX = PAY_WINDOW_MINUTES - 1;
 export const PENDING_DEFAULT = 15;

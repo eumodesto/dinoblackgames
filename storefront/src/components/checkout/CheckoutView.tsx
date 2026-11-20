@@ -189,7 +189,7 @@ export function CheckoutView() {
 
   // ---- cotação no servidor (preço, estoque, frete e cupom vêm do banco)
   const cartItems = useMemo(
-    () => items.map((l) => ({ slug: l.product.slug, color: l.color, storage: l.storage, condition: l.condition, qty: l.qty })),
+    () => items.map((l) => ({ slug: l.product.slug, color: l.color, storage: l.storage, condition: l.condition, options: l.options, qty: l.qty })),
     [items],
   );
   const cepDigits = onlyDigits(address.cep);
@@ -296,6 +296,11 @@ export function CheckoutView() {
   // ---- totais
   const chosenShipping = quote?.shipping.find((s) => s.id === shippingId) ?? null;
   const subtotal = quote?.subtotal ?? 0;
+  // Preço do Pix: o servidor já aplica quando Pix é a forma escolhida; aqui só mostramos o efeito.
+  const pixApplied = (quote?.lines ?? []).some((l) => l.cashApplied);
+  const pixSaved = Math.round(
+    (quote?.lines ?? []).reduce((sum, l) => sum + (l.ok ? (l.cashApplied ? (l.cashListPrice ?? 0) - (l.unitPrice ?? 0) : l.cashPrice ? (l.unitPrice ?? 0) - l.cashPrice : 0) * l.qty : 0), 0) * 100,
+  ) / 100;
   const discount = quote?.discount ?? 0;
   const shipping = chosenShipping?.price ?? 0;
   const total = Math.round((subtotal - discount + shipping) * 100) / 100;
@@ -506,6 +511,8 @@ export function CheckoutView() {
 
       <dl className="space-y-2 border-t border-gray-100 pt-4 text-sm dark:border-zinc-800">
         <div className="flex justify-between"><dt className="text-gray-600 dark:text-zinc-400">Subtotal</dt><dd className="font-mono font-bold text-gray-900 dark:text-white">{brl(subtotal)}</dd></div>
+        {pixApplied && <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✓ Preço do Pix aplicado{pixSaved > 0 ? `: você economiza ${brl(pixSaved)}` : ""}</p>}
+        {!pixApplied && pixSaved > 0 && <p className="text-xs text-gray-500 dark:text-zinc-400">Pagando no Pix, você economiza {brl(pixSaved)} neste pedido.</p>}
         {discount > 0 && <div className="flex justify-between"><dt className="text-emerald-600 dark:text-emerald-400">Desconto</dt><dd className="font-mono font-bold text-emerald-600 dark:text-emerald-400">− {brl(discount)}</dd></div>}
         <div className="flex justify-between">
           <dt className="text-gray-600 dark:text-zinc-400">Entrega</dt>

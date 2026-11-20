@@ -2,6 +2,7 @@ import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
 import { getSql } from "@/lib/server/sql";
 import { getAdminHighlights } from "@/lib/server/highlights";
 import { saveAdminProduct } from "@/lib/server/product-admin";
+import { variantExtrasSupported } from "@/lib/server/variant-support";
 
 // Dados de apoio do formulário: categorias (com o caminho "Principal › Sub › Item"), locais de estoque e tags existentes.
 export async function GET() {
@@ -19,7 +20,7 @@ export async function GET() {
       sql.query("select name from tags where is_active order by name"),
     ]);
     const { usedByOthers, limits } = await getAdminHighlights(null);
-    return json({ categories, locations, tags: (tags as { name: string }[]).map((t) => t.name), highlightUsage: { used: usedByOthers, limits } });
+    return json({ categories, locations, tags: (tags as { name: string }[]).map((t) => t.name), highlightUsage: { used: usedByOthers, limits }, variantExtras: await variantExtrasSupported() });
   });
 }
 

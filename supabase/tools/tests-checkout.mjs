@@ -92,7 +92,7 @@ export async function run({ db, q, one, check, asUser }) {
 
   // cartão recusado e nova tentativa
   const rej = await sync(o2.number, { id: "9003", status: "rejected", status_detail: "cc_rejected_insufficient_amount", payment_method_id: "visa", payment_type_id: "credit_card", transaction_amount: Number(o2.total), installments: 1 });
-  check("cartão recusado: pagamento falha e o pedido segue pendente para nova tentativa", rej.paymentStatus === "failed" && (await ordStatus(o2.id)) === "pending_payment");
+  check("cartão recusado: pagamento falha e o pedido vira 'Pagamento recusado', ainda pagável em nova tentativa", rej.paymentStatus === "failed" && (await ordStatus(o2.id)) === "payment_failed");
   const ok2 = await sync(o2.number, { id: "9004", status: "approved", status_detail: "accredited", payment_method_id: "master", payment_type_id: "credit_card", transaction_amount: Number(o2.total), installments: 3 });
   const p3 = await payRows(o2.id);
   check("nova tentativa aprovada paga o pedido; a recusada continua registrada", ok2.orderStatus === "paid" && p3.some((p) => p.provider_ref === "9003" && p.status === "failed") && p3.some((p) => p.provider_ref === "9004" && p.status === "paid"));

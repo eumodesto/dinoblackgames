@@ -6,11 +6,12 @@ import { AdminSelect } from "./AdminSelect";
 import { RichTextEditor } from "./RichTextEditor";
 import { ProductHighlightsSection, defaultUsage, emptyHighlight, emptyHighlights, isoToLocalInput, localInputToIso, type HighlightUsage, type HighlightsState } from "./ProductHighlightsSection";
 import { normalizeTags, optionCode, parseVideoUrl, specsToText } from "@/lib/catalog-normalize";
+import { OPTION_PRESETS, colorSwatch, isColorOption, presetByName } from "@/lib/variant-options";
 
 type Meta = { categories: { id: string; name: string }[]; locations: { id: string; name: string }[]; tags: string[] };
 type Media = { url: string; alt: string; width?: number | null; height?: number | null; bytes?: number | null };
-type OptionDef = { code: string; name: string; values: string[]; draft: string };
-type VariantRow = { key: string; id?: string; sku?: string; options: Record<string, string>; price: string; compareAt: string; stock: string; minStock: string; maxInstallments: string };
+type OptionDef = { code: string; name: string; values: string[]; draft: string; custom?: boolean };
+type VariantRow = { key: string; id?: string; sku?: string; options: Record<string, string>; price: string; compareAt: string; cashPrice: string; imageUrl: string; stock: string; minStock: string; maxInstallments: string };
 
 const TYPES = [
   ["console", "Console"], ["jogo", "Jogo"], ["acessorio", "Acessório"], ["gift", "Gift Card"], ["hardware", "Hardware"],
@@ -23,7 +24,7 @@ const card = "grid gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5";
 const ghost = "rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-bold text-zinc-300 transition hover:border-dino-red hover:text-white disabled:opacity-40";
 
 const variantKey = (options: Record<string, string>) => JSON.stringify(Object.entries(options).sort(([a], [b]) => a.localeCompare(b)));
-const emptyVariant = (): VariantRow => ({ key: "single", options: {}, price: "", compareAt: "", stock: "0", minStock: "0", maxInstallments: "10" });
+const emptyVariant = (): VariantRow => ({ key: "single", options: {}, price: "", compareAt: "", cashPrice: "", imageUrl: "", stock: "0", minStock: "0", maxInstallments: "10" });
 
 /** Todas as combinações das opções (Condição × Armazenamento…), mantendo preço/estoque já digitados. */
 function combine(options: OptionDef[], previous: VariantRow[]): VariantRow[] {
@@ -57,12 +58,14 @@ export function AdminProductForm({ productId }: { productId?: string }) {
   const [tagDraft, setTagDraft] = useState("");
   const [options, setOptions] = useState<OptionDef[]>([]);
   const [variants, setVariants] = useState<VariantRow[]>([emptyVariant()]);
+  const [extras, setExtras] = useState(false); // preço do Pix e foto por variação (precisa da migration 18 no banco)
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [inBoxText, setInBoxText] = useState("");
   const [specsText, setSpecsText] = useState("");
   const [faq, setFaq] = useState<{ q: string; a: string }[]>([]);
 
   useEffect(() => {
-    fetch("/api/admin/products").then((r) => r.json()).then((data) => { setMeta({ categories: data.categories ?? [], locations: data.locations ?? [], tags: data.tags ?? [] }); if (!productId && data.highlightUsage) setUsage(data.highlightUsage); }).catch(() => setMessage("Não foi possível carregar categorias."));
+    fetch("/api/admin/products").then((r) => r.json()).then((data) => { setMeta({ categories: data.categories ?? [], locations: data.locations ?? [], tags: data.tags ?? [] }); setExtras(Boolean(data.variantExtras)); if (!productId && data.highlightUsage) setUsage(data.highlightUsage); }).catch(() => setMessage("Não foi possível carregar categorias."));
     if (!productId) return;
     fetch(`/api/admin/products/${productId}`).then((r) => r.json()).then((data) => {
       const p = data.product;
@@ -85,10 +88,10 @@ export function AdminProductForm({ productId }: { productId?: string }) {
       setFaq(((p.faq ?? []) as { q: string; a: string }[]).map((f) => ({ q: f.q, a: f.a })));
       setMedia((data.media ?? []).map((m: Media) => ({ url: m.url, alt: m.alt, width: m.width, height: m.height, bytes: m.bytes })));
       setTags(data.tags ?? []);
-      setOptions((data.options ?? []).map((o: { code: string; name: string; values: string[] }) => ({ code: o.code, name: o.name, values: o.values, draft: "" })));
+      setOptions((data.options ?? []).map((o: { code: string; name: string; values: string[] }) => ({ code: o.code, name: o.name, values: o.values, draft: "", custom: !presetByName(o.name) })));
       setVariants((data.variants ?? []).map((v: Record<string, unknown>) => ({
         key: variantKey((v.options ?? {}) as Record<string, string>), id: v.id as string, sku: v.sku as string, options: (v.options ?? {}) as Record<string, string>,
-        price: String(v.price ?? ""), compareAt: v.compare_at && Number(v.compare_at) > Number(v.price) ? String(v.compare_at) : "", stock: String(v.stock ?? 0), minStock: String(v.min_stock ?? 0), maxInstallments: String(v.max_installments ?? 10),
+        price: String(v.price ?? ""), compareAt: v.compare_at && Number(v.compare_at) > Number(v.price) ? String(v.compare_at) : "", cashPrice: v.cash_price ? String(v.cash_price) : "", imageUrl: typeof v.image_url === "string" ? v.image_url : "", stock: String(v.stock ?? 0), minStock: String(v.min_stock ?? 0), maxInstallments: String(v.max_installments ?? 10),
       })));
     }).finally(() => setLoading(false));
   }, [productId]);
@@ -142,7 +145,8 @@ export function AdminProductForm({ productId }: { productId?: string }) {
     const usableOptions = options.filter((o) => o.name.trim() && o.values.length).map(({ code, name, values }) => ({ code: code || optionCode(name), name: name.trim(), values }));
     const body = {
       ...form, productType: type, tags, media, options: usableOptions, locationId: form.locationId || undefined,
-      variants: variants.map((v) => ({ id: v.id, sku: v.sku, options: v.options, price: v.price, compareAt: v.compareAt, stock: v.stock, minStock: v.minStock, maxInstallments: v.maxInstallments })),
+      // A foto da variação só vale se ainda está na galeria do produto.
+      variants: variants.map((v) => ({ id: v.id, sku: v.sku, options: v.options, price: v.price, compareAt: v.compareAt, stock: v.stock, minStock: v.minStock, maxInstallments: v.maxInstallments, ...(extras ? { cashPrice: v.cashPrice, imageUrl: media.some((m) => m.url === v.imageUrl) ? v.imageUrl : "" } : {}) })),
       homeHighlights: { hero: { ...highlights.hero }, flash: { ...highlights.flash, endsAt: localInputToIso(highlights.flash.endsAt) } },
       specsText, inBox: inBoxText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), faq,
     };
@@ -220,30 +224,95 @@ export function AdminProductForm({ productId }: { productId?: string }) {
         {!hasOptions && <button type="button" className={ghost} onClick={addOption}>+ Este produto tem variações</button>}
       </div>
 
-      {options.map((option, index) => <div key={index} className="grid gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-3 md:grid-cols-[200px_1fr_auto]">
-        <label className="block"><span className={label}>Opção</span><input className={cell} value={option.name} placeholder="Condição, Cor, Armazenamento..." onChange={(e) => patchOption(index, { name: e.target.value })} /></label>
-        <div><span className={label}>Valores</span>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 p-1.5">
-            {option.values.map((value) => <span key={value} className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs text-white">{value}<button type="button" aria-label={`Remover ${value}`} className="text-zinc-400 hover:text-red-400" onClick={() => patchOption(index, { values: option.values.filter((v) => v !== value) })}>✕</button></span>)}
-            <input className="min-w-[120px] flex-1 bg-transparent px-1 text-sm text-white outline-none" value={option.draft} placeholder="Digite e pressione Enter" onChange={(e) => patchOption(index, { draft: e.target.value })}
-              onKeyDown={(e) => { if ((e.key === "Enter" || e.key === ",") && option.draft.trim()) { e.preventDefault(); const v = option.draft.trim(); patchOption(index, { values: option.values.includes(v) ? option.values : [...option.values, v], draft: "" }); } }} />
+      {options.map((option, index) => {
+        const preset = presetByName(option.name);
+        const isColor = isColorOption(optionCode(option.name), option.name);
+        const taken = new Set(options.filter((_, i) => i !== index).map((o) => optionCode(o.name)));
+        const suggestions = (preset?.suggestions ?? []).filter((s) => !option.values.includes(s));
+        const addValue = (v: string) => { const value = v.trim(); if (value && !option.values.includes(value)) patchOption(index, { values: [...option.values, value], draft: "" }); };
+        return <div key={index} className="grid gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+          <div className="grid gap-3 md:grid-cols-[minmax(220px,260px)_1fr_auto] md:items-start">
+            <div>
+              <span className={label}>Tipo de variação</span>
+              <div className="mt-1"><AdminSelect
+                value={option.custom ? "__custom" : preset?.code ?? ""}
+                onValueChange={(v) => { if (v === "__custom") patchOption(index, { name: "", custom: true, values: [] }); else { const p = OPTION_PRESETS.find((x) => x.code === v); if (p) patchOption(index, { name: p.name, custom: false, values: [] }); } }}
+                aria-label="Tipo de variação"
+                options={[{ value: "", label: "Escolha o tipo..." }, ...OPTION_PRESETS.filter((p) => !taken.has(p.code)).map((p) => ({ value: p.code, label: p.name })), { value: "__custom", label: "Outra (personalizada)..." }]}
+              /></div>
+              {option.custom && <input className={`${cell} !h-11 mt-2`} value={option.name} placeholder="Nome da variação (ex.: Acabamento)" aria-label="Nome da variação personalizada" onChange={(e) => patchOption(index, { name: e.target.value })} />}
+              {preset && <p className="mt-1.5 text-[11px] leading-4 text-zinc-500">{preset.hint}{isColor ? ". Na loja aparece como bolinhas de cor." : ""}</p>}
+            </div>
+            <div><span className={label}>Valores</span>
+              <div className="gd-chips mt-1">
+                {option.values.map((value) => { const swatch = isColor ? colorSwatch(value) : null; return <span key={value} className="gd-chip">{swatch && <i aria-hidden className="h-3.5 w-3.5 rounded-full border border-white/25" style={{ background: swatch }} />}{value}<button type="button" aria-label={`Remover ${value}`} onClick={() => patchOption(index, { values: option.values.filter((v) => v !== value) })}>✕</button></span>; })}
+                <input className="gd-bare text-sm text-white" value={option.draft} placeholder={option.values.length ? "Adicionar outro valor" : "Digite o valor e pressione Enter"} onChange={(e) => patchOption(index, { draft: e.target.value })}
+                  onKeyDown={(e) => { if ((e.key === "Enter" || e.key === ",") && option.draft.trim()) { e.preventDefault(); addValue(option.draft); } }} />
+              </div>
+            </div>
+            <button type="button" className={`${ghost} md:mt-6`} onClick={() => updateOptions(options.filter((_, i) => i !== index))}>Remover</button>
           </div>
-        </div>
-        <button type="button" className={`${ghost} self-end`} onClick={() => updateOptions(options.filter((_, i) => i !== index))}>Remover</button>
-      </div>)}
-      {hasOptions && options.length < 3 && <button type="button" className={`${ghost} justify-self-start`} onClick={addOption}>+ Outra opção</button>}
+          {suggestions.length > 0 && <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-zinc-500">Sugestões:</span>
+            {suggestions.map((sug) => <button key={sug} type="button" onClick={() => addValue(sug)} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-zinc-600 px-2.5 py-1 text-xs font-semibold text-zinc-300 transition hover:border-dino-red hover:text-white">
+              {isColor && colorSwatch(sug) && <i aria-hidden className="h-3 w-3 rounded-full border border-white/25" style={{ background: colorSwatch(sug) ?? undefined }} />}+ {sug}</button>)}
+          </div>}
+        </div>;
+      })}
+      {hasOptions && options.length < 4 && <button type="button" className={`${ghost} justify-self-start`} onClick={addOption}>+ Outra opção</button>}
 
-      <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm">
-        <thead><tr className="text-[11px] uppercase tracking-wide text-zinc-500"><th className="pb-2 pr-2 font-bold">{hasOptions ? "Variação" : "Produto"}</th><th className="pb-2 pr-2 font-bold">Preço (R$) *</th><th className="pb-2 pr-2 font-bold">Preço original</th><th className="pb-2 pr-2 font-bold">Estoque</th><th className="pb-2 pr-2 font-bold">Mínimo</th><th className="pb-2 font-bold">Parcelas</th></tr></thead>
-        <tbody>{variants.map((v) => <tr key={v.key} className="border-t border-zinc-800">
+      <div className="overflow-x-auto"><table className={`w-full text-left text-sm ${extras ? "min-w-[920px]" : "min-w-[640px]"}`}>
+        <thead><tr className="text-[11px] uppercase tracking-wide text-zinc-500">
+          <th className="pb-2 pr-2 font-bold">{hasOptions ? "Variação" : "Produto"}</th>
+          {extras && <th className="pb-2 pr-2 font-bold">Foto</th>}
+          <th className="pb-2 pr-2 font-bold">Preço (R$) *</th>
+          <th className="pb-2 pr-2 font-bold">Preço original</th>
+          {extras && <th className="pb-2 pr-2 font-bold">Preço no Pix</th>}
+          <th className="pb-2 pr-2 font-bold">Estoque</th><th className="pb-2 pr-2 font-bold">Mínimo</th><th className="pb-2 font-bold">Parcelas</th>
+        </tr></thead>
+        <tbody>{variants.flatMap((v) => {
+          const price = Number(v.price);
+          const cash = Number(v.cashPrice);
+          const cashBad = v.cashPrice !== "" && (!Number.isFinite(cash) || cash <= 0 || (price > 0 && cash >= price));
+          const cashOff = v.cashPrice !== "" && !cashBad && price > 0 ? Math.round((1 - cash / price) * 100) : 0;
+          const photo = media.find((m) => m.url === v.imageUrl);
+          const rows = [<tr key={v.key} className="border-t border-zinc-800">
           <td className="py-2 pr-2 align-middle"><div className="font-semibold text-white">{optionLabel(v)}</div>{v.sku && <div className="font-mono text-[11px] text-zinc-500">{v.sku}</div>}</td>
+          {extras && <td className="py-2 pr-2">
+            <button type="button" onClick={() => setPickerFor(pickerFor === v.key ? null : v.key)} aria-expanded={pickerFor === v.key} aria-label={`Escolher a foto de ${optionLabel(v)}`} disabled={media.length === 0} title={media.length === 0 ? "Envie imagens do produto primeiro" : "Escolher a foto desta variação"} className="grid h-10 w-10 place-items-center overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950 text-[10px] font-bold text-zinc-500 transition hover:border-dino-red disabled:opacity-40">
+              {photo ? /* eslint-disable-next-line @next/next/no-img-element -- pré-visualização no admin */ <img src={photo.url} alt="" className="h-full w-full object-cover" /> : "Foto"}
+            </button>
+          </td>}
           <td className="py-2 pr-2"><input aria-label="Preço" className={cell} type="number" step="0.01" min="0" required value={v.price} onChange={(e) => patchVariant(v.key, { price: e.target.value })} /></td>
           <td className="py-2 pr-2"><input aria-label="Preço original" className={cell} type="number" step="0.01" min="0" value={v.compareAt} onChange={(e) => patchVariant(v.key, { compareAt: e.target.value })} /></td>
+          {extras && <td className="py-2 pr-2">
+            <input aria-label="Preço no Pix" aria-invalid={cashBad} className={`${cell} ${cashBad ? "!border-red-500" : ""}`} type="number" step="0.01" min="0" placeholder="Sem desconto" value={v.cashPrice} onChange={(e) => patchVariant(v.key, { cashPrice: e.target.value })} />
+            {cashBad ? <span className="mt-0.5 block text-[10px] font-semibold text-red-300">Use um valor menor que o preço</span> : cashOff > 0 ? <span className="mt-0.5 block text-[10px] font-semibold text-emerald-400">{cashOff}% abaixo do preço</span> : null}
+          </td>}
           <td className="py-2 pr-2"><input aria-label="Estoque" className={cell} type="number" min="0" value={v.stock} onChange={(e) => patchVariant(v.key, { stock: e.target.value })} /></td>
           <td className="py-2 pr-2"><input aria-label="Estoque mínimo" className={cell} type="number" min="0" value={v.minStock} onChange={(e) => patchVariant(v.key, { minStock: e.target.value })} /></td>
           <td className="py-2"><input aria-label="Máximo de parcelas" className={cell} type="number" min="1" max="12" value={v.maxInstallments} onChange={(e) => patchVariant(v.key, { maxInstallments: e.target.value })} /></td>
-        </tr>)}</tbody>
+        </tr>];
+          if (extras && pickerFor === v.key) {
+            rows.push(<tr key={`${v.key}-photo`}><td colSpan={8} className="pb-3">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+                <p className="text-xs text-zinc-400">Foto de <strong className="text-white">{optionLabel(v)}</strong>: ao escolher esta variação, a loja mostra esta imagem como principal. Escolha entre as imagens do produto.</p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  <li><button type="button" onClick={() => { patchVariant(v.key, { imageUrl: "" }); setPickerFor(null); }} aria-pressed={!photo} className={`grid h-16 w-16 place-items-center rounded-lg border text-[10px] font-bold ${!photo ? "border-dino-red text-white" : "border-zinc-700 text-zinc-400 hover:border-zinc-500"}`}>Sem foto própria</button></li>
+                  {media.map((m, i) => <li key={`${m.url}-${i}`}><button type="button" onClick={() => { patchVariant(v.key, { imageUrl: m.url }); setPickerFor(null); }} aria-pressed={v.imageUrl === m.url} aria-label={`Usar a imagem ${i + 1}`} className={`h-16 w-16 overflow-hidden rounded-lg border bg-zinc-900 ${v.imageUrl === m.url ? "border-dino-red ring-2 ring-dino-red/40" : "border-zinc-700 hover:border-zinc-500"}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- pré-visualização no admin */}
+                    <img src={m.url} alt={m.alt} className="h-full w-full object-contain" />
+                  </button></li>)}
+                </ul>
+              </div>
+            </td></tr>);
+          }
+          return rows;
+        })}</tbody>
       </table></div>
+      {extras
+        ? <p className="text-xs text-zinc-500">Preço no Pix: valor cobrado quando o cliente escolhe Pix no checkout (cartão e débito pagam o preço normal). Vazio = sem preço especial. A foto da variação aparece como imagem principal quando o cliente escolhe essa variação.</p>
+        : <p className="text-xs text-zinc-500">Preço no Pix e foto por variação ficam disponíveis assim que a atualização 20261125000018 do banco for aplicada.</p>}
     </div>
 
     <div className={`${card} md:grid-cols-4`}><div className="md:col-span-4"><h2 className="font-bold text-white">Dimensões para entrega</h2><p className="mt-1 text-xs text-zinc-500">Embalagem pronta para envio (vale para todas as variações). Peso em gramas; medidas em milímetros.</p></div>
@@ -266,9 +335,9 @@ export function AdminProductForm({ productId }: { productId?: string }) {
         </div>)}
         <span className="mt-1 block text-xs text-zinc-500">Sem perguntas, a seção não aparece na loja.</span></div>
       <div className="md:col-span-2"><span className={label}>Tags</span>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-950 p-2">
-          {tags.map((tag) => <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs text-white">{tag}<button type="button" aria-label={`Remover ${tag}`} className="text-zinc-400 hover:text-red-400" onClick={() => setTags((c) => c.filter((t) => t !== tag))}>✕</button></span>)}
-          <input list="tag-suggestions" className="min-w-[160px] flex-1 bg-transparent px-1 text-sm text-white outline-none" value={tagDraft} placeholder="Digite e pressione Enter (sem repetir plataforma ou tipo)" onChange={(e) => setTagDraft(e.target.value)}
+        <div className="gd-chips mt-1">
+          {tags.map((tag) => <span key={tag} className="gd-chip">{tag}<button type="button" aria-label={`Remover ${tag}`} onClick={() => setTags((c) => c.filter((t) => t !== tag))}>✕</button></span>)}
+          <input list="tag-suggestions" className="gd-bare text-sm text-white" value={tagDraft} placeholder="Digite e pressione Enter (sem repetir plataforma ou tipo)" onChange={(e) => setTagDraft(e.target.value)}
             onKeyDown={(e) => { if ((e.key === "Enter" || e.key === ",") && tagDraft.trim()) { e.preventDefault(); addTags(tagDraft); } }} onBlur={() => tagDraft.trim() && addTags(tagDraft)} />
           <datalist id="tag-suggestions">{meta.tags.map((t) => <option key={t} value={t} />)}</datalist>
         </div>

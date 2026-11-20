@@ -2,6 +2,7 @@ import "server-only";
 import { getSql } from "./sql";
 import { extendedStatusesSupported } from "./status-support";
 import type { Range } from "./analytics";
+import { getReminderStats, type ReminderStats } from "./email-tracking";
 
 /** Indicadores do período escolhido, com o período anterior de mesma duração para comparar. */
 export type PeriodKpis = {
@@ -45,6 +46,8 @@ export type DashboardInsights = {
   actions: ActionItem[];
   stock: StockHealth;
   viewedNotSold: UnsoldView[];
+  /** Lembrete de pagamento pendente: envios, cliques e compras depois do e-mail. */
+  reminders: ReminderStats;
 };
 
 /** Abaixo disto, conversão e funil são ruído estatístico: o painel avisa em vez de sugerir tendência. */
@@ -177,12 +180,13 @@ async function viewedNotSold(range: Range): Promise<UnsoldView[]> {
 export async function getDashboardInsights(range: Range): Promise<DashboardInsights> {
   const span = range.to.getTime() - range.from.getTime();
   const prevFrom = new Date(range.from.getTime() - span);
-  const [cur, prev, actions, stock, unsold] = await Promise.all([
+  const [cur, prev, actions, stock, unsold, reminders] = await Promise.all([
     periodKpis(range.from, range.to),
     periodKpis(prevFrom, range.from),
     actionItems(),
     stockHealth(),
     viewedNotSold(range),
+    getReminderStats(range.from, range.to).catch((): ReminderStats => ({ sent: 0, failed: 0, clickedOrders: 0, clicks: 0, paidAfter: 0, paidAfterClick: 0, revenueAfter: 0, revenueAfterClick: 0 })),
   ]);
 
   const kpis: Kpi[] = [
@@ -193,5 +197,5 @@ export async function getDashboardInsights(range: Range): Promise<DashboardInsig
     { label: "Conversão", value: cur.conversion, previous: prev.conversion, kind: "percent" },
   ];
 
-  return { range, kpis, smallSample: cur.sessions < MIN_SESSIONS, actions, stock, viewedNotSold: unsold };
+  return { range, kpis, smallSample: cur.sessions < MIN_SESSIONS, actions, stock, viewedNotSold: unsold, reminders };
 }

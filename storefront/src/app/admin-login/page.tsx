@@ -25,10 +25,10 @@ export default async function AdminLoginPage({
           </div>
           <h1 className="mb-2 text-lg font-bold text-white">Recuperar senha</h1>
           <p className="mb-4 text-sm leading-relaxed text-zinc-400">
-            Por enquanto o painel usa uma senha única da equipe. Para redefini-la, fale com o responsável técnico da loja.
+            Quem tem conta individual pede a um Super Admin para redefinir a senha em Usuários; ele envia uma senha provisória por e-mail. A senha do acesso principal é definida pelo responsável técnico da loja.
           </p>
           <p className="mb-6 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs leading-relaxed text-zinc-400">
-            A recuperação por e-mail chega junto com as contas individuais da equipe.
+            Você troca a senha provisória no primeiro acesso.
           </p>
           <Link
             href={`/admin-login?next=${encodeURIComponent(safeNext)}`}
@@ -57,14 +57,14 @@ export default async function AdminLoginPage({
 
         {erro && (
           <p role="alert" className="mb-4 rounded-lg border border-dino-red/40 bg-dino-red/10 px-3 py-2 text-sm text-red-300">
-            Usuário ou senha incorretos.
+            {erro === "2" ? "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo." : "Usuário ou senha incorretos."}
           </p>
         )}
 
         <input type="hidden" name="next" value={safeNext} />
 
         <label className="mb-4 block">
-          <span className="mb-1.5 block text-sm font-semibold text-zinc-300">Usuário</span>
+          <span className="mb-1.5 block text-sm font-semibold text-zinc-300">Usuário ou e-mail</span>
           <input
             name="user"
             defaultValue="admin"

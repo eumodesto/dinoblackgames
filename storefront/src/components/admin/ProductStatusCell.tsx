@@ -36,7 +36,7 @@ export function ProductStatusCell({ id, name, status: initial }: { id: string; n
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <Toggle size="sm" checked={status === "published"} onCheckedChange={change} disabled={busy} variant="success" label={`${status === "published" ? "Ocultar da loja" : "Exibir na loja"}: ${name}`} />
       <div className="min-w-0">
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${badge.cls}`}>{badge.label}</span>

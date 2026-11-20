@@ -629,7 +629,7 @@ ins("audit_log", [
   { actor_id: uid("user", S.owner.n), action: "grant_role", entity: "user_roles", entity_id: uid("user", S.appraiser.n), changes: { role: "appraiser" }, created_at: ago("30 days") },
 ]);
 
-const events = ["view_item_list", "view_item", "add_to_cart", "shipping_calculated", "whatsapp_click", "filter_applied"];
+const events = ["page_view", "product_view", "add_to_cart", "checkout_start", "shipping_quoted", "search"];
 ins("analytics_events", Array.from({ length: 24 }, (_, i) => ({
   event: events[i % events.length], session_id: `sess-${(i % 6) + 1}`, props: { productSlug: products[i % 8].slug, ordem: i % 3 }, created_at: ago(`${i * 3} hours`),
 })));

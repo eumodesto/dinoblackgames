@@ -4,6 +4,7 @@ import { EXTENDED_STATUSES, ORDER_TRANSITIONS, isOrderStatus, statusLabel } from
 import { STATUS_EVENT } from "@/lib/store-events";
 import { notifyLater } from "./notify";
 import { extendedStatusesSupported } from "./status-support";
+import { variantExtrasSupported } from "./variant-support";
 
 // ---------------------------------------------------------------------------
 // Types shared between storefront pages and the data layer
@@ -67,7 +68,13 @@ export type UnitReport = {
   warrantyDays: number;
 };
 
-export type VariantInfo = { options: Record<string, string>; price: number; compareAt: number | null; available: number };
+export type VariantInfo = {
+  options: Record<string, string>; price: number; compareAt: number | null; available: number;
+  /** Preço quando o cliente paga no Pix (sempre menor que `price`). */
+  cashPrice: number | null;
+  /** Foto própria da variação (uma das imagens do produto). Escolher a variação troca a imagem principal. */
+  image: string | null;
+};
 
 export type ProductDetail = {
   id: string;
@@ -374,7 +381,8 @@ export async function getFacetValues(): Promise<FacetValues> {
 // Single product detail
 // ---------------------------------------------------------------------------
 
-export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
+/** `preview: true` (só para quem está no painel) mostra também rascunhos e arquivados, exatamente como a página do cliente. */
+export async function getProductBySlug(slug: string, opts: { preview?: boolean } = {}): Promise<ProductDetail | null> {
   const sql = await getSql();
 
   const [product] = await sql.query<{
@@ -385,7 +393,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     highlights: Highlight[]; specs: SpecGroup[]; in_box: string[]; faq: Faq[];
     category_id: string; video_url: string | null;
   }>(
-    "select * from products where slug = $1 and status = 'published'",
+    opts.preview ? "select * from products where slug = $1" : "select * from products where slug = $1 and status = 'published'",
     [slug],
   );
   if (!product) return null;
@@ -411,8 +419,10 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   const facets = listing[0]?.facets ?? {};
 
   const options = await loadOptions(sql, product.id);
-  const variantRows = await sql.query<{ option_values: Record<string, string>; price: string | number; compare_at: string | number | null; avail: string | number }>(
+  const extras = await variantExtrasSupported();
+  const variantRows = await sql.query<{ option_values: Record<string, string>; price: string | number; compare_at: string | number | null; avail: string | number; cash: string | number | null; image: string | null }>(
     `select v.option_values, effective_price(v.id) as price, greatest(coalesce(v.compare_at, v.price), v.price) as compare_at,
+       ${extras ? "case when v.cash_price is not null and v.cash_price < effective_price(v.id) then v.cash_price end as cash, v.image_url as image," : "null::numeric as cash, null::text as image,"}
        coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il where il.variant_id = v.id), 0)
        + (select count(*) from inventory_units u where u.variant_id = v.id and u.status = 'disponivel')::int as avail
      from product_variants v where v.product_id = $1 and v.is_active order by v.price`,
@@ -423,6 +433,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     price: Number(v.price),
     compareAt: Number(v.compare_at) > Number(v.price) ? Number(v.compare_at) : null,
     available: Number(v.avail),
+    cashPrice: v.cash == null ? null : Number(v.cash),
+    image: v.image,
   }));
 
   const maxInstallments = await sql.query<{ m: number }>(

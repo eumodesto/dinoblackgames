@@ -67,7 +67,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const params = await searchParams;
   const range = resolveRange(params);
   const [insights, funnel] = await Promise.all([getDashboardInsights(range), getFunnel(range, { dispositivo: params.dispositivo, origem: params.origem })]);
-  const { stock, actions, viewedNotSold } = insights;
+  const { stock, actions, viewedNotSold, reminders } = insights;
   const pending = actions.filter((a) => a.count > 0);
   const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
 
@@ -107,6 +107,31 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       )}
 
       <FunnelPanel funnel={funnel} today={today} />
+
+      <section id="lembretes" className="gd-panel" aria-labelledby="reminders-title">
+        <header className="gd-panel-head">
+          <div><h2 id="reminders-title">Lembretes de pagamento pendente</h2><p>{range.label} · e-mail enviado ao cliente que não pagou</p></div>
+          <Link href="/admin/configuracoes/integracoes/email" style={{ fontSize: 12, fontWeight: 700 }}>Ajustar e-mail</Link>
+        </header>
+        <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+          {[
+            { label: "E-mails enviados", value: nf.format(reminders.sent), hint: reminders.failed > 0 ? `${nf.format(reminders.failed)} com falha` : "lembretes ao cliente" },
+            { label: "Voltaram à loja", value: nf.format(reminders.clickedOrders), hint: reminders.sent > 0 ? `${((reminders.clickedOrders / reminders.sent) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% dos enviados · ${nf.format(reminders.clicks)} ${reminders.clicks === 1 ? "clique" : "cliques"}` : "clique no botão do e-mail" },
+            { label: "Pagaram depois", value: nf.format(reminders.paidAfter), hint: reminders.sent > 0 ? `${((reminders.paidAfter / reminders.sent) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% dos enviados · ${formatBRL(reminders.revenueAfter)}` : "pedidos pagos após o e-mail" },
+            { label: "Clicaram e pagaram", value: nf.format(reminders.paidAfterClick), hint: formatBRL(reminders.revenueAfterClick) },
+          ].map((m) => (
+            <div key={m.label} style={{ padding: "10px 12px", borderRadius: 14, background: "var(--gd-card-light)" }}>
+              <small style={{ color: "var(--gd-muted)", fontWeight: 650 }}>{m.label}</small>
+              <strong style={{ display: "block", fontSize: 24, lineHeight: 1.2 }}>{m.value}</strong>
+              <small style={{ color: "var(--gd-muted)" }}>{m.hint}</small>
+            </div>
+          ))}
+        </div>
+        <p style={{ margin: "10px 0 0", color: "var(--gd-muted)", fontSize: 11 }}>
+          {reminders.sent === 0 ? "Nenhum lembrete enviado neste período. O envio depende do agendador (cron) e do Resend configurado. " : ""}
+          “Pagaram depois” conta pedidos pagos após o lembrete, mesmo sem clique (o cliente pode ter voltado por conta própria); “Clicaram e pagaram” é a parte ligada ao botão do e-mail. Alguns provedores abrem os links para checar segurança, então cliques podem incluir verificações automáticas.
+        </p>
+      </section>
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
         <div style={{ display: "grid", gap: 12, alignContent: "start" }}>

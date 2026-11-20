@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Box, ChevronRight, LayoutDashboard, LogOut, Moon, Search, Settings, ShoppingBag, Store, Sun, Tag, Ticket, X } from "lucide-react";
+import { Box, ChevronRight, LayoutDashboard, LogOut, Moon, Search, Settings, ShoppingBag, Store, Sun, Tag, Ticket, UserRound, Users, X } from "lucide-react";
 import "@fontsource-variable/manrope";
 import "@/app/admin/admin-glass.css";
 import { GROUPS } from "./AdminSidebar";
+import { canAccess, type Access } from "@/lib/admin-permissions";
 
 // Atalhos principais do dock. O menu completo (todas as seções) abre pela busca da barra superior.
 const DOCK = [
@@ -16,6 +17,7 @@ const DOCK = [
   { href: "/admin/produtos", label: "Produtos", short: "Produtos", icon: Box },
   { href: "/admin/categorias", label: "Categorias", short: "Categ.", icon: Tag },
   { href: "/admin/cupons", label: "Cupons", short: "Cupons", icon: Ticket },
+  { href: "/admin/usuarios", label: "Usuários", short: "Usuários", icon: Users },
   { href: "/admin/configuracoes", label: "Configurações", short: "Config.", icon: Settings },
 ] as const;
 
@@ -26,10 +28,10 @@ function isActive(pathname: string, href: string) {
 }
 
 // Barra lateral de ícones (desktop): atalhos principais, com dica ao passar o mouse.
-function SideDock({ pathname }: { pathname: string }) {
+function SideDock({ pathname, access }: { pathname: string; access: Access }) {
   return (
     <nav className="gd-dock gd-dock-side" aria-label="Atalhos do admin">
-      {DOCK.map(({ href, label, icon: Icon }) => (
+      {DOCK.filter((item) => canAccess(access, item.href)).map(({ href, label, icon: Icon }) => (
         <Link key={href} href={href} aria-label={label} aria-current={isActive(pathname, href) ? "page" : undefined}>
           <Icon aria-hidden="true" />
           <span className="gd-dock-tip" aria-hidden="true">{label}</span>
@@ -40,7 +42,7 @@ function SideDock({ pathname }: { pathname: string }) {
 }
 
 // Dock inferior: no celular desliza com o dedo; no desktop também rola com a roda do mouse e arrasta com o mouse.
-function Dock({ pathname }: { pathname: string }) {
+function Dock({ pathname, access }: { pathname: string; access: Access }) {
   const nav = useRef<HTMLElement>(null);
   const drag = useRef({ active: false, moved: false, startX: 0, startScroll: 0 });
 
@@ -91,7 +93,7 @@ function Dock({ pathname }: { pathname: string }) {
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}
       // Depois de arrastar, o clique que o navegador gera ao soltar não deve abrir um link.
       onClickCapture={(event) => { if (drag.current.moved) { event.preventDefault(); event.stopPropagation(); drag.current.moved = false; } }}>
-      {DOCK.map(({ href, label, short, icon: Icon }) => (
+      {DOCK.filter((item) => canAccess(access, item.href)).map(({ href, label, short, icon: Icon }) => (
         <Link key={href} href={href} aria-label={label} draggable={false} aria-current={isActive(pathname, href) ? "page" : undefined}>
           <Icon aria-hidden="true" />
           <span className="gd-dock-text" aria-hidden="true">{label}</span>
@@ -105,7 +107,7 @@ function Dock({ pathname }: { pathname: string }) {
 type Anchor = { top: number; left: number; width: number };
 
 // Abre o menu "Ir para" logo abaixo da barra de busca (mesma largura), como um menu suspenso.
-function QuickNav({ close, anchor }: { close: () => void; anchor: () => Anchor }) {
+function QuickNav({ close, anchor, access }: { close: () => void; anchor: () => Anchor; access: Access }) {
   const ref = useRef<HTMLDialogElement>(null);
   const label = useId();
   const [query, setQuery] = useState("");
@@ -122,7 +124,7 @@ function QuickNav({ close, anchor }: { close: () => void; anchor: () => Anchor }
 
   const groups = GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => terms.every((term) => `${group.label} ${item.label}`.toLowerCase().includes(term))),
+    items: group.items.filter((item) => canAccess(access, item.href) && terms.every((term) => `${group.label} ${item.label}`.toLowerCase().includes(term))),
   })).filter((group) => group.items.length > 0);
 
   return (
@@ -155,7 +157,7 @@ function QuickNav({ close, anchor }: { close: () => void; anchor: () => Anchor }
   );
 }
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({ children, access, me }: { children: ReactNode; access: Access; me: { name: string; staff: boolean } }) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [search, setSearch] = useState(false);
@@ -201,6 +203,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <button type="button" className="gd-icon-button" title={themeLabel} aria-label={themeLabel} onClick={toggleTheme}>
               {theme === "light" ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
             </button>
+            {me.staff && <Link href="/admin/minha-conta" className="gd-icon-button" title={`Minha conta · ${me.name}`} aria-label={`Minha conta: ${me.name}`}><UserRound aria-hidden="true" /></Link>}
             <Link href="/" className="gd-icon-button" title="Abrir a loja" aria-label="Abrir a loja"><Store aria-hidden="true" /></Link>
             <form method="post" action="/api/admin/logout" style={{ display: "contents" }}>
               <button type="submit" className="gd-icon-button" title="Sair" aria-label="Sair"><LogOut aria-hidden="true" /></button>
@@ -212,12 +215,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <main className="gd-stage">
             <div className="gd-stage-scroll">{children}</div>
           </main>
-          <SideDock pathname={pathname} />
-          <Dock pathname={pathname} />
+          <SideDock pathname={pathname} access={access} />
+          <Dock pathname={pathname} access={access} />
         </div>
         <footer className="gd-footer"><span>DinoBlack Games e Informática</span></footer>
       </div>
-      {search && <QuickNav close={() => setSearch(false)} anchor={searchAnchor} />}
+      {search && <QuickNav close={() => setSearch(false)} anchor={searchAnchor} access={access} />}
     </div>
   );
 }
