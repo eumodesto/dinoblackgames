@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Box, ChevronRight, LayoutDashboard, LogOut, Moon, Search, Settings, ShoppingBag, Store, Sun, Tag, Ticket, X } from "lucide-react";
 import "@fontsource-variable/manrope";
 import "@/app/admin/admin-glass.css";
@@ -40,16 +40,23 @@ function Dock({ pathname, side = false }: { pathname: string; side?: boolean }) 
   );
 }
 
-function QuickNav({ close }: { close: () => void }) {
+type Anchor = { top: number; left: number; width: number };
+
+// Abre o menu "Ir para" logo abaixo da barra de busca (mesma largura), como um menu suspenso.
+function QuickNav({ close, anchor }: { close: () => void; anchor: () => Anchor }) {
   const ref = useRef<HTMLDialogElement>(null);
   const label = useId();
   const [query, setQuery] = useState("");
+  const [pos, setPos] = useState<Anchor>(anchor);
   const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
   useEffect(() => {
     ref.current?.showModal();
     ref.current?.querySelector("input")?.focus();
-  }, []);
+    const reposition = () => setPos(anchor());
+    window.addEventListener("resize", reposition);
+    return () => window.removeEventListener("resize", reposition);
+  }, [anchor]);
 
   const groups = GROUPS.map((group) => ({
     ...group,
@@ -57,7 +64,8 @@ function QuickNav({ close }: { close: () => void }) {
   })).filter((group) => group.items.length > 0);
 
   return (
-    <dialog className="gd-dialog" ref={ref} aria-labelledby={label} onClose={close}
+    <dialog className="gd-dialog gd-dialog-drop" ref={ref} aria-labelledby={label} onClose={close}
+      style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: `calc(100svh - ${pos.top}px - 16px)` }}
       onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}>
       <section className="gd-dialog-inner">
         <header>
@@ -89,6 +97,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [search, setSearch] = useState(false);
+  const askRef = useRef<HTMLButtonElement>(null);
+  const searchAnchor = useCallback((): Anchor => {
+    const rect = askRef.current?.getBoundingClientRect();
+    if (!rect) return { top: 80, left: 16, width: 400 };
+    const width = Math.min(Math.max(rect.width, 360), window.innerWidth - 24);
+    return { top: rect.bottom + 8, left: Math.max(12, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 12)), width };
+  }, []);
 
   useEffect(() => {
     try {
@@ -115,7 +130,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <Image src="/brand/logo.png" alt="" width={92} height={46} priority className="gd-logo-img" />
             <div className="gd-brand-text"><strong>Painel</strong><small>Administrativo</small></div>
           </Link>
-          <button type="button" className="gd-ask" aria-label="Buscar seção do admin" onClick={() => setSearch(true)}>
+          <button type="button" ref={askRef} className="gd-ask" aria-label="Buscar seção do admin" onClick={() => setSearch(true)}>
             <span className="gd-orb" aria-hidden="true" />
             <span className="gd-prompt">{current ? `${current.label} · ir para…` : "Ir para uma seção…"}</span>
             <Search aria-hidden="true" className="gd-ask-search" />
@@ -140,7 +155,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
         <footer className="gd-footer"><span>DinoBlack Games e Informática</span></footer>
       </div>
-      {search && <QuickNav close={() => setSearch(false)} />}
+      {search && <QuickNav close={() => setSearch(false)} anchor={searchAnchor} />}
     </div>
   );
 }

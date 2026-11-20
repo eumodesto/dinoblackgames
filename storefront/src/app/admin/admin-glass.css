@@ -350,3 +350,14 @@
   .gd-app :is(.gd-metric, .gd-panel, .gd-dock, button, .gd-stage) { border: 1px solid CanvasText; }
   .gd-dock a[aria-current="page"] { border: 2px solid Highlight; }
 }
+
+/* Menu "Ir para": abre abaixo da barra de busca, como um menu suspenso (posição calculada no AdminShell). */
+.gd-dialog.gd-dialog-drop {
+  position: fixed; margin: 0; inset-inline-end: auto; inset-block-end: auto;
+  max-inline-size: none; overflow: auto; border-radius: 22px;
+  scrollbar-width: thin; scrollbar-color: var(--gd-line) transparent;
+}
+.gd-dialog-drop::backdrop { background: rgb(0 0 0 / 14%); backdrop-filter: none; }
+.gd-dialog-drop .gd-dialog-inner { padding: 14px; }
+.gd-dialog-drop .gd-dialog-inner h2 { font-size: 16px; letter-spacing: -.02em; }
+.gd-dialog-drop .gd-dialog-inner > header { margin-bottom: 10px; }
