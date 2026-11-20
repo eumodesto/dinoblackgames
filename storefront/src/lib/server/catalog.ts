@@ -125,6 +125,14 @@ type ListingRow = {
   facets: Record<string, string[]>;
 };
 
+/** Nomes importados do WooCommerce chegam com entidades HTML (ex.: &#x2122;). Decodifica só na exibição. */
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&(amp|quot|apos|lt|gt|nbsp);/g, (_, n: string) => ({ amp: "&", quot: '"', apos: "'", lt: "<", gt: ">", nbsp: " " })[n] ?? _);
+}
+
 function toListing(r: ListingRow): ProductListing {
   const price = Number(r.current_price);
   const listPrice = Number(r.list_price);
@@ -132,7 +140,7 @@ function toListing(r: ListingRow): ProductListing {
     id: r.id,
     slug: r.slug,
     sku: r.sku,
-    name: r.name,
+    name: decodeEntities(r.name),
     categorySlug: r.category_slug,
     categoryName: r.category_name,
     condition: r.condition,
@@ -217,6 +225,7 @@ export type ShopFilters = {
   promocao?: boolean;
   ordem?: string;
   limit?: number;
+  offset?: number;
   collectionSlug?: string;
 };
 
@@ -232,6 +241,15 @@ function maskHiddenCategory(items: ProductListing[], hidden: Set<string>): Produ
 }
 
 export async function getProductListings(filters: ShopFilters = {}): Promise<ProductListing[]> {
+  return (await queryListings(filters, false)).items;
+}
+
+/** Uma página do catálogo (limit/offset) junto com o total de itens que combinam com os filtros. */
+export async function getProductListingsPage(filters: ShopFilters): Promise<{ items: ProductListing[]; total: number }> {
+  return queryListings(filters, true);
+}
+
+async function queryListings(filters: ShopFilters, withTotal: boolean): Promise<{ items: ProductListing[]; total: number }> {
   const sql = await getSql();
   const conditions: string[] = [];
   const params: unknown[] = [];
@@ -297,13 +315,19 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
     default: orderBy = "published_at desc nulls last, name asc";
   }
 
-  const limit = filters.limit ? `limit ${Math.min(filters.limit, 200)}` : "";
+  const limit = filters.limit ? `limit ${Math.min(Math.max(Math.floor(filters.limit), 1), 200)}` : "";
+  const offset = filters.offset ? `offset ${Math.max(Math.floor(filters.offset), 0)}` : "";
 
   const rows = await sql.query<ListingRow>(
-    `select * from v_product_listing ${where} order by ${orderBy} ${limit}`,
+    `select * from v_product_listing ${where} order by ${orderBy}, id ${limit} ${offset}`,
     params,
   );
-  return maskHiddenCategory(rows.map(toListing), await hiddenCategorySlugs());
+  let total = rows.length;
+  if (withTotal) {
+    const [row] = await sql.query<{ n: number }>(`select count(*)::int as n from v_product_listing ${where}`, params);
+    total = Number(row?.n ?? 0);
+  }
+  return { items: maskHiddenCategory(rows.map(toListing), await hiddenCategorySlugs()), total };
 }
 
 export async function getProductCount(): Promise<number> {

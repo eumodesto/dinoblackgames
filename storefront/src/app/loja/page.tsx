@@ -3,11 +3,14 @@ import Link from "next/link";
 import { FilterPanel } from "@/components/shop/FilterPanel";
 import { MobileFilters } from "@/components/shop/MobileFilters";
 import { ShopBanner } from "@/components/shop/ShopBanner";
+import { PageSizeSelect } from "@/components/shop/PageSizeSelect";
+import { Pagination } from "@/components/shop/Pagination";
+import { SellUsedBanner } from "@/components/shop/SellUsedBanner";
 import { ShopProductCard } from "@/components/shop/ProductCard";
 import { SortSelect } from "@/components/shop/SortSelect";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
 import { getShop, parseShopState } from "@/lib/shop";
-import { WA_SELL_USED, waLink } from "@/lib/whatsapp";
+import { waLink } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
   title: "Loja · DinoBlack Games",
@@ -43,25 +46,33 @@ export default async function ShopPage({ searchParams }: PageProps) {
 
       <ShopBanner />
 
-      <div className="mt-6 flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="navigation" aria-label="Categorias">
-        {shop.categoryTabs.map((tab) => (
-          <Link
-            key={tab.label}
-            href={tab.href}
-            prefetch={false}
-            scroll={false}
-            aria-current={tab.active ? "true" : undefined}
-            className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-5 text-sm font-black transition ${
-              tab.active
-                ? "border-dino-red bg-dino-red text-white shadow-lg shadow-dino-red/25"
-                : "border-gray-200 bg-white text-gray-800 hover:border-dino-red hover:text-dino-red dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-            }`}
-          >
-            {tab.label}
-            <span className={`font-mono text-xs ${tab.active ? "text-white/80" : "text-gray-500 dark:text-zinc-500"}`}>{tab.count}</span>
-          </Link>
-        ))}
-      </div>
+      {/* Abas de categoria fixas sob o cabeçalho, no mesmo vidro da navegação do produto. */}
+      <nav aria-label="Categorias" className="sticky top-16 z-40 mt-4 py-2 lg:top-[68px]">
+        <div className="relative mx-auto max-w-fit overflow-hidden rounded-full border border-white/70 bg-gradient-to-b from-white/85 via-white/55 to-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(0,0,0,0.04),0_10px_34px_-8px_rgba(15,23,42,0.22)] ring-1 ring-black/5 backdrop-blur-xl backdrop-saturate-150 max-sm:max-w-full dark:border-white/10 dark:from-white/[0.14] dark:via-white/[0.07] dark:to-white/[0.03] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_10px_34px_-8px_rgba(0,0,0,0.7)] dark:ring-white/5">
+          <span aria-hidden className="pointer-events-none absolute inset-x-3 top-0 h-1/2 rounded-b-[40%] bg-gradient-to-b from-white/70 to-transparent dark:from-white/15" />
+          <ul className="scrollbar-none relative flex gap-1 overflow-x-auto p-1.5">
+            {shop.categoryTabs.map((tab) => (
+              <li key={tab.label} className="shrink-0">
+                <Link
+                  href={tab.href}
+                  prefetch={false}
+                  scroll={false}
+                  aria-current={tab.active ? "true" : undefined}
+                  className={`relative flex items-center gap-2 overflow-hidden rounded-full px-4 py-2 text-sm font-bold transition-all duration-300 ${
+                    tab.active
+                      ? "bg-gradient-to-b from-[#ff5360] to-dino-red text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_6px_16px_-2px_rgba(218,34,48,0.55)]"
+                      : "text-gray-700 hover:bg-white/70 hover:text-gray-900 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
+                  }`}
+                >
+                  {tab.active && <span aria-hidden className="pointer-events-none absolute inset-x-2 top-0 h-1/2 rounded-b-full bg-gradient-to-b from-white/45 to-transparent" />}
+                  <span className="relative">{tab.label}</span>
+                  <span className={`relative font-mono text-xs ${tab.active ? "text-white/80" : "text-gray-500 dark:text-zinc-500"}`}>{tab.count}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden lg:block" aria-label="Filtros">
@@ -75,12 +86,14 @@ export default async function ShopPage({ searchParams }: PageProps) {
             <p className="text-sm text-gray-600 dark:text-zinc-400" aria-live="polite">
               <strong className="text-gray-900 dark:text-white">{shop.total}</strong>{" "}
               {shop.total === 1 ? "produto encontrado" : "produtos encontrados"}
+              {shop.totalPages > 1 && <span> · página {shop.pagina} de {shop.totalPages}</span>}
             </p>
             <div className="flex items-center gap-2">
               <MobileFilters activeCount={activeCount} total={shop.total}>
                 {filters}
               </MobileFilters>
               <SortSelect options={shop.sortOptions} value={state.ordem} />
+              <PageSizeSelect options={shop.pageSizes} value={shop.pageSize} />
             </div>
           </div>
 
@@ -143,20 +156,9 @@ export default async function ShopPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          <a
-            href={WA_SELL_USED}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-8 flex flex-col gap-1 rounded-2xl border border-dino-red/40 bg-dino-red/10 p-5 transition hover:border-dino-red sm:flex-row sm:items-center sm:justify-between"
-          >
-            <span>
-              <span className="block font-black text-gray-900 dark:text-white">Tem um usado parado?</span>
-              <span className="block text-sm text-gray-600 dark:text-zinc-400">
-                Envie as informações e fotos pelo Projeto Drop. Avaliamos e respondemos com a próxima etapa, sem promessa de valor.
-              </span>
-            </span>
-            <span className="mt-2 text-sm font-black text-dino-red sm:mt-0">Vender meu usado →</span>
-          </a>
+          <Pagination current={shop.pagina} total={shop.totalPages} links={shop.pageLinks} />
+
+          <SellUsedBanner />
 
           <p className="mt-6 rounded-2xl border border-dashed border-gray-300 p-4 text-center text-xs text-gray-500 dark:border-zinc-700 dark:text-zinc-400">
             Catálogo DinoBlack Games. Preços e disponibilidade sujeitos a alteração sem aviso.

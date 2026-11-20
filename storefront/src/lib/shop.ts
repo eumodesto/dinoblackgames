@@ -1,6 +1,7 @@
 import "server-only";
 import {
   getProductListings,
+  getProductListingsPage,
   getCategories,
   getFacetValues,
   type ProductListing,
@@ -32,6 +33,10 @@ export const PRICE_RANGES: { value: string; label: string; min: number; max: num
 
 export type FacetId = "condicao" | "plataforma" | "tipo" | "preco";
 
+export const PAGE_SIZES = [10, 30, 50] as const;
+export type PageSize = (typeof PAGE_SIZES)[number];
+export const DEFAULT_PAGE_SIZE: PageSize = 30;
+
 export type ShopState = {
   q: string;
   categoria?: string;
@@ -41,6 +46,10 @@ export type ShopState = {
   preco: string[];
   promocao: boolean;
   ordem: SortKey;
+  /** Itens por página (10, 30 ou 50). */
+  por: PageSize;
+  /** Página atual, a partir de 1. Fica fora de toQuery: filtros e abas sempre voltam à página 1. */
+  pagina: number;
 };
 
 export const EMPTY_STATE: ShopState = {
@@ -51,6 +60,8 @@ export const EMPTY_STATE: ShopState = {
   preco: [],
   promocao: false,
   ordem: "relevancia",
+  por: DEFAULT_PAGE_SIZE,
+  pagina: 1,
 };
 
 type RawParams = Record<string, string | string[] | undefined>;
@@ -86,6 +97,11 @@ export function parseShopState(sp: RawParams): ShopState {
   const ordem = list(sp.ordem)[0] as SortKey | undefined;
   if (ordem && SORT_OPTIONS.some((o) => o.value === ordem)) state.ordem = ordem;
 
+  const por = Number(list(sp.por)[0]);
+  if ((PAGE_SIZES as readonly number[]).includes(por)) state.por = por as PageSize;
+  const pagina = Math.floor(Number(list(sp.pagina)[0]));
+  if (Number.isFinite(pagina) && pagina > 1) state.pagina = Math.min(pagina, 10_000);
+
   return state;
 }
 
@@ -99,8 +115,16 @@ export function toQuery(state: ShopState): string {
   if (state.preco.length) params.set("preco", state.preco.join(","));
   if (state.promocao) params.set("promocao", "1");
   if (state.ordem !== "relevancia") params.set("ordem", state.ordem);
+  if (state.por !== DEFAULT_PAGE_SIZE) params.set("por", String(state.por));
   const qs = params.toString();
   return qs ? `/loja?${qs}` : "/loja";
+}
+
+/** Link para uma página específica, mantendo filtros, ordem e itens por página. */
+export function pageHref(state: ShopState, pagina: number): string {
+  const base = toQuery(state);
+  if (pagina <= 1) return base;
+  return `${base}${base.includes("?") ? "&" : "?"}pagina=${pagina}`;
 }
 
 export type FacetOptionView = {
@@ -207,15 +231,20 @@ export async function getShop(state: ShopState) {
     precoMax,
     promocao: state.promocao || undefined,
     ordem: state.ordem === "relevancia" ? undefined : state.ordem,
-    limit: 100,
   };
 
-  const [items, allUnfiltered, categories, facetValues] = await Promise.all([
-    getProductListings(filters),
+  const pageFilters = { ...filters, limit: state.por, offset: (state.pagina - 1) * state.por };
+  const [firstTry, allUnfiltered, categories, facetValues] = await Promise.all([
+    getProductListingsPage(pageFilters),
     getProductListings({ limit: 200 }),
     getCategories(),
     getFacetValues(),
   ]);
+
+  // Página além do fim (link antigo, filtro novo): cai na última página que existe.
+  const totalPages = Math.max(Math.ceil(firstTry.total / state.por), 1);
+  const pagina = Math.min(state.pagina, totalPages);
+  const items = pagina === state.pagina ? firstTry.items : (await getProductListingsPage({ ...filters, limit: state.por, offset: (pagina - 1) * state.por })).items;
 
   const shopItems: ShopItem[] = items.map((p) => ({
     ...p,
@@ -251,7 +280,12 @@ export async function getShop(state: ShopState) {
 
   return {
     items: shopItems,
-    total: items.length,
+    total: firstTry.total,
+    pagina,
+    totalPages,
+    pageSize: state.por,
+    pageSizes: PAGE_SIZES.map((n) => ({ value: n, href: toQuery({ ...state, por: n }) })),
+    pageLinks: Array.from({ length: totalPages }, (_, i) => pageHref(state, i + 1)),
     facets: buildFacets(state, items, allItems, facetValues),
     chips: buildChips(state, chipTabs, facetValues),
     promo: {
