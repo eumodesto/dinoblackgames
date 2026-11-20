@@ -56,7 +56,7 @@ function Check() {
 
 function Block({ id, title, lead, children }: { id: string; title: string; lead?: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-36 py-10">
+    <section id={id} className="scroll-mt-36 py-7 sm:py-10">
       <h2 className="font-display text-2xl font-black tracking-tight text-gray-900 dark:text-white md:text-3xl">{title}</h2>
       {lead && <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-zinc-400">{lead}</p>}
       <div className="mt-6">{children}</div>
@@ -168,15 +168,24 @@ export default async function ProductPage({ params }: PageProps) {
         </ol>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
-        <div className="self-start lg:sticky lg:top-24">
-          <ProductGallery
-            images={product.gallery}
-            badge={isUnique ? (CONDITION_LABEL[product.condition] ?? product.condition) : product.badge ? `★ ${product.badge}` : undefined}
-          />
-          {product.videoUrl && <ProductVideo url={product.videoUrl} title={product.name} />}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
+        {/* No celular a coluna vira "contents": galeria, compra e só depois o vídeo, para o preço aparecer cedo. */}
+        <div className="contents lg:block lg:self-start lg:sticky lg:top-24">
+          <div className="order-1 min-w-0 lg:order-none">
+            <ProductGallery
+              images={product.gallery}
+              badge={isUnique ? (CONDITION_LABEL[product.condition] ?? product.condition) : product.badge ? `★ ${product.badge}` : undefined}
+            />
+          </div>
+          {product.videoUrl && (
+            <div className="order-3 min-w-0 lg:order-none">
+              <ProductVideo url={product.videoUrl} title={product.name} />
+            </div>
+          )}
         </div>
-        <BuyBox product={buyBoxProduct} />
+        <div className="order-2 min-w-0 lg:order-none">
+          <BuyBox product={buyBoxProduct} />
+        </div>
       </div>
 
       <SectionNav items={nav} className="mt-10" />

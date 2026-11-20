@@ -74,7 +74,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
         </div>
       </nav>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="mt-4 grid grid-cols-1 gap-8 sm:mt-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden lg:block" aria-label="Filtros">
           <div className="scrollbar-none sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
             {filters}
@@ -82,18 +82,24 @@ export default async function ShopPage({ searchParams }: PageProps) {
         </aside>
 
         <section aria-label="Produtos">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-gray-600 dark:text-zinc-400" aria-live="polite">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-3 sm:justify-between">
+            <p className="order-1 min-w-0 flex-1 text-sm leading-snug text-gray-600 dark:text-zinc-400" aria-live="polite">
               <strong className="text-gray-900 dark:text-white">{shop.total}</strong>{" "}
               {shop.total === 1 ? "produto encontrado" : "produtos encontrados"}
-              {shop.totalPages > 1 && <span> · página {shop.pagina} de {shop.totalPages}</span>}
+              {shop.totalPages > 1 && (
+                <span className="block text-xs text-gray-500 sm:inline sm:text-sm sm:text-gray-600 dark:text-zinc-500 sm:dark:text-zinc-400">
+                  <span className="hidden sm:inline"> · </span>página {shop.pagina} de {shop.totalPages}
+                </span>
+              )}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="order-2 shrink-0 sm:order-3">
+              <PageSizeSelect options={shop.pageSizes} value={shop.pageSize} />
+            </div>
+            <div className="order-3 grid w-full grid-cols-2 gap-2 sm:order-2 sm:flex sm:w-auto sm:items-center">
               <MobileFilters activeCount={activeCount} total={shop.total}>
                 {filters}
               </MobileFilters>
               <SortSelect options={shop.sortOptions} value={state.ordem} />
-              <PageSizeSelect options={shop.pageSizes} value={shop.pageSize} />
             </div>
           </div>
 

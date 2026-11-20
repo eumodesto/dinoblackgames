@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type TouchEvent } from "react";
 import { ChevronButton } from "@/components/ui/ChevronButton";
 type GalleryImage = { src: string; alt: string; position?: string };
 
@@ -9,6 +9,7 @@ export function ProductGallery({ images, badge }: { images: GalleryImage[]; badg
   const [index, setIndex] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const strip = useRef<HTMLUListElement>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const current = images[index];
   const total = images.length;
 
@@ -36,7 +37,24 @@ export function ProductGallery({ images, badge }: { images: GalleryImage[]; badg
     if (e.key === "ArrowRight") go(1);
   }
 
-  function onMove(e: MouseEvent<HTMLDivElement>) {
+  // Deslizar o dedo troca a foto; só conta movimento horizontal para não brigar com a rolagem da página.
+  function onTouchStart(e: TouchEvent<HTMLDivElement>) {
+    const t = e.touches[0];
+    touch.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function onTouchEnd(e: TouchEvent<HTMLDivElement>) {
+    const start = touch.current;
+    touch.current = null;
+    if (!start || total < 2) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+  }
+
+  function onMove(e: PointerEvent<HTMLDivElement>) {
+    if (e.pointerType !== "mouse") return;
     const rect = e.currentTarget.getBoundingClientRect();
     setZoom({
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -49,8 +67,10 @@ export function ProductGallery({ images, badge }: { images: GalleryImage[]; badg
       {/* Fotos de produto vêm em fundo claro: a imagem inteira aparece (sem cortes) sobre um fundo neutro. */}
       <div
         className="group relative aspect-square overflow-hidden rounded-[28px] border border-gray-200 bg-white sm:aspect-[4/3] lg:aspect-square xl:aspect-[4/3] dark:border-zinc-800"
-        onMouseMove={onMove}
-        onMouseLeave={() => setZoom(null)}
+        onPointerMove={onMove}
+        onPointerLeave={() => setZoom(null)}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
         <Image
           key={current.src + index}

@@ -59,7 +59,7 @@ export function CartDrawer() {
             type="button"
             aria-label="Fechar"
             onClick={() => setOpen(false)}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/10"
+            className="grid h-10 w-10 place-items-center rounded-full bg-white/10"
           >
             ✕
           </button>
@@ -87,12 +87,13 @@ export function CartDrawer() {
               className="rounded-2xl bg-gray-50 p-3 dark:bg-zinc-900"
             >
               <div className="flex gap-3">
-                <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-zinc-200">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
                   {line.product.image && (
                     <Image
                       src={line.product.image}
                       alt={line.product.name}
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                   )}
@@ -100,13 +101,13 @@ export function CartDrawer() {
                     type="button"
                     aria-label={`Remover ${line.product.name}`}
                     onClick={() => removeItem(line.key)}
-                    className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-[10px] text-white"
+                    className="absolute left-0.5 top-0.5 grid h-8 w-8 place-items-center text-white"
                   >
-                    ×
+                    <span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-black/70 text-xs">×</span>
                   </button>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                  <div className="line-clamp-2 text-sm font-bold leading-snug text-gray-900 dark:text-white">
                     {line.product.name}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
@@ -126,11 +127,11 @@ export function CartDrawer() {
                       </span>
                     )}
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
+                  <div className="mt-2 flex items-center justify-between gap-2">
                     <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
                       <button
                         type="button"
-                        className="px-2 py-1 text-sm"
+                        className="h-10 w-10 text-base"
                         aria-label="Diminuir quantidade"
                         onClick={() =>
                           updateQty(line.key, line.qty - 1)
@@ -143,7 +144,7 @@ export function CartDrawer() {
                       </span>
                       <button
                         type="button"
-                        className="px-2 py-1 text-sm"
+                        className="h-10 w-10 text-base"
                         aria-label="Aumentar quantidade"
                         onClick={() =>
                           updateQty(line.key, line.qty + 1)
@@ -162,7 +163,7 @@ export function CartDrawer() {
           ))}
         </div>
 
-        <div className="border-t border-gray-100 p-4 dark:border-zinc-800">
+        <div className="border-t border-gray-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-800">
           <div className="mb-3 flex items-center justify-between">
             <span className="font-bold text-gray-500">Subtotal:</span>
             <span className="text-lg font-black text-dino-red">

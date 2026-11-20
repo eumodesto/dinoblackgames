@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { CartProvider } from "@/components/cart-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/header/SiteHeader";
@@ -7,12 +7,22 @@ import { SiteChrome } from "@/components/site-chrome";
 import { Suspense } from "react";
 import { CouponLinkCapture } from "@/components/CouponLinkCapture";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { MobileZoomLock } from "@/components/MobileZoomLock";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "DinoBlack Games e Informática",
   description:
     "Loja DinoBlack — Consoles, PC Gamer, Retro e Notebooks. Novos e seminovos.",
+};
+
+// Trava o zoom por pinça e por toque duplo no celular; a página não é ampliada nem deslocada.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -38,6 +48,7 @@ export default function RootLayout({
             <SiteChrome header={<SiteHeader />} footer={<SiteFooter />}>
               {children}
             </SiteChrome>
+            <MobileZoomLock />
             <CouponLinkCapture />
             <Suspense fallback={null}><AnalyticsTracker /></Suspense>
           </CartProvider>

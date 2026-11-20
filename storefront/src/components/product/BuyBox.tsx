@@ -287,8 +287,8 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
       )}
 
       <div ref={ctaRef} className="flex flex-col gap-3">
-        <div className="flex items-stretch gap-3">
-          {!isUnique && (
+        <div className="flex items-stretch gap-2.5 sm:gap-3">
+          {!isUnique && !soldOut && (
             <div
               className="inline-flex h-14 shrink-0 items-center overflow-hidden rounded-2xl border border-gray-200 dark:border-zinc-700"
               role="group"
@@ -298,18 +298,18 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
                 type="button"
                 aria-label="Diminuir quantidade"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="h-full w-11 text-lg font-bold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                className="h-full w-11 text-lg font-bold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-900 max-sm:w-10"
               >
                 −
               </button>
-              <span className="min-w-8 text-center font-mono text-sm font-bold text-gray-900 dark:text-white" aria-live="polite">
+              <span className="min-w-7 text-center font-mono text-sm font-bold text-gray-900 dark:text-white sm:min-w-8" aria-live="polite">
                 {qty}
               </span>
               <button
                 type="button"
                 aria-label="Aumentar quantidade"
                 onClick={() => setQty((q) => Math.min(available || 10, q + 1))}
-                className="h-full w-11 text-lg font-bold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                className="h-full w-11 text-lg font-bold text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-zinc-900 max-sm:w-10"
               >
                 +
               </button>
@@ -319,7 +319,7 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
             type="button"
             onClick={handleAdd}
             disabled={soldOut}
-            className="h-14 flex-1 rounded-2xl bg-dino-red px-6 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-dino-red/30 transition hover:bg-dino-red-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-14 min-w-0 flex-1 rounded-2xl bg-dino-red px-3 text-[15px] font-black leading-tight text-white sm:px-6 sm:text-sm sm:uppercase sm:tracking-wide shadow-lg shadow-dino-red/30 transition hover:bg-dino-red-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span aria-live="polite">{soldOut ? "Avise-me quando chegar" : added ? "Adicionado ao carrinho ✓" : "Adicionar ao carrinho"}</span>
           </button>

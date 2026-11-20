@@ -18,7 +18,7 @@ export function SiteChrome({
     return <main className="min-h-screen w-full">{children}</main>;
   }
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="store-shell flex min-h-screen flex-col">
       {header}
       <main className="w-full flex-grow pb-16 transition-colors duration-300 lg:pb-0">{children}</main>
       {footer}

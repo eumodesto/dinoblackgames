@@ -22,8 +22,10 @@ export function ProductCarousel({
     scrollerRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
   }
 
+  if (products.length === 0) return null;
+
   return (
-    <section className="group/section relative mb-4 select-none px-0 py-8">
+    <section className="group/section relative mb-4 select-none px-0 py-6 sm:py-8">
       <div className="mb-5 flex items-center justify-between gap-3">
         <h2 className="font-display text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
           {title} <span className="text-dino-red" />

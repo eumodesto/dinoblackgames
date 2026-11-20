@@ -23,7 +23,7 @@ const SOCIAL_ICONS = {
 const textClass = "text-sm font-medium text-white";
 
 const linkClass =
-  "text-sm font-medium text-white underline-offset-4 transition-colors hover:underline focus-visible:underline";
+  "inline-flex min-h-9 items-center text-sm font-medium text-white underline-offset-4 transition-colors hover:underline focus-visible:underline sm:min-h-0";
 
 export function SiteFooter() {
   return (
@@ -33,7 +33,8 @@ export function SiteFooter() {
         aria-hidden
         className="relative z-0 flex w-full select-none justify-center pt-16 md:pt-24"
       >
-        <span className="-mb-3 font-display text-[64px] font-black leading-[0.75] text-transparent opacity-60 [-webkit-text-stroke:1px_rgba(0,0,0,0.4)] sm:text-[110px] md:-mb-5 md:text-[170px] lg:text-[210px] dark:[-webkit-text-stroke:1px_rgba(255,255,255,0.3)]">
+        {/* Preenchimento na cor do fundo + contorno pintado antes: esconde os traços internos onde as letras da fonte variável se sobrepõem. */}
+        <span className="-mb-3 font-display text-[64px] font-black leading-[0.75] text-[#f1f3f6] [paint-order:stroke_fill] [-webkit-text-stroke:2px_rgba(0,0,0,0.22)] sm:text-[110px] md:-mb-5 md:text-[170px] lg:text-[210px] dark:text-[#050507] dark:[-webkit-text-stroke:2px_rgba(255,255,255,0.2)]">
           DinoBlack
         </span>
       </div>
@@ -117,7 +118,7 @@ export function SiteFooter() {
                   <h3 className="text-sm font-black uppercase tracking-wider">
                     {column.title}
                   </h3>
-                  <ul className="flex flex-col gap-3">
+                  <ul className="flex flex-col gap-0.5 sm:gap-3">
                     {column.links.map((link) => (
                       <li key={link.label}>
                         {link.href ? (

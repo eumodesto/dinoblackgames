@@ -56,13 +56,13 @@ export function CategorySection({ categories }: Props) {
 
       <div
         ref={scrollerRef}
-        className="scrollbar-none container mx-auto -mb-8 -mt-3 flex gap-4 overflow-x-auto px-4 pb-10 pt-3"
+        className="scrollbar-none container mx-auto -mb-8 -mt-3 flex snap-x scroll-pl-4 gap-3 overflow-x-auto px-4 pb-10 pt-3 sm:gap-4"
       >
         {categories.map((cat) => (
           <a
             key={cat.id}
             href={cat.href}
-            className="group relative block aspect-[4/3] w-48 shrink-0 overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-900 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-dino-red hover:shadow-2xl hover:z-10 sm:w-52 md:w-56 dark:border-zinc-800"
+            className="group relative block aspect-[4/3] w-[44vw] min-w-40 max-w-48 shrink-0 sm:max-w-none snap-start overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-900 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-dino-red hover:shadow-2xl hover:z-10 sm:w-52 md:w-56 dark:border-zinc-800"
           >
             {cat.image && (
               <Image

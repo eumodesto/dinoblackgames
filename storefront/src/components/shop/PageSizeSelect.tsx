@@ -10,7 +10,7 @@ export function PageSizeSelect({ options, value }: { options: Option[]; value: n
 
   return (
     <label className="flex items-center gap-2 text-sm">
-      <span className="font-semibold text-gray-600 dark:text-zinc-400">Mostrar</span>
+      <span className="hidden font-semibold text-gray-600 dark:text-zinc-400 sm:inline">Mostrar</span>
       <select
         value={value}
         onChange={(e) => {
@@ -18,7 +18,7 @@ export function PageSizeSelect({ options, value }: { options: Option[]; value: n
           if (next) router.replace(next.href, { scroll: false });
         }}
         aria-label="Produtos por página"
-        className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-dino-red focus:ring-2 focus:ring-dino-red/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+        className="h-11 max-sm:h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-dino-red focus:ring-2 focus:ring-dino-red/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

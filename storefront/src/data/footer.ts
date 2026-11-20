@@ -54,7 +54,6 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
         label: "Projeto Drop - A DinoBlack Compra seu Usado!",
       },
       { label: "Quem Somos" },
-      { label: "Trabalhe Conosco" },
       {
         label: "Políticas de Troca e Devoluções",
       },

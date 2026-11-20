@@ -43,6 +43,27 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Celular: a página não desloca para os lados nem amplia por pinça; só carrosséis e tabelas rolam por dentro. */
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+  * {
+    touch-action: pan-x pan-y;
+  }
+}
+
+/* iOS amplia a página ao focar campos com fonte menor que 16px; só vale para a loja (o painel tem layout próprio). */
+@media (max-width: 767px) {
+  .store-shell :where(input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea) {
+    font-size: 16px;
+  }
 }
 
 body {

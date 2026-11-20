@@ -40,7 +40,7 @@ export function MobileFilters({
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-900 transition hover:border-dino-red dark:border-zinc-700 dark:bg-zinc-900 dark:text-white lg:hidden"
+        className="inline-flex h-11 w-full items-center justify-center sm:w-auto gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-900 transition hover:border-dino-red dark:border-zinc-700 dark:bg-zinc-900 dark:text-white lg:hidden"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M3 6h18M7 12h10M10 18h4" />

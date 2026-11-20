@@ -44,9 +44,9 @@ export function ProductVideo({ url, title }: { url: string; title: string }) {
         ref={opener}
         type="button"
         onClick={() => setOpen(true)}
-        className="group relative mt-4 flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-gray-200 bg-white p-2 pr-5 text-left transition hover:border-dino-red hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+        className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-gray-200 bg-white p-2 pr-4 text-left sm:gap-4 sm:pr-5 lg:mt-4 transition hover:border-dino-red hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
       >
-        <span className="relative block aspect-video w-40 shrink-0 overflow-hidden rounded-xl bg-zinc-900 sm:w-48">
+        <span className="relative block aspect-video w-36 shrink-0 overflow-hidden rounded-xl bg-zinc-900 sm:w-48">
           {video.thumbnail && (
             // eslint-disable-next-line @next/next/no-img-element -- miniatura externa do YouTube; não passa pelo otimizador
             <img src={video.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />

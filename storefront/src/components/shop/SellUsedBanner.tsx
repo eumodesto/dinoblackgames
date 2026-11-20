@@ -35,7 +35,7 @@ export function SellUsedBanner() {
           href={WA_SELL_USED}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-dino-red px-6 text-sm font-black text-white shadow-lg shadow-dino-red/30 transition hover:bg-dino-red-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-dino-red px-6 text-sm font-black max-md:w-full md:h-10 text-white shadow-lg shadow-dino-red/30 transition hover:bg-dino-red-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           Vender meu usado →
         </a>

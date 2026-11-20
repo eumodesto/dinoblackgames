@@ -16,7 +16,7 @@ export function ShopProductCard({ product, priority = false }: { product: ShopIt
   return (
     <Link
       href={`/produto/${product.slug}`}
-      className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-[24px] border border-zinc-800/80 bg-zinc-950 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.14)] transition-all duration-300 hover:-translate-y-1.5 hover:border-dino-red/80 hover:shadow-[0_24px_50px_rgba(218,34,48,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red sm:rounded-[28px] sm:p-4"
+      className="group relative flex aspect-[3/4.35] flex-col justify-between overflow-hidden rounded-[22px] border border-zinc-800/80 bg-zinc-950 p-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.14)] sm:aspect-[3/4] transition-all duration-300 hover:-translate-y-1.5 hover:border-dino-red/80 hover:shadow-[0_24px_50px_rgba(218,34,48,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red sm:rounded-[28px] sm:p-4"
     >
       <div className="absolute inset-0 z-0">
         {product.image && (
@@ -62,15 +62,16 @@ export function ShopProductCard({ product, priority = false }: { product: ShopIt
             <span className="font-mono text-[11px] text-zinc-400 line-through">{formatBRL(product.compareAt)}</span>
           )}
         </div>
-        <p className="mt-0.5 text-[11px] text-white/75">
-          ou {MAX_INSTALLMENTS}x de {formatBRL(installmentValue(product.price))} sem juros
+        <p className="mt-0.5 text-[11px] leading-tight text-white/75">
+          <span className="max-sm:hidden">ou </span>
+          {MAX_INSTALLMENTS}x de {formatBRL(installmentValue(product.price))} sem juros
         </p>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="mt-1.5 flex items-center justify-between gap-2 sm:mt-2">
           <span className="text-[11px] font-bold text-dino-red">
             {isUnique ? "Unidade única" : lowStock ? `Só ${product.stockLeft} no estoque` : "Em estoque"}
           </span>
-          <span className="text-xs font-black text-white transition-transform duration-300 group-hover:translate-x-0.5">
+          <span className="hidden text-xs font-black text-white transition-transform duration-300 group-hover:translate-x-0.5 sm:inline">
             Ver produto →
           </span>
         </div>

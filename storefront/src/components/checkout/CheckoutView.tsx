@@ -580,32 +580,32 @@ export function CheckoutView() {
           </Section>
 
           <Section n={2} title="Entrega" done={locked} locked={locked}>
-            <div className="grid gap-4 sm:grid-cols-6">
-              <Field id="cep" label="CEP" error={show("cep") ?? (cepStatus === "notfound" && !address.street.trim() ? "CEP não encontrado. Preencha o endereço à mão." : undefined)} hint={cepStatus === "loading" ? "Buscando endereço…" : undefined} className="sm:col-span-2">
+            <div className="grid grid-cols-6 gap-x-3 gap-y-4 sm:gap-x-4">
+              <Field id="cep" label="CEP" error={show("cep") ?? (cepStatus === "notfound" && !address.street.trim() ? "CEP não encontrado. Preencha o endereço à mão." : undefined)} hint={cepStatus === "loading" ? "Buscando endereço…" : undefined} className="col-span-6 sm:col-span-2">
                 <input id="cep" autoComplete="postal-code" inputMode="numeric" placeholder="00000-000" maxLength={9} disabled={locked} value={address.cep} onChange={(e) => setAddress({ ...address, cep: maskCep(e.target.value) })} aria-invalid={Boolean(show("cep"))} aria-describedby={show("cep") ? "cep-error" : undefined} className={`${inputClass(Boolean(show("cep")))} font-mono`} />
               </Field>
-              <Field id="street" label="Rua / avenida" error={show("street")} className="sm:col-span-4">
+              <Field id="street" label="Rua / avenida" error={show("street")} className="col-span-6 sm:col-span-4">
                 <input id="street" autoComplete="address-line1" disabled={locked} value={address.street} onChange={(e) => setAddress({ ...address, street: e.target.value })} aria-invalid={Boolean(show("street"))} aria-describedby={show("street") ? "street-error" : undefined} className={inputClass(Boolean(show("street")))} />
               </Field>
-              <Field id="number" label="Número" error={show("number")} className="sm:col-span-2">
+              <Field id="number" label="Número" error={show("number")} className="col-span-2">
                 <input id="number" inputMode="numeric" autoComplete="off" disabled={locked} value={address.number} onChange={(e) => setAddress({ ...address, number: e.target.value })} aria-invalid={Boolean(show("number"))} aria-describedby={show("number") ? "number-error" : undefined} className={inputClass(Boolean(show("number")))} />
               </Field>
-              <Field id="complement" label="Complemento (opcional)" className="sm:col-span-4">
+              <Field id="complement" label="Complemento (opcional)" className="col-span-4">
                 <input id="complement" autoComplete="address-line2" disabled={locked} value={address.complement} onChange={(e) => setAddress({ ...address, complement: e.target.value })} className={inputClass(false)} />
               </Field>
-              <Field id="district" label="Bairro" error={show("district")} className="sm:col-span-2">
+              <Field id="district" label="Bairro" error={show("district")} className="col-span-6 sm:col-span-2">
                 <input id="district" autoComplete="address-level3" disabled={locked} value={address.district} onChange={(e) => setAddress({ ...address, district: e.target.value })} aria-invalid={Boolean(show("district"))} aria-describedby={show("district") ? "district-error" : undefined} className={inputClass(Boolean(show("district")))} />
               </Field>
-              <Field id="city" label="Cidade" error={show("city")} className="sm:col-span-3">
+              <Field id="city" label="Cidade" error={show("city")} className="col-span-4 sm:col-span-3">
                 <input id="city" autoComplete="address-level2" disabled={locked} value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} aria-invalid={Boolean(show("city"))} aria-describedby={show("city") ? "city-error" : undefined} className={inputClass(Boolean(show("city")))} />
               </Field>
-              <Field id="state" label="Estado" error={show("state")} className="sm:col-span-1">
+              <Field id="state" label="Estado" error={show("state")} className="col-span-2 sm:col-span-1">
                 <select id="state" autoComplete="address-level1" disabled={locked} value={address.state} onChange={(e) => setAddress({ ...address, state: e.target.value })} aria-invalid={Boolean(show("state"))} aria-describedby={show("state") ? "state-error" : undefined} className={inputClass(Boolean(show("state")))}>
                   <option value="">UF</option>
                   {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
                 </select>
               </Field>
-              <Field id="recipient" label="Quem vai receber (opcional)" hint="Deixe em branco se for você." className="sm:col-span-6">
+              <Field id="recipient" label="Quem vai receber (opcional)" hint="Deixe em branco se for você." className="col-span-6">
                 <input id="recipient" autoComplete="off" disabled={locked} value={address.recipient} onChange={(e) => setAddress({ ...address, recipient: e.target.value })} className={inputClass(false)} />
               </Field>
             </div>

@@ -34,7 +34,7 @@ export function HeroBanners({ slides, deals }: Props) {
 
   return (
     <section className="container mx-auto px-4 py-5">
-      <div className={`grid gap-4 ${layout}`}>
+      <div className={`grid grid-cols-1 gap-4 ${layout}`}>
         {current && (
           <div className="relative min-h-[320px] overflow-hidden rounded-[28px] bg-zinc-950 sm:min-h-[420px]">
             {current.image && (

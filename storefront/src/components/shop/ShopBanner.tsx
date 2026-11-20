@@ -56,7 +56,7 @@ export async function ShopBanner() {
         })}
       </div>
 
-      <div className="relative z-30 flex min-h-[170px] max-w-2xl flex-col justify-center gap-3 p-5 sm:p-7 md:min-h-[210px] md:max-w-[52%]">
+      <div className="relative z-30 flex min-h-[170px] max-w-2xl flex-col justify-center gap-3 p-4 sm:p-7 md:min-h-[210px] md:max-w-[52%]">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-dino-red">Potência. Preço bom. Garantia.</p>
         <div>
           <h1 className="font-display text-3xl font-black leading-none sm:text-4xl">Loja</h1>
@@ -65,11 +65,11 @@ export async function ShopBanner() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <Link
             href="/loja?promocao=1"
             prefetch={false}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-dino-red px-5 text-sm font-black text-white shadow-lg shadow-dino-red/30 transition hover:bg-dino-red-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-dino-red px-2 text-sm font-black sm:h-10 sm:px-5 text-white shadow-lg shadow-dino-red/30 transition hover:bg-dino-red-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Ver promoções →
           </Link>
@@ -77,7 +77,7 @@ export async function ShopBanner() {
             href={WA_SELL_USED}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-10 items-center rounded-full border border-white/30 bg-white/5 px-5 text-sm font-black text-white backdrop-blur transition hover:bg-white hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-full border border-white/30 bg-white/5 px-2 text-sm font-black sm:h-10 sm:px-5 text-white backdrop-blur transition hover:bg-white hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Vender meu usado
           </a>
