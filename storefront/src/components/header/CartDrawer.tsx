@@ -88,12 +88,14 @@ export function CartDrawer() {
             >
               <div className="flex gap-3">
                 <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-zinc-200">
-                  <Image
-                    src={line.product.image}
-                    alt={line.product.name}
-                    fill
-                    className="object-cover"
-                  />
+                  {line.product.image && (
+                    <Image
+                      src={line.product.image}
+                      alt={line.product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  )}
                   <button
                     type="button"
                     aria-label={`Remover ${line.product.name}`}

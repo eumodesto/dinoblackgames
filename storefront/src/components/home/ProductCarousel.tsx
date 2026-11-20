@@ -63,12 +63,14 @@ export function ProductCarousel({
             className="group relative flex h-[375px] w-[240px] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[28px] border border-zinc-800/80 bg-zinc-950 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.14)] transition-all duration-300 hover:z-10 hover:-translate-y-2 hover:border-dino-red/80 hover:shadow-[0_24px_50px_rgba(218,34,48,0.22)] sm:h-[395px] sm:w-[260px] sm:p-5 md:w-[275px]"
           >
             <div className="absolute inset-0 z-0">
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                className="object-cover opacity-75 transition duration-700 group-hover:scale-110 group-hover:opacity-90"
-              />
+              {product.image && (
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  className="object-cover opacity-75 transition duration-700 group-hover:scale-110 group-hover:opacity-90"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/25 transition-colors duration-500 group-hover:via-black/50" />
               <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-dino-red/10 blur-2xl transition-all duration-500 group-hover:bg-dino-red/20" />
             </div>

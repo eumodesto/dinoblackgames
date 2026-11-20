@@ -19,14 +19,16 @@ export function ShopProductCard({ product, priority = false }: { product: ShopIt
       className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-[24px] border border-zinc-800/80 bg-zinc-950 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.14)] transition-all duration-300 hover:-translate-y-1.5 hover:border-dino-red/80 hover:shadow-[0_24px_50px_rgba(218,34,48,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dino-red sm:rounded-[28px] sm:p-4"
     >
       <div className="absolute inset-0 z-0">
-        <Image
-          src={product.image}
-          alt=""
-          fill
-          priority={priority}
-          sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw"
-          className="object-cover opacity-75 transition duration-700 group-hover:scale-110 group-hover:opacity-90"
-        />
+        {product.image && (
+          <Image
+            src={product.image}
+            alt=""
+            fill
+            priority={priority}
+            sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw"
+            className="object-cover opacity-75 transition duration-700 group-hover:scale-110 group-hover:opacity-90"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/25 transition-colors duration-500 group-hover:via-black/50" />
       </div>
 

@@ -42,7 +42,7 @@ export async function ShopBanner() {
               key={slug}
               className={`absolute ${meta.z} ${meta.className} overflow-hidden rounded-3xl border border-white/15 bg-zinc-900 shadow-[0_20px_50px_rgba(0,0,0,0.6)]`}
             >
-              <Image src={product.image} alt="" fill sizes="200px" className="object-cover" />
+              {product.image && <Image src={product.image} alt="" fill sizes="200px" className="object-cover" />}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur">
                 {meta.tag}
