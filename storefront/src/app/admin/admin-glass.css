@@ -238,6 +238,9 @@
 .gd-status[data-state="ochre"] { --gd-status-color: var(--gd-ochre); }
 .gd-status i { inline-size: 5px; block-size: 5px; border-radius: 50%; background: currentColor; }
 .gd-quick-list { display: grid; gap: 5px; }
+/* Cada seção do menu "Ir para" empilha os links com um respiro entre eles. */
+.gd-quick-list > div { display: grid; gap: 6px; }
+.gd-quick-list > div + div { margin-top: 4px; }
 .gd-quick-list a, .gd-quick-list button {
   display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px; text-align: start;
   border: 1px solid var(--gd-line); border-radius: 10px; background: var(--gd-inner); color: var(--gd-ink);
