@@ -5,6 +5,8 @@
  * localStorage e vira outro depois de 30 minutos parado. Nenhum dado pessoal é enviado.
  */
 
+import { emit } from "./tracking-client";
+
 export type TrackEvent = "page_view" | "product_view" | "add_to_cart" | "checkout_start" | "shipping_quoted" | "payment_created" | "search" | "stock_out_view" | "coupon_applied";
 
 const KEY = "dino-session";
@@ -43,9 +45,23 @@ function session(): Session | null {
   }
 }
 
+/** Os mesmos eventos vão também às integrações ativas no admin (GA4, Google Ads, Meta, Clarity). */
+function forwardToPlatforms(event: TrackEvent, data: { slug?: string; q?: string; value?: number }) {
+  const items = data.slug ? [{ id: data.slug }] : undefined;
+  switch (event) {
+    case "page_view": return emit("page_view");
+    case "product_view": return emit("view_item", { items });
+    case "search": return emit("search", { term: data.q });
+    case "add_to_cart": return emit("add_to_cart", { value: data.value, items });
+    case "checkout_start": return emit("begin_checkout", { value: data.value });
+    case "payment_created": return emit("add_payment_info", { value: data.value });
+  }
+}
+
 export function track(event: TrackEvent, data: { slug?: string; q?: string; value?: number } = {}) {
   if (typeof window === "undefined") return;
   if (window.location.pathname.startsWith("/admin") || navigator.doNotTrack === "1") return;
+  forwardToPlatforms(event, data);
   const s = session();
   if (!s) return;
   const payload = JSON.stringify({ event, sid: s.id, src: s.src, path: window.location.pathname, ...data });

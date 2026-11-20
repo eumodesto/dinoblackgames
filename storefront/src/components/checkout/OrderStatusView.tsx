@@ -5,17 +5,25 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { brl, type OrderDto } from "@/lib/checkout-types";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
+import { emit } from "@/lib/tracking-client";
 import { waLink } from "@/lib/whatsapp";
 
 const STATUS_COPY: Record<string, { title: string; text: string; tone: "ok" | "wait" | "bad" }> = {
-  pending_payment: { title: "Aguardando o pagamento", text: "Assim que o pagamento for confirmado, começamos a separar o seu pedido.", tone: "wait" },
+  pending_payment: { title: "Pagamento pendente", text: "Assim que o pagamento for confirmado, começamos a separar o seu pedido.", tone: "wait" },
+  payment_failed: { title: "Pagamento recusado", text: "Não conseguimos aprovar o pagamento. Seus itens continuam reservados por pouco tempo: tente outro cartão ou pague por Pix.", tone: "bad" },
   paid: { title: "Pagamento aprovado!", text: "Recebemos o seu pagamento. Vamos separar e enviar o pedido e avisar você por e-mail.", tone: "ok" },
-  preparing: { title: "Preparando o seu pedido", text: "Estamos separando e embalando os itens.", tone: "ok" },
-  shipped: { title: "Pedido enviado", text: "O seu pedido está a caminho.", tone: "ok" },
+  preparing: { title: "Em preparação", text: "Estamos separando, testando e embalando os seus itens.", tone: "ok" },
+  shipped: { title: "Saiu para entrega", text: "O seu pedido está a caminho.", tone: "ok" },
   delivered: { title: "Pedido entregue", text: "Esperamos que você curta! Qualquer problema, fale com a gente.", tone: "ok" },
+  exchange_requested: { title: "Pedido de troca em análise", text: "Recebemos a sua solicitação de troca. Nossa equipe responde com os próximos passos em até 2 dias úteis.", tone: "wait" },
   cancelled: { title: "Pedido cancelado", text: "O pedido foi cancelado e os itens voltaram ao estoque. Você pode fazer um novo pedido quando quiser.", tone: "bad" },
   returned: { title: "Pedido devolvido", text: "Este pedido foi devolvido.", tone: "bad" },
+  refunded: { title: "Pedido estornado", text: "O valor deste pedido foi devolvido. O prazo para aparecer depende do banco ou da operadora do cartão.", tone: "bad" },
 };
+
+const awaitingPayment = (status: string) => status === "pending_payment" || status === "payment_failed";
+const CAN_EXCHANGE = ["shipped", "delivered"];
+const CAN_REFUND = ["paid", "preparing", "shipped", "delivered"];
 
 function useCountdown(until: string | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -27,6 +35,52 @@ function useCountdown(until: string | null) {
   if (!until) return null;
   const ms = Math.max(0, new Date(until).getTime() - now);
   return { ms, label: `${String(Math.floor(ms / 60000)).padStart(2, "0")}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, "0")}` };
+}
+
+/** Pedido de troca ou estorno feito pelo próprio cliente, com o link do pedido. */
+function RequestForm({ number, token, canExchange, canRefund, onDone }: { number: string; token: string; canExchange: boolean; canRefund: boolean; onDone: () => void }) {
+  const [kind, setKind] = useState<"exchange" | "refund" | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function send() {
+    if (!kind) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/checkout/order/${encodeURIComponent(number)}/request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, kind, reason }) });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível enviar o pedido.");
+      setMessage({ ok: true, text: kind === "exchange" ? "Pedido de troca enviado. Você recebe a resposta por e-mail." : "Pedido de estorno enviado. Você recebe a resposta por e-mail." });
+      setKind(null);
+      setReason("");
+      onDone();
+    } catch (e) {
+      setMessage({ ok: false, text: e instanceof Error ? e.message : "Não foi possível enviar o pedido." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-[28px] border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950" aria-labelledby="request-title">
+      <h2 id="request-title" className="font-display text-xl font-black text-gray-900 dark:text-white">Precisa de troca ou estorno?</h2>
+      <p className="mt-1 text-sm text-gray-600 dark:text-zinc-400">Abra o pedido por aqui. Nossa equipe analisa e responde por e-mail.</p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        {canExchange && <button type="button" onClick={() => setKind("exchange")} aria-pressed={kind === "exchange"} className={`h-11 rounded-2xl border px-5 text-sm font-black ${kind === "exchange" ? "border-dino-red bg-dino-red/10 text-dino-red" : "border-gray-200 text-gray-900 dark:border-zinc-700 dark:text-white"}`}>Pedir troca</button>}
+        {canRefund && <button type="button" onClick={() => setKind("refund")} aria-pressed={kind === "refund"} className={`h-11 rounded-2xl border px-5 text-sm font-black ${kind === "refund" ? "border-dino-red bg-dino-red/10 text-dino-red" : "border-gray-200 text-gray-900 dark:border-zinc-700 dark:text-white"}`}>Pedir estorno</button>}
+      </div>
+      {kind && (
+        <div className="mt-4">
+          <label htmlFor="request-reason" className="mb-1.5 block text-sm font-bold text-gray-900 dark:text-white">Qual é o motivo?</label>
+          <textarea id="request-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={1000} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:border-dino-red focus:ring-2 focus:ring-dino-red/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white" />
+          <button type="button" onClick={send} disabled={busy || reason.trim().length < 3} className="mt-3 h-12 rounded-2xl bg-dino-red px-6 text-sm font-black text-white hover:bg-dino-red-hover disabled:opacity-50">{busy ? "Enviando…" : kind === "exchange" ? "Enviar pedido de troca" : "Enviar pedido de estorno"}</button>
+        </div>
+      )}
+      {message && <p role={message.ok ? "status" : "alert"} className={`mt-3 text-sm font-semibold ${message.ok ? "text-emerald-600 dark:text-emerald-400" : "text-dino-red"}`}>{message.text}</p>}
+    </section>
+  );
 }
 
 export function OrderStatusView({ number, token }: { number: string; token: string }) {
@@ -52,12 +106,31 @@ export function OrderStatusView({ number, token }: { number: string; token: stri
 
   // Enquanto aguarda pagamento, confere a cada 5 s (o servidor consulta o Mercado Pago).
   useEffect(() => {
-    if (order?.status !== "pending_payment") return;
+    if (!order || !awaitingPayment(order.status)) return;
     const id = window.setInterval(load, 5000);
     return () => window.clearInterval(id);
   }, [order?.status, load]);
 
-  const countdown = useCountdown(order?.status === "pending_payment" ? order.expiresAt : null);
+  const countdown = useCountdown(order && awaitingPayment(order.status) ? order.expiresAt : null);
+
+  // Compra concluída para GA4, Google Ads e Meta: uma vez por pedido, e nunca em modo de demonstração.
+  useEffect(() => {
+    if (!order || order.simulated) return;
+    if (!["paid", "preparing", "shipped", "delivered"].includes(order.status)) return;
+    const key = `dino-purchase-${order.number}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+    } catch {
+      return;
+    }
+    emit("purchase", {
+      value: order.total,
+      transactionId: order.number,
+      email: order.customer.email ?? undefined,
+      items: order.items.map((i) => ({ id: i.slug ?? i.name, name: i.name, price: i.unitPrice, quantity: i.qty })),
+    });
+  }, [order]);
 
   async function copy(text: string) {
     try {
@@ -150,7 +223,7 @@ export function OrderStatusView({ number, token }: { number: string; token: stri
             </section>
           )}
 
-          {order.payment?.status === "failed" && order.status === "pending_payment" && (
+          {order.payment?.status === "failed" && awaitingPayment(order.status) && (
             <p role="alert" className="rounded-2xl border border-dino-red/40 bg-dino-red/10 p-4 text-sm font-semibold text-dino-red">O último pagamento não foi aprovado. Volte ao checkout para tentar outro meio de pagamento.</p>
           )}
 
@@ -173,9 +246,11 @@ export function OrderStatusView({ number, token }: { number: string; token: stri
             </ul>
           </section>
 
+          {(CAN_EXCHANGE.includes(order.status) || CAN_REFUND.includes(order.status)) && <RequestForm number={number} token={token} canExchange={CAN_EXCHANGE.includes(order.status)} canRefund={CAN_REFUND.includes(order.status)} onDone={load} />}
+
           <div className="flex flex-wrap gap-3">
             <Link href="/loja" className="inline-flex h-12 items-center rounded-2xl border border-gray-200 px-6 text-sm font-black text-gray-900 hover:border-dino-red hover:text-dino-red dark:border-zinc-700 dark:text-white">Continuar comprando</Link>
-            {order.status === "pending_payment" && order.payment?.status === "failed" && (
+            {awaitingPayment(order.status) && (order.payment?.status === "failed" || order.status === "payment_failed") && (
               <Link href="/checkout" className="inline-flex h-12 items-center rounded-2xl bg-dino-red px-6 text-sm font-black text-white hover:bg-dino-red-hover">Voltar ao checkout</Link>
             )}
             <a href={waLink(`Olá! Preciso de ajuda com o pedido ${order.number}.`)} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-[#25D366] px-6 text-sm font-black text-[#052e16] hover:bg-[#1fbd5b]">
@@ -196,7 +271,7 @@ export function OrderStatusView({ number, token }: { number: string; token: stri
             </dl>
             {order.payment && (
               <p className="mt-3 text-xs text-gray-500 dark:text-zinc-400">
-                Pagamento: {order.payment.method === "pix" ? "Pix" : order.payment.method === "boleto" ? "Boleto" : `Cartão em ${order.payment.installments}x`}
+                Pagamento: {order.payment.method === "pix" ? "Pix" : order.payment.method === "boleto" ? "Boleto" : order.payment.installments > 1 ? `Cartão em ${order.payment.installments}x` : "Cartão à vista"}
               </p>
             )}
           </div>

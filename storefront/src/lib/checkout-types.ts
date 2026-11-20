@@ -24,8 +24,8 @@ export type QuoteLine = {
   reason?: string | null;
 };
 
-/** Formas de pagamento que o checkout oferece (boleto fica fora por enquanto). */
-export type CheckoutPaymentMethod = "pix" | "credit_card";
+/** Formas de pagamento que o checkout oferece (boleto fica fora por enquanto). O débito é gravado como cartão no banco. */
+export type CheckoutPaymentMethod = "pix" | "credit_card" | "debit_card";
 
 export type CouponResult = {
   ok: boolean;
@@ -98,7 +98,7 @@ export type PaymentDto = {
   boleto?: { url?: string; barcode?: string };
 };
 
-export type OrderStatusValue = "pending_payment" | "paid" | "preparing" | "shipped" | "delivered" | "cancelled" | "returned";
+export type OrderStatusValue = "pending_payment" | "payment_failed" | "paid" | "preparing" | "shipped" | "delivered" | "exchange_requested" | "cancelled" | "returned" | "refunded";
 
 export type OrderDto = {
   number: string;
@@ -114,7 +114,7 @@ export type OrderDto = {
   expiresAt: string | null;
   customer: { name: string | null; email: string | null };
   address: Partial<AddressInput> | null;
-  items: { name: string; image: string | null; options: Record<string, string>; qty: number; unitPrice: number; condition: string }[];
+  items: { slug?: string; name: string; image: string | null; options: Record<string, string>; qty: number; unitPrice: number; condition: string }[];
   payment: PaymentDto | null;
   simulated: boolean;
 };

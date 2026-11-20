@@ -1,6 +1,9 @@
 import "server-only";
 import { getSql, type Sql } from "./sql";
-import { sendTransactionalEmail, type EmailTemplateKey } from "./email";
+import { EXTENDED_STATUSES, ORDER_TRANSITIONS, isOrderStatus, statusLabel } from "@/lib/order-status";
+import { STATUS_EVENT } from "@/lib/store-events";
+import { notifyLater } from "./notify";
+import { extendedStatusesSupported } from "./status-support";
 
 // ---------------------------------------------------------------------------
 // Types shared between storefront pages and the data layer
@@ -726,60 +729,41 @@ export class OrderStatusError extends Error {
   }
 }
 
-export async function updateOrderStatus(orderId: string, newStatus: string, actorId?: string): Promise<void> {
-  const transitions: Record<string, Set<string>> = {
-    pending_payment: new Set(["paid", "cancelled"]),
-    paid: new Set(["preparing", "cancelled"]),
-    preparing: new Set(["shipped", "cancelled"]),
-    shipped: new Set(["delivered"]),
-    delivered: new Set(["returned"]),
-    cancelled: new Set(),
-    returned: new Set(),
-  };
-  if (!transitions[newStatus]) throw new OrderStatusError("Status de pedido inválido.");
-  const sql = await getSql();
-  const [order] = await sql.query<{
-    id: string; status: string; number: string; customer_name: string | null;
-    customer_email: string | null; guest_email: string | null; total: string | number;
-  }>(
-    "select id, status::text, number, customer_name, customer_email, guest_email, total from orders where id = $1::uuid",
-    [orderId],
-  );
-  if (!order) throw new OrderStatusError("Pedido não encontrado.");
-  if (!transitions[order.status]?.has(newStatus)) {
-    throw new OrderStatusError(`Transição não permitida: ${order.status} → ${newStatus}.`);
+export async function updateOrderStatus(orderId: string, newStatus: string, actorId?: string, opts: { reason?: string } = {}): Promise<void> {
+  if (!isOrderStatus(newStatus)) throw new OrderStatusError("Status de pedido inválido.");
+  if (EXTENDED_STATUSES.includes(newStatus) && !(await extendedStatusesSupported())) {
+    throw new OrderStatusError("Este status ainda não existe no banco de dados: aplique a migração 20261123000016 do Supabase.");
   }
+  const sql = await getSql();
+  const [order] = await sql.query<{ id: string; status: string; number: string }>("select id, status::text, number from orders where id = $1::uuid", [orderId]);
+  if (!order) throw new OrderStatusError("Pedido não encontrado.");
+  const from = order.status;
+  if (!isOrderStatus(from) || !ORDER_TRANSITIONS[from].includes(newStatus)) {
+    throw new OrderStatusError(`Transição não permitida: ${statusLabel(from)} → ${statusLabel(newStatus)}.`);
+  }
+  const reason = opts.reason?.trim().slice(0, 300) || undefined;
 
   if (newStatus === "cancelled") {
-    await sql.query("select cancel_order($1::uuid, 'Cancelado pelo admin')", [orderId]);
+    await sql.query("select cancel_order($1::uuid, $2)", [orderId, reason ?? "Cancelado pela equipe"]);
+  } else if (newStatus === "paid") {
+    // Pagamento confirmado à mão (ex.: Pix conferido no banco): usa a rotina do banco, que baixa o estoque e cria a remessa.
+    await sql.query("select confirm_payment($1::uuid, 'manual', null)", [orderId]);
   } else {
     await sql.query("update orders set status = $1::order_status where id = $2::uuid", [newStatus, orderId]);
+    if (newStatus === "refunded") await sql.query("update payments set status = 'refunded' where order_id = $1::uuid and status = 'paid'", [orderId]);
     await sql.query(
       "insert into order_events (order_id, type, from_status, to_status, message, actor_id) values ($1::uuid, 'status_changed', $2, $3, $4, $5::uuid)",
-      [orderId, order.status, newStatus, `Status alterado para ${newStatus}`, actorId ?? null],
+      [orderId, from, newStatus, `${statusLabel(newStatus)}${reason ? `: ${reason}` : ""}`, actorId ?? null],
     );
   }
   await sql.query(
     "insert into audit_log (actor_id, action, entity, entity_id, changes) values ($1::uuid, 'order_status_changed', 'orders', $2, $3::jsonb)",
-    [actorId ?? null, orderId, JSON.stringify({ from: order.status, to: newStatus })],
+    [actorId ?? null, orderId, JSON.stringify({ from, to: newStatus, reason: reason ?? null })],
   );
 
-  const recipient = order.customer_email ?? order.guest_email;
-  const templates: Partial<Record<string, EmailTemplateKey>> = {
-    paid: "order_paid", shipped: "order_shipped", delivered: "order_delivered", cancelled: "order_cancelled",
-  };
-  const template = templates[newStatus];
-  if (recipient && template) {
-    void sendTransactionalEmail({
-      to: recipient,
-      template,
-      variables: {
-        name: order.customer_name ?? "Cliente",
-        order_number: order.number,
-        total: `R$ ${Number(order.total).toFixed(2).replace(".", ",")}`,
-      },
-    }).catch((error) => console.error("[email] falha ao notificar mudança de pedido:", error));
-  }
+  // Cliente, equipe e webhooks são avisados depois da resposta.
+  const event = STATUS_EVENT[newStatus];
+  if (event) notifyLater(event, order.number, { reason });
 }
 
 export type AdminShipmentInput = {
@@ -793,7 +777,7 @@ export async function upsertAdminShipment(orderId: string, input: AdminShipmentI
   const sql = await getSql();
   const [order] = await sql.query<{ id: string; status: string }>("select id, status::text from orders where id = $1::uuid", [orderId]);
   if (!order) throw new OrderStatusError("Pedido não encontrado.");
-  if (["pending_payment", "cancelled", "returned"].includes(order.status)) {
+  if (["pending_payment", "payment_failed", "cancelled", "returned", "refunded"].includes(order.status)) {
     throw new OrderStatusError("Este pedido não pode receber uma remessa neste status.");
   }
   const status = input.status;
@@ -928,13 +912,13 @@ export async function getAdminProducts(opts: AdminProductFilters = {}): Promise<
 }
 
 /** Categorias em ordem de árvore, com o caminho "Principal › Sub › Item" (para filtros e formulários do admin). */
-export async function getAdminCategoryOptions(): Promise<{ slug: string; label: string }[]> {
+export async function getAdminCategoryOptions(): Promise<{ id: string; slug: string; label: string }[]> {
   const sql = await getSql();
-  return sql.query<{ slug: string; label: string }>(
+  return sql.query<{ id: string; slug: string; label: string }>(
     `with recursive t as (
        select id, slug, name::text as label, lpad(position::text, 4, '0') || name as ord from categories where parent_id is null
        union all
        select c.id, c.slug, t.label || ' › ' || c.name, t.ord || '.' || lpad(c.position::text, 4, '0') || c.name from categories c join t on c.parent_id = t.id
-     ) select slug, label from t order by ord`,
+     ) select id, slug, label from t order by ord`,
   );
 }

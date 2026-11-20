@@ -1,6 +1,8 @@
 import { getOrders } from "@/lib/server/catalog";
 import Link from "next/link";
 import { OrdersFilters } from "@/components/admin/OrdersFilters";
+import { EXTENDED_STATUSES, ORDER_STATUSES, ORDER_STATUS_LABEL, ORDER_STATUS_TONE, TONE_CLASS } from "@/lib/order-status";
+import { extendedStatusesSupported } from "@/lib/server/status-support";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -11,15 +13,9 @@ function formatDate(iso: string) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  pending_payment: { label: "Aguardando pgto.", cls: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
-  paid: { label: "Pago", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-  preparing: { label: "Preparando", cls: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
-  shipped: { label: "Enviado", cls: "bg-purple-500/10 text-purple-400 border-purple-500/30" },
-  delivered: { label: "Entregue", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-  cancelled: { label: "Cancelado", cls: "bg-red-500/10 text-red-400 border-red-500/30" },
-  returned: { label: "Devolvido", cls: "bg-zinc-500/10 text-zinc-400 border-zinc-500/30" },
-};
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = Object.fromEntries(
+  ORDER_STATUSES.map((s) => [s, { label: ORDER_STATUS_LABEL[s], cls: TONE_CLASS[ORDER_STATUS_TONE[s]] }]),
+);
 
 const PAYMENT_OPTIONS = [
   { value: "", label: "Todos os pagamentos" },
@@ -51,13 +47,18 @@ function pageUrl(params: SearchParams, page: number) {
 }
 
 
+async function statusFilter(value: string) {
+  if (!value) return "";
+  return (EXTENDED_STATUSES as readonly string[]).includes(value) && !(await extendedStatusesSupported()) ? "" : value;
+}
+
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = (await searchParams) ?? {};
   const page = Math.max(Number(valueOf(params, "page")) || 1, 1);
   const limit = 25;
   const orders = await getOrders({
     query: valueOf(params, "q") || undefined,
-    status: valueOf(params, "status") || undefined,
+    status: (await statusFilter(valueOf(params, "status"))) || undefined,
     paymentStatus: valueOf(params, "payment") || undefined,
     carrier: valueOf(params, "carrier") || undefined,
     from: valueOf(params, "from") || undefined,
@@ -66,6 +67,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
     offset: (page - 1) * limit,
   });
   const hasNext = orders.length === limit;
+  const extended = await extendedStatusesSupported();
 
   return (
     <div className="space-y-6">
@@ -76,7 +78,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
 
       <OrdersFilters
         initial={{ q: valueOf(params, "q"), status: valueOf(params, "status"), payment: valueOf(params, "payment"), carrier: valueOf(params, "carrier"), from: valueOf(params, "from"), to: valueOf(params, "to") }}
-        statusOptions={[{ value: "", label: "Todos os status" }, ...Object.entries(STATUS_BADGE).map(([value, badge]) => ({ value, label: badge.label }))]}
+        statusOptions={[{ value: "", label: "Todos os status" }, ...Object.entries(STATUS_BADGE).filter(([value]) => extended || !(EXTENDED_STATUSES as readonly string[]).includes(value)).map(([value, badge]) => ({ value, label: badge.label }))]}
         paymentOptions={PAYMENT_OPTIONS}
       />
 

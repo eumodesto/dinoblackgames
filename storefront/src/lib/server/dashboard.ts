@@ -1,5 +1,6 @@
 import "server-only";
 import { getSql } from "./sql";
+import { extendedStatusesSupported } from "./status-support";
 import type { Range } from "./analytics";
 
 /** Indicadores do período escolhido, com o período anterior de mesma duração para comparar. */
@@ -93,7 +94,7 @@ async function actionItems(): Promise<ActionItem[]> {
   const [pixExpiring] = await sql.query<{ n: number }>(
     `select count(*)::int as n from payments p
      join orders o on o.id = p.order_id
-     where p.method = 'pix' and p.status = 'pending' and o.status = 'pending_payment'
+     where p.method = 'pix' and p.status = 'pending' and o.status::text = 'pending_payment'
        and p.pix_expires_at > now() and p.pix_expires_at <= now() + interval '2 hours'`,
   );
 
@@ -102,7 +103,7 @@ async function actionItems(): Promise<ActionItem[]> {
     `select count(distinct p.order_id)::int as n from payments p
      join orders o on o.id = p.order_id
      where p.status in ('failed', 'expired') and p.created_at >= now() - interval '24 hours'
-       and o.status = 'pending_payment'`,
+       and o.status::text in ('pending_payment', 'payment_failed')`,
   );
 
   // Enviado sem código de rastreio: o cliente não consegue acompanhar.
@@ -112,13 +113,14 @@ async function actionItems(): Promise<ActionItem[]> {
        and not exists (select 1 from shipments s where s.order_id = o.id and coalesce(s.tracking_code, '') <> '')`,
   );
 
+  const extended = await extendedStatusesSupported();
   const hours = Number(toShip?.oldest_hours ?? 0);
   const waiting = hours >= 48 ? `o mais antigo espera há ${Math.floor(hours / 24)} dias` : hours >= 1 ? `o mais antigo espera há ${hours} h` : "recém-pagos";
 
   return [
     { id: "ship", title: "Pagos aguardando envio", count: toShip?.n ?? 0, detail: (toShip?.n ?? 0) > 0 ? waiting : "Nada pendente", href: "/admin/pedidos?status=paid", tone: hours >= 48 ? "danger" : "warn" },
     { id: "pix", title: "Pix vencendo em 2 h", count: pixExpiring?.n ?? 0, detail: (pixExpiring?.n ?? 0) > 0 ? "chame o cliente antes de expirar" : "Nenhum prestes a expirar", href: "/admin/pedidos?status=pending_payment", tone: "warn" },
-    { id: "failed", title: "Pagamentos recusados (24 h)", count: failed?.n ?? 0, detail: (failed?.n ?? 0) > 0 ? "pedidos ainda abertos" : "Nenhum recusado", href: "/admin/pedidos?status=pending_payment", tone: "danger" },
+    { id: "failed", title: "Pagamentos recusados (24 h)", count: failed?.n ?? 0, detail: (failed?.n ?? 0) > 0 ? "pedidos ainda abertos" : "Nenhum recusado", href: `/admin/pedidos?status=${extended ? "payment_failed" : "pending_payment"}`, tone: "danger" },
     { id: "tracking", title: "Enviados sem rastreio", count: noTracking?.n ?? 0, detail: (noTracking?.n ?? 0) > 0 ? "cliente sem como acompanhar" : "Todos com código", href: "/admin/pedidos?status=shipped", tone: "info" },
   ];
 }

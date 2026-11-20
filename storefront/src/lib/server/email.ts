@@ -1,97 +1,158 @@
 import "server-only";
+import { EMAIL_TEMPLATES, EMAIL_TEMPLATE_KEYS, defaultTemplate, type EmailTemplate, type EmailTemplateKey } from "@/lib/email-templates";
 import { env } from "./env";
+import { renderBrandedEmail, type EmailItem, type EmailTotals } from "./email-layout";
 import { getSql } from "./sql";
 
-export const EMAIL_TEMPLATE_KEYS = [
-  "account_created",
-  "order_created",
-  "order_paid",
-  "order_shipped",
-  "order_delivered",
-  "order_cancelled",
-  "used_request_received",
-  "back_in_stock",
-] as const;
-
-export type EmailTemplateKey = (typeof EMAIL_TEMPLATE_KEYS)[number];
-export type EmailTemplate = { name: string; subject: string; enabled: boolean; body: string };
-export type EmailTemplates = Record<EmailTemplateKey, EmailTemplate>;
-export type EmailConfig = { from: string; replyTo: string };
-
-const DEFAULT_TEMPLATES: EmailTemplates = {
-  account_created: { name: "Nova conta", subject: "Bem-vindo à DinoBlack Games, {{name}}!", enabled: true, body: "<h1>Bem-vindo, {{name}}!</h1><p>Sua conta foi criada com sucesso.</p>" },
-  order_created: { name: "Nova compra", subject: "Pedido {{order_number}} recebido", enabled: true, body: "<h1>Pedido recebido</h1><p>Olá, {{name}}. Recebemos o pedido <strong>{{order_number}}</strong>.</p>" },
-  order_paid: { name: "Pagamento confirmado", subject: "Pagamento confirmado — pedido {{order_number}}", enabled: true, body: "<h1>Pagamento confirmado</h1><p>O pagamento do pedido <strong>{{order_number}}</strong> foi confirmado.</p>" },
-  order_shipped: { name: "Pedido enviado", subject: "Seu pedido {{order_number}} foi enviado", enabled: true, body: "<h1>Pedido enviado</h1><p>O pedido <strong>{{order_number}}</strong> está a caminho.</p>" },
-  order_delivered: { name: "Pedido entregue", subject: "Pedido {{order_number}} entregue", enabled: true, body: "<h1>Pedido entregue</h1><p>Seu pedido foi entregue.</p>" },
-  order_cancelled: { name: "Pedido cancelado", subject: "Pedido {{order_number}} cancelado", enabled: true, body: "<h1>Pedido cancelado</h1><p>O pedido <strong>{{order_number}}</strong> foi cancelado. Se precisar de ajuda, fale com nosso atendimento.</p>" },
-  used_request_received: { name: "Solicitação de avaliação recebida", subject: "Recebemos sua solicitação de troca", enabled: true, body: "<h1>Solicitação recebida</h1><p>Recebemos os dados do item para avaliação.</p>" },
-  back_in_stock: { name: "Produto disponível novamente", subject: "{{product_name}} voltou ao estoque", enabled: true, body: "<h1>Boa notícia!</h1><p><strong>{{product_name}}</strong> está disponível novamente.</p>" },
-};
+export { EMAIL_TEMPLATE_KEYS, type EmailTemplate, type EmailTemplateKey };
+export type EmailTemplates = Record<string, EmailTemplate>;
+export type EmailConfig = { from: string; replyTo: string; adminRecipients: string[] };
 
 export function defaultEmailTemplates(): EmailTemplates {
-  return JSON.parse(JSON.stringify(DEFAULT_TEMPLATES)) as EmailTemplates;
+  return Object.fromEntries(EMAIL_TEMPLATES.map((m) => [m.key, { ...m.defaults }]));
 }
 
+const asText = (value: unknown, fallback: string, max: number) => (typeof value === "string" ? value.slice(0, max) : fallback);
+
+/** Padrões da marca + o que a equipe editou. Campos que faltam no registro salvo (templates antigos) usam o padrão. */
 export async function getEmailTemplates(): Promise<EmailTemplates> {
+  const result = defaultEmailTemplates();
   try {
     const sql = await getSql();
     const rows = await sql.query<{ value: unknown }>("select value from store_settings where key = $1 limit 1", ["email_templates"]);
-    const saved = rows[0]?.value && typeof rows[0].value === "object" ? rows[0].value as Record<string, Partial<EmailTemplate>> : {};
-    const result = defaultEmailTemplates();
-    for (const key of EMAIL_TEMPLATE_KEYS) result[key] = { ...result[key], ...(saved[key] ?? {}) };
-    return result;
+    const saved = rows[0]?.value && typeof rows[0].value === "object" ? (rows[0].value as Record<string, Partial<EmailTemplate>>) : {};
+    for (const key of EMAIL_TEMPLATE_KEYS) {
+      const s = saved[key];
+      if (!s) continue;
+      const d = result[key];
+      // Template salvo antes do modelo novo (sem título): o <h1> do texto antigo passa a ser o título da mensagem.
+      let legacyBody = typeof s.body === "string" ? s.body : undefined;
+      let legacyTitle: string | undefined;
+      if (s.title === undefined && legacyBody) {
+        const h1 = /^\s*<h1[^>]*>([\s\S]*?)<\/h1>\s*/i.exec(legacyBody);
+        if (h1) {
+          legacyTitle = h1[1].replace(/<[^>]+>/g, "").trim() || undefined;
+          legacyBody = legacyBody.slice(h1[0].length);
+        }
+      }
+      result[key] = {
+        name: asText(s.name, d.name, 120),
+        subject: asText(s.subject, d.subject, 240),
+        enabled: typeof s.enabled === "boolean" ? s.enabled : d.enabled,
+        title: asText(s.title ?? legacyTitle, d.title, 200),
+        body: asText(legacyBody, d.body, 30000),
+        buttonLabel: asText(s.buttonLabel, d.buttonLabel, 80),
+        buttonUrl: asText(s.buttonUrl, d.buttonUrl, 500),
+        showItems: typeof s.showItems === "boolean" ? s.showItems : d.showItems,
+      };
+    }
   } catch {
-    return defaultEmailTemplates();
+    // banco ainda não pronto: usa os padrões
   }
+  return result;
 }
 
+const parseList = (value: unknown): string[] =>
+  (Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,;]+/) : [])
+    .map((v) => String(v).trim().toLowerCase())
+    .filter((v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v));
+
 export async function getEmailConfig(): Promise<EmailConfig> {
+  const envAdmins = parseList(process.env.ADMIN_NOTIFY_EMAILS ?? "");
   try {
     const sql = await getSql();
     const rows = await sql.query<{ value: unknown }>("select value from store_settings where key = $1 limit 1", ["email_config"]);
-    const saved = rows[0]?.value && typeof rows[0].value === "object" ? rows[0].value as Record<string, unknown> : {};
-    return { from: typeof saved.from === "string" ? saved.from : env.resendFromEmail, replyTo: typeof saved.replyTo === "string" ? saved.replyTo : env.resendReplyTo };
+    const saved = rows[0]?.value && typeof rows[0].value === "object" ? (rows[0].value as Record<string, unknown>) : {};
+    const admins = parseList(saved.adminRecipients);
+    return {
+      from: typeof saved.from === "string" ? saved.from : env.resendFromEmail,
+      replyTo: typeof saved.replyTo === "string" ? saved.replyTo : env.resendReplyTo,
+      adminRecipients: admins.length ? admins : envAdmins,
+    };
   } catch {
-    return { from: env.resendFromEmail, replyTo: env.resendReplyTo };
+    return { from: env.resendFromEmail, replyTo: env.resendReplyTo, adminRecipients: envAdmins };
   }
 }
+export { parseList as parseEmailList };
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
+function interpolate(value: string, variables: Record<string, unknown>, escape: boolean) {
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+  return value.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, key: string) => {
+    const raw = String(variables[key] ?? "");
+    return escape ? esc(raw) : raw;
+  });
 }
 
-function interpolate(value: string, variables: Record<string, unknown>) {
-  return value.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, key: string) => escapeHtml(String(variables[key] ?? "")));
+export type RenderInput = { variables?: Record<string, unknown>; items?: EmailItem[]; totals?: EmailTotals; template?: EmailTemplate };
+
+/** Gera assunto e HTML de um template (o rascunho do editor pode ser passado em `template` para pré-visualizar). */
+export async function renderEmail(key: EmailTemplateKey, input: RenderInput = {}): Promise<{ subject: string; html: string; template: EmailTemplate }> {
+  const template = input.template ?? (await getEmailTemplates())[key] ?? defaultTemplate(key);
+  if (!template) throw new Error(`Template desconhecido: ${key}`);
+  const variables = { site_url: env.siteUrl, admin_login_url: `${env.siteUrl}/admin-login`, ...input.variables };
+  const subject = interpolate(template.subject, variables, false).replace(/[\r\n]+/g, " ").trim();
+  const title = interpolate(template.title, variables, true);
+  const html = renderBrandedEmail({
+    title,
+    bodyHtml: interpolate(template.body, variables, true),
+    button: template.buttonLabel ? { label: interpolate(template.buttonLabel, variables, false), url: interpolate(template.buttonUrl, variables, false) } : undefined,
+    items: template.showItems ? input.items : undefined,
+    totals: template.showItems ? input.totals : undefined,
+    preheader: subject,
+    siteUrl: env.siteUrl,
+  });
+  return { subject, html, template };
 }
 
-export async function sendTransactionalEmail(input: {
-  to: string;
-  template: EmailTemplateKey;
-  variables?: Record<string, unknown>;
-}) {
-  const config = await getEmailConfig();
-  if (!env.resendApiKey || !config.from) return { sent: false, reason: "not_configured" as const };
-  const templates = await getEmailTemplates();
-  const selected = templates[input.template];
-  if (!selected.enabled) return { sent: false, reason: "disabled" as const };
-  const variables = { site_url: env.siteUrl, ...input.variables };
+async function deliver(to: string[], subject: string, html: string, config: EmailConfig) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${env.resendApiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: config.from,
-      to: [input.to],
-      subject: interpolate(selected.subject, variables),
-      html: interpolate(selected.body, variables),
-      ...(config.replyTo ? { reply_to: config.replyTo } : {}),
-    }),
+    body: JSON.stringify({ from: config.from, to, subject, html, ...(config.replyTo ? { reply_to: config.replyTo } : {}) }),
+    signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`Resend retornou HTTP ${response.status}.`);
+}
+
+/** Envia um template para um destinatário (cliente ou usuário do painel). */
+export async function sendTransactionalEmail(input: { to: string; template: EmailTemplateKey; variables?: Record<string, unknown>; items?: EmailItem[]; totals?: EmailTotals }) {
+  const config = await getEmailConfig();
+  if (!env.resendApiKey || !config.from) return { sent: false, reason: "not_configured" as const };
+  const { subject, html, template } = await renderEmail(input.template, { variables: input.variables, items: input.items, totals: input.totals });
+  if (!template.enabled) return { sent: false, reason: "disabled" as const };
+  await deliver([input.to], subject, html, config);
+  return { sent: true as const };
+}
+
+/** Envia um template para toda a equipe cadastrada em Integrações → Resend. */
+export async function sendAdminEmail(input: { template: EmailTemplateKey; variables?: Record<string, unknown>; items?: EmailItem[]; totals?: EmailTotals }) {
+  const config = await getEmailConfig();
+  if (!env.resendApiKey || !config.from) return { sent: false, reason: "not_configured" as const };
+  if (config.adminRecipients.length === 0) return { sent: false, reason: "no_recipients" as const };
+  const { subject, html, template } = await renderEmail(input.template, { variables: input.variables, items: input.items, totals: input.totals });
+  if (!template.enabled) return { sent: false, reason: "disabled" as const };
+  await deliver(config.adminRecipients, subject, html, config);
   return { sent: true as const };
 }
 
 export async function resendConfigured() {
   const config = await getEmailConfig();
   return Boolean(env.resendApiKey && config.from);
+}
+
+/** Dados de exemplo para pré-visualização e e-mails de teste. */
+export function sampleEmailData(): { variables: Record<string, string>; items: EmailItem[]; totals: EmailTotals } {
+  return {
+    variables: {
+      name: "Cliente de Teste", order_number: "DB-1234", total: "R$ 7.549,90", status: "Pagamento aprovado", tracking_code: "BR123456789XX",
+      payment_method: "Pix", customer_email: "cliente@exemplo.com", reason: "Produto chegou com defeito", pending_minutes: "15", product_name: "Console PlayStation 5 Pro",
+      order_url: `${env.siteUrl}/checkout/confirmacao/DB-1234`, admin_url: `${env.siteUrl}/admin/pedidos`, role: "Gerente de Loja", staff_email: "novo.usuario@exemplo.com",
+      temp_password: "Dino-7Hq2-Xk9m", permissions: "Pedidos, Produtos, Cupons",
+    },
+    items: [
+      { name: "Console PlayStation 5 Pro Sem Leitor de Disco", image: null, qty: 1, unitPrice: 7399.9, options: "Branco · 2 TB" },
+      { name: "Controle sem Fio Xbox Pulse Red", image: null, qty: 1, unitPrice: 149.99 },
+    ],
+    totals: { subtotal: 7549.89, discount: 0, shipping: 0, total: 7549.89 },
+  };
 }

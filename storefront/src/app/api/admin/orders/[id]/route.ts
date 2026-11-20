@@ -22,8 +22,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const body = await readJson(req);
     const status = typeof body.status === "string" ? body.status : "";
+    const reason = typeof body.reason === "string" ? body.reason : undefined;
     try {
-      await updateOrderStatus(id, status);
+      await updateOrderStatus(id, status, undefined, { reason });
     } catch (error) {
       if (error instanceof OrderStatusError) {
         return json({ error: error.message }, error.message === "Pedido não encontrado." ? 404 : 409);

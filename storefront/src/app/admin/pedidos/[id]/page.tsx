@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { getAdminOrderDetail } from "@/lib/server/catalog";
 import { OrderStatusActions } from "@/components/admin/OrderStatusActions";
 import { ShipmentActions } from "@/components/admin/ShipmentActions";
+import { statusLabel } from "@/lib/order-status";
+import { listOrderRequests } from "@/lib/server/order-requests";
+import { extendedStatusesSupported } from "@/lib/server/status-support";
 
 export const dynamic = "force-dynamic";
 
-const STATUS: Record<string, string> = {
-  pending_payment: "Aguardando pagamento", paid: "Pago", preparing: "Preparando", shipped: "Enviado", delivered: "Entregue", cancelled: "Cancelado", returned: "Devolvido",
-};
+const STATUS = new Proxy({} as Record<string, string>, { get: (_, key) => (typeof key === "string" ? statusLabel(key) : undefined) });
 
 function money(value: unknown) {
   return Number(value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -31,6 +32,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   const o = detail.order;
   const address = (o.shipping_address ?? {}) as Record<string, unknown>;
   const status = String(o.status ?? "");
+  const [extended, requests] = await Promise.all([extendedStatusesSupported(), listOrderRequests(id)]);
   return (
     <div className="max-w-6xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -42,7 +44,21 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-bold text-zinc-300">{STATUS[status] ?? status}</span>
       </div>
 
-      <OrderStatusActions orderId={id} currentStatus={status} />
+      <OrderStatusActions orderId={id} currentStatus={status} extendedSupported={extended} />
+
+      {requests.length > 0 && (
+        <section className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+          <h2 className="font-bold text-white">Pedidos de troca e estorno</h2>
+          <ul className="mt-3 space-y-3">
+            {requests.map((r) => (
+              <li key={r.id} className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm">
+                <p className="font-semibold text-white">{r.kind === "exchange" ? "Troca" : "Estorno"} · {r.status === "open" ? "em análise" : r.status === "approved" ? "aprovado" : r.status === "rejected" ? "recusado" : "concluído"} <span className="font-normal text-zinc-500">· {date(r.createdAt)}</span></p>
+                <p className="mt-1 text-zinc-300">“{r.reason}”</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <section className="space-y-6">

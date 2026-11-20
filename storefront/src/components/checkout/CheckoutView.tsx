@@ -17,11 +17,11 @@ import {
 import { isValidCep, onlyDigits } from "@/lib/shipping";
 import { PaymentBrick } from "./PaymentBrick";
 
-type Config = { ready: boolean; db: boolean; payments: boolean; mode: "simulated" | "live"; publicKey: string; maxInstallments: number };
+type Config = { ready: boolean; db: boolean; payments: boolean; mode: "simulated" | "live"; publicKey: string; maxInstallments: number; methods: Record<PayMethod, boolean> };
 
 type Customer = { name: string; email: string; phone: string };
 type Address = { cep: string; street: string; number: string; complement: string; district: string; city: string; state: string; recipient: string };
-type PayMethod = "pix" | "credit_card";
+type PayMethod = "pix" | "credit_card" | "debit_card";
 type Draft = { customer: Customer; address: Address; shippingId: string; couponInput: string; coupon: string; marketing: boolean; paymentMethod?: PayMethod };
 /** Cupom trazido por um link (/?cupom=CODIGO): guardado até o checkout aplicá-lo. */
 const COUPON_LINK_KEY = "dino-coupon-link";
@@ -136,6 +136,13 @@ export function CheckoutView() {
     api<Config>("/api/checkout/config").then((r) => r.ok && setCfg(r.data));
   }, []);
 
+  // Só as formas ativas no admin aparecem; se a escolhida (ou lembrada) foi desativada, passa para a primeira ativa.
+  const enabledMethods = (["pix", "credit_card", "debit_card"] as const).filter((m) => cfg?.methods?.[m] ?? true);
+  useEffect(() => {
+    if (cfg && enabledMethods.length > 0 && !enabledMethods.includes(paymentMethod)) setPaymentMethod(enabledMethods[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg]);
+
   // ---- rascunho e pedido em andamento (sessão do navegador)
   useEffect(() => {
     try {
@@ -148,7 +155,7 @@ export function CheckoutView() {
         setCouponInput(d.couponInput ?? "");
         setCoupon(d.coupon ?? "");
         setMarketing(Boolean(d.marketing));
-        if (d.paymentMethod === "credit_card" || d.paymentMethod === "pix") setPaymentMethod(d.paymentMethod);
+        if (d.paymentMethod === "credit_card" || d.paymentMethod === "debit_card" || d.paymentMethod === "pix") setPaymentMethod(d.paymentMethod);
       }
       // Cupom que chegou por link: entra sozinho se o cliente ainda não digitou outro.
       const linked = localStorage.getItem(COUPON_LINK_KEY);
@@ -160,7 +167,7 @@ export function CheckoutView() {
       if (pending) {
         const p = JSON.parse(pending) as PendingOrder;
         api<{ order: OrderDto }>(`/api/checkout/order/${p.number}?t=${p.token}`).then((r) => {
-          if (r.ok && r.data.order.status === "pending_payment") setOrder(p);
+          if (r.ok && (r.data.order.status === "pending_payment" || r.data.order.status === "payment_failed")) setOrder(p);
           else sessionStorage.removeItem(ORDER_KEY);
         });
       }
@@ -656,7 +663,7 @@ export function CheckoutView() {
                 <fieldset className="space-y-2">
                   <legend className="mb-1 text-sm font-bold text-gray-900 dark:text-white">Forma de pagamento</legend>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {([{ id: "pix", label: "Pix", hint: "Aprovação na hora" }, { id: "credit_card", label: "Cartão de crédito", hint: `Em até ${cfg?.maxInstallments ?? 10}x` }] as const).map((option) => (
+                    {([{ id: "pix", label: "Pix", hint: "Aprovação na hora" }, { id: "credit_card", label: "Cartão de crédito", hint: (cfg?.maxInstallments ?? 10) > 1 ? `Em até ${cfg?.maxInstallments ?? 10}x` : "À vista" }, { id: "debit_card", label: "Cartão de débito", hint: "À vista" }] as const).filter((option) => enabledMethods.includes(option.id)).map((option) => (
                       <label key={option.id} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-sm transition ${paymentMethod === option.id ? "border-dino-red bg-dino-red/5" : "border-gray-200 hover:border-gray-300 dark:border-zinc-800"}`}>
                         <input type="radio" name="payment-method" value={option.id} checked={paymentMethod === option.id} onChange={() => setPaymentMethod(option.id)} className="mt-1" />
                         <span><span className="block font-bold text-gray-900 dark:text-white">{option.label}</span><span className="block text-xs text-gray-500 dark:text-zinc-400">{option.hint}</span></span>

@@ -13,11 +13,15 @@ import {
   type QuoteLine,
   type QuoteResponse,
 } from "@/lib/checkout-types";
+import type { MpSettings } from "@/lib/mp-config";
 import { env, mpMode } from "./env";
+import { sendMetaPurchase } from "./meta-capi";
+import { getMpSettings } from "./mp-settings";
 import { MpError, mpCreatePayment, mpGetPayment, toSyncPayload, type MpPayment } from "./mp";
 import { findQuotedShipping, quoteShippingOptions } from "./shipping-quote";
 import { getSql } from "./sql";
-import { sendTransactionalEmail } from "./email";
+import { notifyLater } from "./notify";
+import { extendedStatusesSupported } from "./status-support";
 
 /** Erro com mensagem segura para mostrar ao cliente. */
 export class CheckoutError extends Error {
@@ -151,14 +155,8 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
       }
     }
     const r = row.order_result;
-    // O pedido já foi persistido; falha no Resend não pode desfazer a compra.
-    void sendTransactionalEmail({
-      to: customer.email,
-      template: "order_created",
-      variables: { name: customer.name, order_number: r.number, total: `R$ ${Number(r.total).toFixed(2).replace(".", ",")}` },
-    }).catch((error) => {
-      console.error("[checkout] pedido criado, mas confirmação por e-mail não foi enviada:", error instanceof Error ? error.message : error);
-    });
+    // O pedido já foi persistido; e-mails e webhooks saem depois da resposta e nunca desfazem a compra.
+    notifyLater("order.created", r.number);
     return { number: r.number, token: r.token, total: Number(r.total), subtotal: Number(r.subtotal), discount: Number(r.discount), shipping: Number(r.shipping) };
   } catch (e) {
     throw translateDbError(e);
@@ -216,8 +214,8 @@ async function loadOrder(number: string, token: string) {
 }
 
 async function toDto(sql: Awaited<ReturnType<typeof getSql>>, order: OrderRow): Promise<OrderDto> {
-  const items = await sql.query<{ quantity: number; unit_price: string | number; snapshot: { name: string; image?: string | null; options?: Record<string, string>; condition?: string } }>(
-    "select quantity, unit_price, snapshot from order_items where order_id = $1::uuid order by id",
+  const items = await sql.query<{ quantity: number; unit_price: string | number; slug: string | null; snapshot: { name: string; image?: string | null; options?: Record<string, string>; condition?: string } }>(
+    "select oi.quantity, oi.unit_price, oi.snapshot, (select p.slug from products p where p.id = oi.product_id) as slug from order_items oi where oi.order_id = $1::uuid order by oi.id",
     [order.id],
   );
   // Pagamento que vale: o pago, senão o mais recente.
@@ -249,10 +247,11 @@ async function toDto(sql: Awaited<ReturnType<typeof getSql>>, order: OrderRow): 
     shippingMethod: order.shipping_method,
     etaDays: order.shipping_eta_days,
     placedAt: placed.toISOString(),
-    expiresAt: order.status === "pending_payment" ? new Date(placed.getTime() + ORDER_PAY_WINDOW_MINUTES * 60_000).toISOString() : null,
+    expiresAt: order.status === "pending_payment" || order.status === "payment_failed" ? new Date(placed.getTime() + ORDER_PAY_WINDOW_MINUTES * 60_000).toISOString() : null,
     customer: { name: order.customer_name, email: order.customer_email },
     address: order.shipping_address,
     items: items.map((i) => ({
+      slug: i.slug ?? undefined,
       name: i.snapshot.name,
       image: i.snapshot.image ?? null,
       options: i.snapshot.options ?? {},
@@ -268,12 +267,17 @@ async function toDto(sql: Awaited<ReturnType<typeof getSql>>, order: OrderRow): 
 // ---------------------------------------------------------------------------- pagamento
 const ALLOWED_METHOD = /^[a-z0-9_]{2,30}$/;
 
-function buildMpBody(order: OrderRow, items: { name: string; qty: number; unitPrice: number }[], form: Record<string, unknown>) {
+function buildMpBody(order: OrderRow, items: { name: string; qty: number; unitPrice: number }[], form: Record<string, unknown>, settings: MpSettings) {
   const methodId = str(form.payment_method_id, 30);
   if (!ALLOWED_METHOD.test(methodId)) throw new CheckoutError("Forma de pagamento inválida.");
   const isPix = methodId === "pix";
   const isTicket = methodId === "bolbradesco" || methodId === "boleto";
   const isCard = !isPix && !isTicket;
+  // O Brick informa se o cartão é de débito; os ids de débito do Mercado Pago (debvisa, debmaster, debelo) também começam com "deb".
+  const isDebit = isCard && (str(form.selected_payment_method, 20) === "debit_card" || methodId.startsWith("deb"));
+  if ((isPix && !settings.methods.pix) || (isCard && !isDebit && !settings.methods.credit_card) || (isDebit && !settings.methods.debit_card)) {
+    throw new CheckoutError("Esta forma de pagamento não está disponível no momento. Escolha outra.", 409);
+  }
   // O desconto do pedido pode depender da forma de pagamento escolhida no checkout: pagar de outro jeito não vale.
   const chosen = order.payment_method;
   if (chosen && ((chosen === "pix" && !isPix) || (chosen === "credit_card" && !isCard))) {
@@ -317,14 +321,15 @@ function buildMpBody(order: OrderRow, items: { name: string; qty: number; unitPr
     payment_method_id: methodId,
     payer,
     external_reference: order.number,
-    statement_descriptor: "DINOBLACK",
+    statement_descriptor: settings.statementDescriptor,
     additional_info: { items: items.map((i, n) => ({ id: String(n + 1), title: i.name, quantity: i.qty, unit_price: i.unitPrice })) },
   };
   if (isCard) {
     const token = str(form.token, 120);
     if (!token) throw new CheckoutError("Não foi possível ler os dados do cartão. Confira e tente de novo.");
     body.token = token;
-    body.installments = Math.min(10, Math.max(1, Number(form.installments) || 1));
+    // Débito é sempre à vista; no crédito vale o teto definido no admin.
+    body.installments = isDebit ? 1 : Math.min(settings.maxInstallments, Math.max(1, Number(form.installments) || 1));
     if (form.issuer_id) body.issuer_id = Number(form.issuer_id);
   }
   if (isPix) {
@@ -335,12 +340,23 @@ function buildMpBody(order: OrderRow, items: { name: string; qty: number; unitPr
 }
 
 async function syncPayment(sql: Awaited<ReturnType<typeof getSql>>, number: string, payment: MpPayment) {
-  await sql.query("select sync_mp_payment($1, $2::jsonb) as sync_result", [number, JSON.stringify(toSyncPayload(payment))]);
+  const [row] = await sql.query<{ sync_result: { orderStatus?: string; paymentStatus?: string; duplicate?: boolean } | null }>("select sync_mp_payment($1, $2::jsonb) as sync_result", [number, JSON.stringify(toSyncPayload(payment))]);
+  const result = row?.sync_result;
+  if (!result || result.duplicate) return; // notificação repetida: nada a avisar de novo
+  // Cada mudança vira aviso ao cliente, à equipe e aos webhooks; o pedido cancelado que recebe pagamento tardio só gera alerta no painel.
+  if (result.paymentStatus === "paid" && result.orderStatus === "paid") {
+    void sendMetaPurchase(number); // API de Conversões: não depende de o cliente voltar ao site
+    notifyLater("order.paid", number);
+  } else if (result.paymentStatus === "failed" && (result.orderStatus === "payment_failed" || result.orderStatus === "pending_payment")) {
+    notifyLater("order.payment_failed", number);
+  } else if (result.paymentStatus === "refunded" && result.orderStatus !== "cancelled") {
+    notifyLater("order.refunded", number);
+  }
 }
 
 export async function payOrder(number: string, token: string, form: Record<string, unknown>): Promise<PayResponse> {
   const { sql, order } = await loadOrder(number, token);
-  if (order.status !== "pending_payment") throw new CheckoutError("Este pedido não está aguardando pagamento.", 409);
+  if (order.status !== "pending_payment" && order.status !== "payment_failed") throw new CheckoutError("Este pedido não está aguardando pagamento.", 409);
   if (Date.now() > new Date(order.placed_at).getTime() + ORDER_PAY_WINDOW_MINUTES * 60_000) {
     throw new CheckoutError("O prazo para pagar este pedido terminou. Faça o pedido novamente.", 410);
   }
@@ -349,7 +365,7 @@ export async function payOrder(number: string, token: string, form: Record<strin
     "select quantity, unit_price, snapshot from order_items where order_id = $1::uuid",
     [order.id],
   );
-  const body = buildMpBody(order, items.map((i) => ({ name: i.snapshot.name, qty: i.quantity, unitPrice: Number(i.unit_price) })), form);
+  const body = buildMpBody(order, items.map((i) => ({ name: i.snapshot.name, qty: i.quantity, unitPrice: Number(i.unit_price) })), form, await getMpSettings());
 
   // Mesma chave + mesmo pedido = o Mercado Pago não cobra duas vezes se o cliente clicar de novo.
   const attempt = (await sql.query<{ n: number }>("select count(*)::int as n from payments where order_id = $1::uuid", [order.id]))[0].n;
@@ -392,7 +408,7 @@ function rejectionMessage(detail: string) {
 /** Consulta o pedido e, se houver pagamento pendente no Mercado Pago, confere o status agora (não depende só do webhook). */
 export async function getOrderStatus(number: string, token: string, refresh = true): Promise<OrderDto> {
   const { sql, order } = await loadOrder(number, token);
-  if (refresh && order.status === "pending_payment") {
+  if (refresh && (order.status === "pending_payment" || order.status === "payment_failed")) {
     const pending = await sql.query<{ provider_ref: string }>(
       "select provider_ref from payments where order_id = $1::uuid and provider = 'mercadopago' and status in ('pending','authorized') and provider_ref is not null",
       [order.id],
@@ -414,8 +430,9 @@ export async function getOrderStatus(number: string, token: string, refresh = tr
 /** O cliente desiste ou volta para editar os dados: cancela o pedido pendente e devolve o estoque. */
 export async function cancelPendingOrder(number: string, token: string): Promise<void> {
   const { sql, order } = await loadOrder(number, token);
-  if (order.status !== "pending_payment") throw new CheckoutError("Este pedido não pode mais ser cancelado.", 409);
+  if (order.status !== "pending_payment" && order.status !== "payment_failed") throw new CheckoutError("Este pedido não pode mais ser cancelado.", 409);
   await sql.query("select cancel_order($1::uuid, 'Cancelado pelo cliente no checkout')", [order.id]);
+  notifyLater("order.cancelled", number, { reason: "Cancelado pelo cliente" });
 }
 
 // ---------------------------------------------------------------------------- webhook e rotinas
@@ -434,6 +451,10 @@ export async function handleMpNotification(paymentId: string): Promise<{ handled
 
 export async function expireOrders(minutes = ORDER_PAY_WINDOW_MINUTES): Promise<number> {
   const sql = await getSql();
+  // Quais pedidos vão vencer: a função do banco só devolve a contagem, e cada cancelamento precisa avisar o cliente.
+  const states = (await extendedStatusesSupported()) ? "'pending_payment', 'payment_failed'" : "'pending_payment'";
+  const due = await sql.query<{ number: string }>(`select number from orders where status in (${states}) and placed_at < now() - make_interval(mins => $1::int)`, [minutes]);
   const [row] = await sql.query<{ n: number }>("select expire_pending_orders($1) as n", [minutes]);
+  for (const o of due) notifyLater("order.cancelled", o.number, { reason: "Pagamento não confirmado no prazo" });
   return row.n;
 }

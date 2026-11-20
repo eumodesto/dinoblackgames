@@ -7,10 +7,13 @@ import { usePathname } from "next/navigation";
 export function SiteChrome({
   header,
   footer,
+  scripts,
   children,
 }: {
   header: React.ReactNode;
   footer: React.ReactNode;
+  /** Tags de medição: só carregam na loja, nunca no painel. */
+  scripts?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "";
@@ -19,6 +22,7 @@ export function SiteChrome({
   }
   return (
     <div className="store-shell flex min-h-screen flex-col">
+      {scripts}
       {header}
       <main className="w-full flex-grow pb-16 transition-colors duration-300 lg:pb-0">{children}</main>
       {footer}

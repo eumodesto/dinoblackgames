@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "@/components/admin/BackLink";
+import WebhooksManager from "@/components/admin/WebhooksManager";
+import { IntegrationIcon, type IntegrationSlug } from "@/components/admin/IntegrationIcon";
 
 const TABS = [
   { id: "integracoes", label: "Integrações" },
@@ -11,9 +13,14 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+const INTEGRATIONS: { href: string; title: string; text: string; icons: IntegrationSlug[] }[] = [
+  { href: "/admin/configuracoes/integracoes/mercado-pago", title: "Mercado Pago", text: "Pix, cartão de crédito e débito, webhook, status da conexão e desempenho dos pagamentos.", icons: ["mercadopago"] },
+  { href: "/admin/configuracoes/integracoes/resend", title: "Resend", text: "Remetente e chave para enviar os e-mails da loja.", icons: ["resend"] },
+  { href: "/admin/configuracoes/integracoes/analytics", title: "Analytics e conversões", text: "Google Analytics, Google Ads, Meta (Pixel e API de Conversões) e Microsoft Clarity.", icons: ["googleanalytics", "googleads", "meta", "clarity"] },
+];
+
 // Conteúdo de cada aba. As que ainda não têm página própria mostram o espaço onde a configuração vai entrar.
-const SOON: Record<Exclude<TabId, "integracoes" | "emails">, { title: string; text: string }> = {
-  webhook: { title: "Webhooks", text: "Endereços que recebem avisos da loja (pedido pago, envio, estoque) e a chave de assinatura de cada um." },
+const SOON: Record<Exclude<TabId, "integracoes" | "emails" | "webhook">, { title: string; text: string }> = {
   api: { title: "API", text: "Chaves de acesso, permissões e limites de uso para integrar sistemas externos à loja." },
   evolution: { title: "Evolution", text: "Conexão com a Evolution API para enviar mensagens de WhatsApp, com instância, chave e modelos de mensagem." },
 };
@@ -55,13 +62,20 @@ export default async function SettingsPage({ searchParams }: { searchParams?: Pr
       {tab === "integracoes" && (
         <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Integrações</p>
-          <Link href="/admin/configuracoes/integracoes/email" className="mt-4 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-4 transition hover:border-dino-red">
-            <div>
-              <h2 className="font-bold text-white">E-mail transacional</h2>
-              <p className="mt-1 text-sm text-zinc-500">Resend, remetente e templates de mensagens da loja.</p>
-            </div>
-            <span className="text-xl text-zinc-500">→</span>
-          </Link>
+          <div className="mt-4 grid gap-3">
+            {INTEGRATIONS.map((item) => (
+              <Link key={item.href} href={item.href} className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-950 p-4 transition hover:border-dino-red">
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {item.icons.map((slug) => <IntegrationIcon key={slug} slug={slug} />)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-bold text-white">{item.title}</h2>
+                  <p className="mt-1 text-sm text-zinc-500">{item.text}</p>
+                </div>
+                <span className="text-xl text-zinc-500">→</span>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
 
@@ -70,15 +84,17 @@ export default async function SettingsPage({ searchParams }: { searchParams?: Pr
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Emails</p>
           <Link href="/admin/configuracoes/integracoes/email" className="mt-4 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-4 transition hover:border-dino-red">
             <div>
-              <h2 className="font-bold text-white">Remetente e templates</h2>
-              <p className="mt-1 text-sm text-zinc-500">Configure o remetente, as mensagens enviadas aos clientes e faça envios de teste.</p>
+              <h2 className="font-bold text-white">Templates de e-mail</h2>
+              <p className="mt-1 text-sm text-zinc-500">Edite as mensagens enviadas aos clientes e à equipe e faça envios de teste. O remetente fica em Integrações → Resend.</p>
             </div>
             <span className="text-xl text-zinc-500">→</span>
           </Link>
         </section>
       )}
 
-      {tab !== "integracoes" && tab !== "emails" && <SoonPanel {...SOON[tab]} />}
+      {tab === "webhook" && <WebhooksManager />}
+
+      {tab !== "integracoes" && tab !== "emails" && tab !== "webhook" && <SoonPanel {...SOON[tab]} />}
     </div>
   );
 }

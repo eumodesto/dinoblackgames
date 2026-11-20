@@ -59,7 +59,7 @@ export function PaymentBrick({
   onSubmit,
 }: {
   /** Forma escolhida no checkout: mostra só ela (o desconto do pedido pode depender disso). */
-  method?: "pix" | "credit_card";
+  method?: "pix" | "credit_card" | "debit_card";
   publicKey: string;
   amount: number;
   email?: string;
@@ -85,12 +85,17 @@ export function PaymentBrick({
         controller = await mp.bricks().create("payment", "mp-payment-brick", {
           initialization: { amount, ...(email ? { payer: { email } } : {}) },
           customization: {
-            paymentMethods: method === "pix" ? { bankTransfer: ["pix"] } : method === "credit_card" ? { creditCard: "all", maxInstallments } : { creditCard: "all", bankTransfer: ["pix"], maxInstallments },
+            // "all" libera todas as bandeiras que a conta do Mercado Pago aceita.
+            paymentMethods:
+              method === "pix" ? { bankTransfer: ["pix"] }
+              : method === "credit_card" ? { creditCard: "all", maxInstallments }
+              : method === "debit_card" ? { debitCard: "all" }
+              : { creditCard: "all", debitCard: "all", bankTransfer: ["pix"], maxInstallments },
             visual: { style: { theme: dark ? "dark" : "default" } },
           },
           callbacks: {
             onReady: () => !cancelled && setState("ready"),
-            onSubmit: ({ formData }) => submitRef.current(formData),
+            onSubmit: ({ selectedPaymentMethod, formData }) => submitRef.current({ ...formData, selected_payment_method: selectedPaymentMethod }),
             onError: (e) => {
               console.error("[mercadopago brick]", e);
               if (!cancelled) {
