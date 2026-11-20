@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight, Box, CircleDollarSign, ShoppingBag, TriangleAlert, type LucideIcon } from "lucide-react";
 import { getDashboardKpis } from "@/lib/server/catalog";
+import { getFunnel, resolveRange } from "@/lib/server/analytics";
+import { FunnelPanel } from "@/components/admin/FunnelPanel";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -33,8 +35,11 @@ const QUICK = [
   { href: "/", label: "Abrir loja pública", hint: "Como o cliente vê a loja" },
 ];
 
-export default async function AdminDashboard() {
-  const kpis = await getDashboardKpis();
+export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ periodo?: string; de?: string; ate?: string; dispositivo?: string; origem?: string }> }) {
+  const params = await searchParams;
+  const range = resolveRange(params);
+  const [kpis, funnel] = await Promise.all([getDashboardKpis(), getFunnel(range, { dispositivo: params.dispositivo, origem: params.origem })]);
+  const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -51,6 +56,8 @@ export default async function AdminDashboard() {
         <Kpi label="Produtos publicados" value={kpis.publishedProducts} sub={`${kpis.totalProducts} no total`} icon={Box} />
         <Kpi label="Alertas de estoque" value={kpis.inventoryAlerts} sub="Itens com estoque baixo" icon={TriangleAlert} />
       </div>
+
+      <FunnelPanel funnel={funnel} today={today} />
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
         <section className="gd-panel">

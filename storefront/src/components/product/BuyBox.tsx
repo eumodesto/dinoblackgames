@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useCart } from "@/components/cart-provider";
+import { track } from "@/lib/analytics-client";
 import { formatBRL, type ProductCard } from "@/lib/types";
 import { WhatsAppIcon } from "@/components/icons/social-icons";
 import type { ShippingOption } from "@/lib/shipping";
@@ -98,6 +99,11 @@ export function BuyBox({ product }: { product: BuyBoxProduct }) {
   const soldOut = available === 0;
   const lowStock = available > 0 && available <= 5;
   const [qty, setQty] = useState(1);
+  // produto esgotado visto: separa "perdeu por estoque" de "perdeu por falta de interesse"
+  const soldOutSent = useRef(false);
+  useEffect(() => {
+    if (product.available === 0 && !soldOutSent.current) { soldOutSent.current = true; track("stock_out_view", { slug: product.slug }); }
+  }, [product.available, product.slug]);
   const [added, setAdded] = useState(false);
   const [cep, setCep] = useState("");
   const [cepError, setCepError] = useState("");

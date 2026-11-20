@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { RichText } from "@/components/RichText";
 
 const PREVIEW_PX = 120; // altura do trecho visível quando recolhida
 
@@ -9,7 +10,7 @@ const PREVIEW_PX = 120; // altura do trecho visível quando recolhida
  * esmaecimento no fim (descrições longas não empurram a página). Abre ao tocar no cabeçalho, em
  * "Ver mais" ou pelo link #sobre do menu de seções.
  */
-export function ProductAbout({ paragraphs }: { paragraphs: string[] }) {
+export function ProductAbout({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const [full, setFull] = useState(PREVIEW_PX);
   const inner = useRef<HTMLDivElement>(null);
@@ -40,9 +41,9 @@ export function ProductAbout({ paragraphs }: { paragraphs: string[] }) {
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [paragraphs]);
+  }, [text]);
 
-  if (paragraphs.length === 0) return null;
+  if (!text.trim()) return null;
   const needsToggle = full > PREVIEW_PX + 8; // texto curto cabe inteiro: sem recolher
   const expanded = open || !needsToggle;
 
@@ -76,10 +77,8 @@ export function ProductAbout({ paragraphs }: { paragraphs: string[] }) {
             className="overflow-hidden transition-[max-height] duration-500 ease-out"
             style={{ maxHeight: expanded ? full : PREVIEW_PX }}
           >
-            <div ref={inner} className="max-w-3xl space-y-4 px-5 py-5 text-sm leading-relaxed text-gray-700 sm:px-7 sm:py-6 dark:text-zinc-300">
-              {paragraphs.map((paragraph, index) => (
-                <p key={index} className="whitespace-pre-line break-words">{paragraph}</p>
-              ))}
+            <div ref={inner} className="max-w-3xl px-5 py-5 sm:px-7 sm:py-6">
+              <RichText text={text} />
             </div>
           </div>
           {/* esmaecimento + "Ver mais" no trecho recolhido */}

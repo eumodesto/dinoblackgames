@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSelect } from "./AdminSelect";
+import { RichTextEditor } from "./RichTextEditor";
 import { ProductHighlightsSection, defaultUsage, emptyHighlight, emptyHighlights, isoToLocalInput, localInputToIso, type HighlightUsage, type HighlightsState } from "./ProductHighlightsSection";
 import { normalizeTags, optionCode, parseVideoUrl, specsToText } from "@/lib/catalog-normalize";
 
@@ -254,7 +255,7 @@ export function AdminProductForm({ productId }: { productId?: string }) {
       {field("tagline", "Resumo curto")}
       <label className="block"><span className={label}>Vídeo (YouTube ou Vimeo)</span><input className={input} value={form.videoUrl ?? ""} placeholder="https://www.youtube.com/watch?v=..." onChange={(e) => set("videoUrl", e.target.value)} />
         {form.videoUrl && <span className={`mt-1 block text-xs ${video ? "text-emerald-400" : "text-amber-400"}`}>{video ? `Vídeo reconhecido (${video.provider === "youtube" ? "YouTube" : "Vimeo"}). A loja abre numa janela de reprodução.` : "Link não reconhecido."}</span>}</label>
-      <label className="block md:col-span-2"><span className={label}>Descrição</span><textarea className={`${input} h-40 py-3`} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} /><span className="mt-1 block text-xs text-zinc-500">Texto simples; uma linha em branco separa os parágrafos.</span></label>
+      <RichTextEditor value={form.description ?? ""} onChange={(value) => set("description", value)} />
       <label className="block"><span className={label}>O que vem na caixa</span><textarea className={`${input} h-36 py-3`} value={inBoxText} placeholder={"Um item por linha\nConsole PlayStation 5\nControle DualSense\nCabo HDMI"} onChange={(e) => setInBoxText(e.target.value)} /><span className="mt-1 block text-xs text-zinc-500">Sem itens, a seção não aparece na loja.</span></label>
       <label className="block"><span className={label}>Especificações</span><textarea className={`${input} h-36 py-3 font-mono text-xs`} value={specsText} placeholder={"# Geral\nProcessador: AMD Zen 2\nArmazenamento: 825 GB SSD\n\n# Vídeo\nResolução: até 8K"} onChange={(e) => setSpecsText(e.target.value)} /><span className="mt-1 block text-xs text-zinc-500">&quot;Rótulo: valor&quot; por linha; &quot;# Nome&quot; abre um novo grupo.</span></label>
       <div className="md:col-span-2"><div className="flex items-center justify-between"><span className={label}>Perguntas frequentes</span><button type="button" className={ghost} onClick={() => setFaq((c) => [...c, { q: "", a: "" }])}>+ Pergunta</button></div>

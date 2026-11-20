@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { track } from "@/lib/analytics-client";
 import { useCart } from "@/components/cart-provider";
 import {
   ORDER_PAY_WINDOW_MINUTES,
@@ -214,6 +215,13 @@ export function CheckoutView() {
     };
   }, [cartReady, cartItems, cepOk, cepDigits, coupon, customer.email, paymentMethod]);
 
+  // funil: frete calculado e cupom aplicado (uma vez cada por visita à página)
+  const funnelSent = useRef({ shipping: false, coupon: false });
+  useEffect(() => {
+    if (quote?.shipping.length && !funnelSent.current.shipping) { funnelSent.current.shipping = true; track("shipping_quoted"); }
+    if (quote?.coupon?.ok && !funnelSent.current.coupon) { funnelSent.current.coupon = true; track("coupon_applied"); }
+  }, [quote]);
+
   // escolhe a primeira entrega quando a lista muda
   useEffect(() => {
     if (!quote?.shipping.length) return;
@@ -353,6 +361,7 @@ export function CheckoutView() {
     const placed: PendingOrder = { ...r.data, placedAt: Date.now() };
     setNow(placed.placedAt);
     setOrder(placed);
+    track("payment_created", { value: placed.total });
     try { localStorage.removeItem(COUPON_LINK_KEY); } catch { /* sem armazenamento */ }
     try {
       sessionStorage.setItem(ORDER_KEY, JSON.stringify(placed));

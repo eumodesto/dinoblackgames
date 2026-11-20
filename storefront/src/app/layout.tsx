@@ -4,7 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/header/SiteHeader";
 import { SiteFooter } from "@/components/footer/SiteFooter";
 import { SiteChrome } from "@/components/site-chrome";
+import { Suspense } from "react";
 import { CouponLinkCapture } from "@/components/CouponLinkCapture";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +39,7 @@ export default function RootLayout({
               {children}
             </SiteChrome>
             <CouponLinkCapture />
+            <Suspense fallback={null}><AnalyticsTracker /></Suspense>
           </CartProvider>
         </ThemeProvider>
       </body>

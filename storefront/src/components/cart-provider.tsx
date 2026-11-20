@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { ProductCard } from "@/lib/types";
+import { track } from "@/lib/analytics-client";
 
 export type CartLine = {
   key: string;
@@ -114,6 +115,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback((product: ProductCard, extras?: { color?: string; storage?: string; condition?: string; qty?: number }) => {
     const key = lineKey(product.slug, extras?.color, extras?.storage, extras?.condition);
     const add = Math.max(1, Math.min(MAX_QTY, extras?.qty ?? 1));
+    track("add_to_cart", { slug: product.slug, value: product.price * add });
     setItems((prev) => {
       const existing = prev.find((l) => l.key === key);
       if (existing) {

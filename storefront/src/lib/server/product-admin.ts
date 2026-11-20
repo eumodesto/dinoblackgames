@@ -99,7 +99,7 @@ export async function saveAdminProduct(body: Record<string, unknown>, id?: strin
     ...(id ? { id } : {}), name, categoryId: categoryId || undefined, productType, typeLabel: TYPE_LABEL[productType], condition, status, visibility,
     sku: text(body.sku) || undefined, slug: id ? undefined : text(body.slug) || slugify(name),
     brand: text(body.brand), platform: text(body.platform), releaseYear: text(body.releaseYear),
-    tagline: text(body.tagline), description: text(body.description), badge: text(body.badge),
+    tagline: text(body.tagline), description: text(body.description).slice(0, 20000), badge: text(body.badge),
     warrantyMonths: Math.max(0, Math.trunc(Number(body.warrantyMonths) || 0)), warrantyText: text(body.warrantyText),
     seoTitle: text(body.seoTitle), seoDescription: text(body.seoDescription), videoUrl: video?.url ?? "",
     // O formulário manda texto/listas simples; só gravamos o que sobrevive à validação.

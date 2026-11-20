@@ -14,7 +14,6 @@ import {
   getRelatedProducts,
 } from "@/lib/server/catalog";
 import { WA_SELL_USED } from "@/lib/whatsapp";
-import { groupParagraphs } from "@/lib/catalog-normalize";
 
 const CONDITION_LABEL: Record<string, string> = {
   novo: "Novo",
@@ -209,7 +208,7 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
       </Block>
 
-      {product.description && <ProductAbout paragraphs={groupParagraphs(product.description)} />}
+      {product.description && <ProductAbout text={product.description} />}
 
       {product.unit && (
         <Block
