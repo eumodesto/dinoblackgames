@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackLink } from "@/components/admin/BackLink";
 
 const TABS = [
   { id: "integracoes", label: "Integrações" },
@@ -36,6 +37,7 @@ export default async function SettingsPage({ searchParams }: { searchParams?: Pr
 
   return (
     <div className="space-y-6">
+      <BackLink href="/admin">Voltar para o painel</BackLink>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-dino-red">Administração</p>
         <h1 className="mt-2 font-display text-3xl font-black text-white">Configurações</h1>

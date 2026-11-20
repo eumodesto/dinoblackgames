@@ -1,3 +1,4 @@
+import { BackLink } from "@/components/admin/BackLink";
 import EmailIntegrationForm from "@/components/admin/EmailIntegrationForm";
 
 export const dynamic = "force-dynamic";
@@ -5,6 +6,7 @@ export const dynamic = "force-dynamic";
 export default function EmailIntegrationPage() {
   return (
     <div className="max-w-6xl space-y-8">
+      <BackLink href="/admin/configuracoes">Voltar para configurações</BackLink>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-dino-red">Configurações · Integrações</p>
         <h1 className="mt-2 font-display text-3xl font-black text-white">E-mail transacional</h1>
