@@ -1,23 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { FunnelChart, type FunnelStage } from "@/components/ui/funnel-chart";
 
 export type FunnelVizStep = { short: string; count: number; title?: string };
 
 const pct = (p: number) => (p > 0 && p < 1 ? "<1%" : p < 10 && p % 1 !== 0 ? `${p.toFixed(1).replace(".", ",")}%` : `${Math.round(p)}%`);
 
-/** Funil visual compacto: horizontal em telas largas e vertical no celular. O % de cada etapa é sobre as sessões. */
+/** Funil visual compacto, sempre na horizontal (em telas estreitas rola de lado). O % de cada etapa é sobre as sessões. */
 export function FunnelViz({ steps }: { steps: FunnelVizStep[] }) {
-  const [wide, setWide] = useState(true);
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 900px)");
-    const update = () => setWide(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
   const top = steps[0]?.count ?? 0;
   if (top <= 0) return null;
   // A forma nunca passa da largura inicial (pedido pago sem sessão rastreada); o número exibido é o real.
@@ -30,19 +20,21 @@ export function FunnelViz({ steps }: { steps: FunnelVizStep[] }) {
   }));
 
   return (
-    <div className={wide ? "mx-auto w-full" : "mx-auto w-[70%] max-w-xs"}>
+    <div className="scrollbar-none mx-auto w-full overflow-x-auto">
+      <div className="mx-auto min-w-[620px] w-full">
       <FunnelChart
         data={data}
-        orientation={wide ? "horizontal" : "vertical"}
+        orientation="horizontal"
         color="var(--gd-coral)"
         layers={3}
-        gap={wide ? 3 : 4}
+        gap={3}
         labelLayout="grouped"
         labelAlign="center"
         labelOrientation="vertical"
         formatPercentage={pct}
-        style={wide ? { aspectRatio: "5 / 1" } : { aspectRatio: "1 / 2" }}
+        style={{ aspectRatio: "5 / 1" }}
       />
+      </div>
     </div>
   );
 }
