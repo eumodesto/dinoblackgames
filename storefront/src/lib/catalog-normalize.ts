@@ -142,3 +142,49 @@ export function seoImageName(productName: string, index: number, ext = "webp"): 
   const slug = slugify(productName).slice(0, 80).replace(/-+$/, "") || "produto";
   return `${slug}-${index + 1}.${ext}`;
 }
+
+// ---------------------------------------------------------------------------- especificações (texto ⇄ grupos)
+export type SpecGroupData = { group: string; rows: [string, string][] };
+
+/**
+ * Texto do admin → grupos de especificações. Uma linha "Rótulo: valor" é uma linha da tabela;
+ * uma linha "# Nome" começa um novo grupo (sem ela, tudo fica em "Especificações").
+ */
+export function parseSpecsText(text: string): SpecGroupData[] {
+  const groups: SpecGroupData[] = [];
+  let current: SpecGroupData | null = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith("#")) {
+      current = { group: line.replace(/^#+\s*/, "").slice(0, 80) || "Especificações", rows: [] };
+      groups.push(current);
+      continue;
+    }
+    const i = line.indexOf(":");
+    if (i < 1) continue;
+    if (!current) { current = { group: "Especificações", rows: [] }; groups.push(current); }
+    current.rows.push([line.slice(0, i).trim().slice(0, 80), line.slice(i + 1).trim().slice(0, 300)]);
+  }
+  return groups.filter((g) => g.rows.length > 0);
+}
+
+/**
+ * Descrição em texto → parágrafos para exibir. Linhas em branco separam blocos, mas itens de lista
+ * seguidos ("- item", "• item") ficam juntos num bloco só, em vez de um parágrafo por item.
+ */
+export function groupParagraphs(text: string): string[] {
+  const blocks = text.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const out: string[] = [];
+  const isItem = (b: string) => /^[-•*]\s/.test(b);
+  for (const block of blocks) {
+    const last = out[out.length - 1];
+    if (last !== undefined && isItem(block) && isItem(last.split("\n")[0])) out[out.length - 1] = `${last}\n${block}`;
+    else out.push(block);
+  }
+  return out;
+}
+
+export function specsToText(groups: SpecGroupData[] | null | undefined): string {
+  return (groups ?? []).map((g) => `# ${g.group}\n${g.rows.map(([k, v]) => `${k}: ${v}`).join("\n")}`).join("\n\n");
+}

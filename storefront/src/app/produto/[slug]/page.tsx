@@ -14,6 +14,7 @@ import {
   getRelatedProducts,
 } from "@/lib/server/catalog";
 import { WA_SELL_USED } from "@/lib/whatsapp";
+import { groupParagraphs } from "@/lib/catalog-normalize";
 
 const CONDITION_LABEL: Record<string, string> = {
   novo: "Novo",
@@ -21,9 +22,6 @@ const CONDITION_LABEL: Record<string, string> = {
   raridade: "Raridade",
   pre_venda: "Pré-venda",
 };
-
-/** Parágrafos da descrição: linhas em branco separam blocos. */
-const PARAGRAPH_BREAK = /\n\s*\n/;
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -211,7 +209,7 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
       </Block>
 
-      {product.description && <ProductAbout paragraphs={product.description.split(PARAGRAPH_BREAK).filter((p) => p.trim())} />}
+      {product.description && <ProductAbout paragraphs={groupParagraphs(product.description)} />}
 
       {product.unit && (
         <Block

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSelect } from "./AdminSelect";
 import { ProductHighlightsSection, defaultUsage, emptyHighlight, emptyHighlights, isoToLocalInput, localInputToIso, type HighlightUsage, type HighlightsState } from "./ProductHighlightsSection";
-import { normalizeTags, optionCode, parseVideoUrl } from "@/lib/catalog-normalize";
+import { normalizeTags, optionCode, parseVideoUrl, specsToText } from "@/lib/catalog-normalize";
 
 type Meta = { categories: { id: string; name: string }[]; locations: { id: string; name: string }[]; tags: string[] };
 type Media = { url: string; alt: string; width?: number | null; height?: number | null; bytes?: number | null };
@@ -56,6 +56,9 @@ export function AdminProductForm({ productId }: { productId?: string }) {
   const [tagDraft, setTagDraft] = useState("");
   const [options, setOptions] = useState<OptionDef[]>([]);
   const [variants, setVariants] = useState<VariantRow[]>([emptyVariant()]);
+  const [inBoxText, setInBoxText] = useState("");
+  const [specsText, setSpecsText] = useState("");
+  const [faq, setFaq] = useState<{ q: string; a: string }[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/products").then((r) => r.json()).then((data) => { setMeta({ categories: data.categories ?? [], locations: data.locations ?? [], tags: data.tags ?? [] }); if (!productId && data.highlightUsage) setUsage(data.highlightUsage); }).catch(() => setMessage("Não foi possível carregar categorias."));
@@ -76,6 +79,9 @@ export function AdminProductForm({ productId }: { productId?: string }) {
         warrantyMonths: String(p.warranty_months ?? 12), warrantyText: p.warranty_text ?? "", videoUrl: p.video_url ?? "", badge: p.badge ?? "",
         weightGrams: first.weight_grams ? String(first.weight_grams) : "", widthMm: first.width_mm ? String(first.width_mm) : "", heightMm: first.height_mm ? String(first.height_mm) : "", lengthMm: first.length_mm ? String(first.length_mm) : "", locationId: "",
       });
+      setInBoxText(((p.in_box ?? []) as string[]).join("\n"));
+      setSpecsText(specsToText(p.specs));
+      setFaq(((p.faq ?? []) as { q: string; a: string }[]).map((f) => ({ q: f.q, a: f.a })));
       setMedia((data.media ?? []).map((m: Media) => ({ url: m.url, alt: m.alt, width: m.width, height: m.height, bytes: m.bytes })));
       setTags(data.tags ?? []);
       setOptions((data.options ?? []).map((o: { code: string; name: string; values: string[] }) => ({ code: o.code, name: o.name, values: o.values, draft: "" })));
@@ -132,13 +138,12 @@ export function AdminProductForm({ productId }: { productId?: string }) {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setMessage("");
-    const spec = Object.entries(form).filter(([key, value]) => ["model", "cpu", "gpu", "ram", "storage", "screen", "connection", "compatibility", "edition", "language", "classification", "powerSupply", "operatingSystem"].includes(key) && value);
     const usableOptions = options.filter((o) => o.name.trim() && o.values.length).map(({ code, name, values }) => ({ code: code || optionCode(name), name: name.trim(), values }));
     const body = {
       ...form, productType: type, tags, media, options: usableOptions, locationId: form.locationId || undefined,
       variants: variants.map((v) => ({ id: v.id, sku: v.sku, options: v.options, price: v.price, compareAt: v.compareAt, stock: v.stock, minStock: v.minStock, maxInstallments: v.maxInstallments })),
       homeHighlights: { hero: { ...highlights.hero }, flash: { ...highlights.flash, endsAt: localInputToIso(highlights.flash.endsAt) } },
-      ...(spec.length ? { specs: [{ group: "Especificações principais", rows: spec }] } : {}),
+      specsText, inBox: inBoxText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), faq,
     };
     const response = await fetch(productId ? `/api/admin/products/${productId}` : "/api/admin/products", { method: productId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await response.json();
@@ -250,6 +255,15 @@ export function AdminProductForm({ productId }: { productId?: string }) {
       <label className="block"><span className={label}>Vídeo (YouTube ou Vimeo)</span><input className={input} value={form.videoUrl ?? ""} placeholder="https://www.youtube.com/watch?v=..." onChange={(e) => set("videoUrl", e.target.value)} />
         {form.videoUrl && <span className={`mt-1 block text-xs ${video ? "text-emerald-400" : "text-amber-400"}`}>{video ? `Vídeo reconhecido (${video.provider === "youtube" ? "YouTube" : "Vimeo"}). A loja abre numa janela de reprodução.` : "Link não reconhecido."}</span>}</label>
       <label className="block md:col-span-2"><span className={label}>Descrição</span><textarea className={`${input} h-40 py-3`} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} /><span className="mt-1 block text-xs text-zinc-500">Texto simples; uma linha em branco separa os parágrafos.</span></label>
+      <label className="block"><span className={label}>O que vem na caixa</span><textarea className={`${input} h-36 py-3`} value={inBoxText} placeholder={"Um item por linha\nConsole PlayStation 5\nControle DualSense\nCabo HDMI"} onChange={(e) => setInBoxText(e.target.value)} /><span className="mt-1 block text-xs text-zinc-500">Sem itens, a seção não aparece na loja.</span></label>
+      <label className="block"><span className={label}>Especificações</span><textarea className={`${input} h-36 py-3 font-mono text-xs`} value={specsText} placeholder={"# Geral\nProcessador: AMD Zen 2\nArmazenamento: 825 GB SSD\n\n# Vídeo\nResolução: até 8K"} onChange={(e) => setSpecsText(e.target.value)} /><span className="mt-1 block text-xs text-zinc-500">&quot;Rótulo: valor&quot; por linha; &quot;# Nome&quot; abre um novo grupo.</span></label>
+      <div className="md:col-span-2"><div className="flex items-center justify-between"><span className={label}>Perguntas frequentes</span><button type="button" className={ghost} onClick={() => setFaq((c) => [...c, { q: "", a: "" }])}>+ Pergunta</button></div>
+        {faq.map((item, i) => <div key={i} className="mt-2 grid gap-2 rounded-xl border border-zinc-800 bg-zinc-950 p-3 md:grid-cols-[1fr_1.4fr_auto]">
+          <input aria-label={`Pergunta ${i + 1}`} className={cell} value={item.q} placeholder="Pergunta" onChange={(e) => setFaq((c) => c.map((f, j) => (j === i ? { ...f, q: e.target.value } : f)))} />
+          <input aria-label={`Resposta ${i + 1}`} className={cell} value={item.a} placeholder="Resposta" onChange={(e) => setFaq((c) => c.map((f, j) => (j === i ? { ...f, a: e.target.value } : f)))} />
+          <button type="button" className={ghost} onClick={() => setFaq((c) => c.filter((_, j) => j !== i))} aria-label="Remover pergunta">✕</button>
+        </div>)}
+        <span className="mt-1 block text-xs text-zinc-500">Sem perguntas, a seção não aparece na loja.</span></div>
       <div className="md:col-span-2"><span className={label}>Tags</span>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-950 p-2">
           {tags.map((tag) => <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs text-white">{tag}<button type="button" aria-label={`Remover ${tag}`} className="text-zinc-400 hover:text-red-400" onClick={() => setTags((c) => c.filter((t) => t !== tag))}>✕</button></span>)}

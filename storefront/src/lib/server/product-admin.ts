@@ -1,7 +1,7 @@
 import "server-only";
 import { CheckoutError } from "./checkout";
 import { getSql } from "./sql";
-import { normalizeTags, parseVideoUrl, slugify } from "../catalog-normalize";
+import { normalizeTags, parseSpecsText, parseVideoUrl, slugify } from "../catalog-normalize";
 import { applyProductHighlights, prepareProductHighlights } from "./highlights";
 
 export const PRODUCT_TYPES = ["console", "jogo", "acessorio", "pc", "notebook", "periferico", "retro", "gift", "hardware"] as const;
@@ -102,7 +102,12 @@ export async function saveAdminProduct(body: Record<string, unknown>, id?: strin
     tagline: text(body.tagline), description: text(body.description), badge: text(body.badge),
     warrantyMonths: Math.max(0, Math.trunc(Number(body.warrantyMonths) || 0)), warrantyText: text(body.warrantyText),
     seoTitle: text(body.seoTitle), seoDescription: text(body.seoDescription), videoUrl: video?.url ?? "",
-    specs: Array.isArray(body.specs) ? body.specs : undefined,
+    // O formulário manda texto/listas simples; só gravamos o que sobrevive à validação.
+    specs: typeof body.specsText === "string" ? parseSpecsText(body.specsText) : undefined,
+    inBox: Array.isArray(body.inBox) ? body.inBox.map((i) => text(i).slice(0, 160)).filter(Boolean).slice(0, 40) : undefined,
+    faq: Array.isArray(body.faq)
+      ? body.faq.map((f) => ({ q: text((f as Record<string, unknown>)?.q).slice(0, 200), a: text((f as Record<string, unknown>)?.a).slice(0, 1000) })).filter((f) => f.q && f.a).slice(0, 30)
+      : undefined,
     tags, media, options, variants, locationId: text(body.locationId) || undefined,
   };
   const sql = await getSql();
