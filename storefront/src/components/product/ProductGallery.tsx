@@ -11,6 +11,16 @@ export function ProductGallery({ images, badge }: { images: GalleryImage[]; badg
   const current = images[index];
   const total = images.length;
 
+  // Produto cadastrado sem imagem: mostra um espaço reservado em vez de quebrar a página.
+  if (!current) {
+    return (
+      <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-950 text-sm font-semibold text-zinc-500 lg:aspect-square xl:aspect-[4/3]">
+        {badge && <span className="absolute left-4 top-4 rounded-full bg-gradient-to-r from-dino-red to-rose-600 px-3 py-1 text-[11px] font-black text-white">{badge}</span>}
+        Sem imagem
+      </div>
+    );
+  }
+
   const go = (dir: number) => setIndex((i) => (i + dir + total) % total);
 
   function onKey(e: KeyboardEvent<HTMLDivElement>) {

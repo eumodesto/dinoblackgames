@@ -77,18 +77,23 @@ export function parseAddress(raw: unknown, fallbackRecipient: string, fallbackPh
 }
 
 // ---------------------------------------------------------------------------- cotação
+/** Só Pix e cartão: o boleto ainda não é aceito. Qualquer outro valor vira "não escolhido". */
+export function parsePaymentMethod(value: unknown): "pix" | "credit_card" | null {
+  return value === "pix" || value === "credit_card" ? value : null;
+}
+
 const itemsJson = (items: CartItemInput[]) => JSON.stringify(items.map(({ slug, color, storage, qty }) => ({ slug, color, storage, qty })));
 
 type QuoteLineServer = QuoteLine & { variantId?: string; weightGrams?: number };
 type QuoteRow = Omit<QuoteResponse, "shipping" | "lines"> & { lines: QuoteLineServer[] };
 
-export async function quote(items: CartItemInput[], cep: string | null, coupon: string | null, email: string | null): Promise<QuoteResponse> {
+export async function quote(items: CartItemInput[], cep: string | null, coupon: string | null, email: string | null, paymentMethod: string | null = null): Promise<QuoteResponse> {
   const sql = await getSql();
-  const [row] = await sql.query<{ r: QuoteRow }>(
-    "select checkout_quote($1::jsonb, $2, null, $3) as r",
-    [itemsJson(items), coupon, email],
+  const [row] = await sql.query<{ quote_result: QuoteRow }>(
+    "select checkout_quote($1::jsonb, $2, null, $3, $4) as quote_result",
+    [itemsJson(items), coupon, email, parsePaymentMethod(paymentMethod)],
   );
-  const r = row.r;
+  const r = row.quote_result;
   const lines = (r.lines ?? []) as QuoteLineServer[];
   const shipping = cep
     ? await quoteShippingOptions(
@@ -115,7 +120,8 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
 
   const sql = await getSql();
   // O frete que vale é o do servidor, recalculado pelo CEP e pelo peso real dos itens.
-  const q = await quote(items, address.cep, null, customer.email);
+  const paymentMethod = parsePaymentMethod(req.paymentMethod);
+  const q = await quote(items, address.cep, null, customer.email, paymentMethod);
   if (!q.allOk) {
     const bad = q.lines.find((l) => !l.ok);
     throw new CheckoutError(`${bad?.name ?? bad?.slug}: ${bad?.reason ?? "indisponível"}`, 409);
@@ -124,9 +130,9 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
   if (!ship) throw new CheckoutError("Escolha uma forma de entrega.");
 
   try {
-    const [row] = await sql.query<{ r: { number: string; token: string; total: string | number; subtotal: string | number; discount: string | number; shipping: string | number } }>(
-      "select create_checkout_order($1::jsonb, $2::jsonb, $3::jsonb, $4, $5, $6, $7, $8, null) as r",
-      [itemsJson(items), JSON.stringify(customer), JSON.stringify(address), ship.name, ship.price, ship.etaDays, str(req.coupon, 40) || null, true],
+    const [row] = await sql.query<{ order_result: { number: string; token: string; total: string | number; subtotal: string | number; discount: string | number; shipping: string | number } }>(
+      "select create_checkout_order($1::jsonb, $2::jsonb, $3::jsonb, $4, $5, $6, $7, $8, null, $9) as order_result",
+      [itemsJson(items), JSON.stringify(customer), JSON.stringify(address), ship.name, ship.price, ship.etaDays, str(req.coupon, 40) || null, true, paymentMethod],
     );
     if (req.marketingOptIn) {
       try {
@@ -144,7 +150,7 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
         );
       }
     }
-    const r = row.r;
+    const r = row.order_result;
     // O pedido já foi persistido; falha no Resend não pode desfazer a compra.
     void sendTransactionalEmail({
       to: customer.email,
@@ -161,7 +167,12 @@ export async function createOrder(req: OrderRequest): Promise<OrderCreated> {
 
 /** Erros que o banco levanta de propósito viram mensagens para o cliente; o resto não vaza. */
 function translateDbError(e: unknown): Error {
-  const msg = e instanceof Error ? e.message : String(e);
+  let msg = e instanceof Error ? e.message : String(e);
+  // No caminho REST o erro chega como "exec_sql 400: {...json do PostgREST...}": fica só a mensagem que o banco levantou.
+  const rest = /^exec_sql \d+: (\{[\s\S]*\})$/.exec(msg);
+  if (rest) {
+    try { msg = (JSON.parse(rest[1]) as { message?: string }).message ?? msg; } catch { /* mantém o texto original */ }
+  }
   const known = [/estoque insuficiente/i, /Sem estoque/, /não está mais disponível/, /Unidade única/, /Cupom/i, /cupom/i, /Pré-venda/, /indisponível/i, /termos/i, /e-mail/i];
   if (known.some((k) => k.test(msg))) return new CheckoutError(msg.replace(/^error: /i, ""), 409);
   console.error("[checkout] erro inesperado no banco:", msg);
@@ -184,6 +195,8 @@ type OrderRow = {
   customer_email: string | null;
   customer_phone: string | null;
   shipping_address: Partial<AddressInput> | null;
+  /** Forma de pagamento escolhida no checkout (cupons por forma de pagamento). */
+  payment_method: "pix" | "credit_card" | "boleto" | null;
 };
 type PaymentRow = {
   provider_ref: string | null;
@@ -261,6 +274,12 @@ function buildMpBody(order: OrderRow, items: { name: string; qty: number; unitPr
   const isPix = methodId === "pix";
   const isTicket = methodId === "bolbradesco" || methodId === "boleto";
   const isCard = !isPix && !isTicket;
+  // O desconto do pedido pode depender da forma de pagamento escolhida no checkout: pagar de outro jeito não vale.
+  const chosen = order.payment_method;
+  if (chosen && ((chosen === "pix" && !isPix) || (chosen === "credit_card" && !isCard))) {
+    const label = chosen === "pix" ? "Pix" : "cartão de crédito";
+    throw new CheckoutError(`Este pedido foi feito para pagamento via ${label}. Pague dessa forma ou refaça o pedido escolhendo outra.`, 409);
+  }
   // Boleto fica fora até existir uma reserva de estoque mais longa que os 30 minutos do Pix e do cartão.
   if (isTicket) throw new CheckoutError("Boleto ainda não está disponível. Use cartão ou Pix.");
 
@@ -316,7 +335,7 @@ function buildMpBody(order: OrderRow, items: { name: string; qty: number; unitPr
 }
 
 async function syncPayment(sql: Awaited<ReturnType<typeof getSql>>, number: string, payment: MpPayment) {
-  await sql.query("select sync_mp_payment($1, $2::jsonb) as r", [number, JSON.stringify(toSyncPayload(payment))]);
+  await sql.query("select sync_mp_payment($1, $2::jsonb) as sync_result", [number, JSON.stringify(toSyncPayload(payment))]);
 }
 
 export async function payOrder(number: string, token: string, form: Record<string, unknown>): Promise<PayResponse> {

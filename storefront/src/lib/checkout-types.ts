@@ -23,7 +23,21 @@ export type QuoteLine = {
   reason?: string | null;
 };
 
-export type CouponResult = { ok: boolean; message: string; code?: string; discount?: number };
+/** Formas de pagamento que o checkout oferece (boleto fica fora por enquanto). */
+export type CheckoutPaymentMethod = "pix" | "credit_card";
+
+export type CouponResult = {
+  ok: boolean;
+  message: string;
+  code?: string;
+  discount?: number;
+  /** Nome do cupom (ex.: "10% no Pix"). */
+  title?: string | null;
+  /** true quando o desconto entrou sozinho, sem o cliente digitar código. */
+  auto?: boolean;
+  /** Motivo de o código digitado não ter servido (quando um desconto automático entrou no lugar). */
+  rejected?: string;
+};
 
 export type ShippingChoice = {
   id: string;
@@ -66,6 +80,8 @@ export type OrderRequest = {
   address: AddressInput;
   shippingId: string;
   coupon?: string;
+  /** Forma de pagamento escolhida; cupons por forma de pagamento dependem dela. */
+  paymentMethod?: CheckoutPaymentMethod;
   acceptTerms: boolean;
   marketingOptIn?: boolean;
 };
