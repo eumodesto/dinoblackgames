@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-const CATEGORIES = [
-  { id: "consoles", name: "Consoles", href: "/loja?categoria=consoles" },
-  { id: "pc-gamer", name: "PC Gamer", href: "/loja?categoria=pc-gamer" },
-  { id: "retro", name: "Retro", href: "/loja?categoria=retro" },
-  { id: "notebooks", name: "Notebooks", href: "/loja?categoria=notebooks" },
-];
-
+import { useStoreCategories } from "./useStoreCategories";
 const NAV_LINKS = [
   { label: "Início", href: "/" },
   { label: "Loja", href: "/loja" },
@@ -20,6 +14,7 @@ import {
 } from "@/components/icons/align-right-icon";
 
 export function CategoriesNav() {
+  const { categories: CATEGORIES, ready } = useStoreCategories();
   const [open, setOpen] = useState(false);
   const menuIconRef = useRef<AlignRightIconHandle>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -62,6 +57,9 @@ export function CategoriesNav() {
                 Categorias de produtos
               </div>
               <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+                {ready && CATEGORIES.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-gray-500 dark:text-zinc-400">Nenhuma categoria disponível.</p>
+                )}
                 {CATEGORIES.map((cat) => (
                   <a
                     key={cat.id}

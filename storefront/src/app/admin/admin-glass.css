@@ -407,3 +407,12 @@
 .gd-ac-item svg { inline-size: 14px; block-size: 14px; color: var(--gd-coral); flex: none; }
 .gd-ac-empty { padding: 10px; color: var(--gd-muted); font-size: 12px; }
 .gd-ac-empty:empty { display: none; }
+
+/* Atalho "Voltar" no topo das páginas de detalhe/edição. */
+.gd-back {
+  display: inline-flex; align-items: center; gap: 6px; inline-size: fit-content; min-block-size: 34px; padding: 6px 12px 6px 9px;
+  border: 1px solid var(--gd-line); border-radius: 999px; background: var(--gd-inner); color: var(--gd-ink);
+  font-size: 12px; font-weight: 750; box-shadow: inset 0 1px 0 var(--gd-gloss); transition: background .15s ease;
+}
+.gd-back:hover { background: var(--gd-raised); }
+.gd-back svg { inline-size: 14px; block-size: 14px; }

@@ -2,13 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-const CATEGORIES = [
-  { id: "consoles", name: "Consoles", href: "/loja?categoria=consoles" },
-  { id: "pc-gamer", name: "PC Gamer", href: "/loja?categoria=pc-gamer" },
-  { id: "retro", name: "Retro", href: "/loja?categoria=retro" },
-  { id: "notebooks", name: "Notebooks", href: "/loja?categoria=notebooks" },
-];
-
+import { useStoreCategories } from "./useStoreCategories";
 const TRENDING_SEARCHES = [
   "PlayStation 5",
   "Switch OLED",
@@ -18,14 +12,6 @@ const TRENDING_SEARCHES = [
   "Retro",
 ];
 
-const POPULAR_SEARCH_CATEGORIES = [
-  "Consoles",
-  "Nintendo",
-  "PlayStation",
-  "PC Gamer",
-  "Notebooks",
-  "Retro",
-];
 import {
   AlignRightIcon,
   type AlignRightIconHandle,
@@ -37,6 +23,7 @@ type SearchBarProps = {
 };
 
 export function SearchBar({ withCategories = false }: SearchBarProps) {
+  const { categories: CATEGORIES, ready: categoriesReady } = useStoreCategories();
   const [open, setOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -166,6 +153,9 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
             Categorias de produtos
           </div>
           <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            {categoriesReady && CATEGORIES.length === 0 && (
+              <p className="px-4 py-3 text-sm text-gray-500 dark:text-zinc-400">Nenhuma categoria disponível.</p>
+            )}
             {CATEGORIES.map((cat) => (
               <a
                 key={cat.id}
@@ -216,14 +206,14 @@ export function SearchBar({ withCategories = false }: SearchBarProps) {
               Categorias populares
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-              {POPULAR_SEARCH_CATEGORIES.map((cat) => (
+              {CATEGORIES.slice(0, 6).map((cat) => (
                 <a
-                  key={cat}
-                  href={`/loja?categoria=${cat.toLowerCase().replace(/\s+/g, "-")}`}
+                  key={cat.id}
+                  href={cat.href}
                   className="flex items-center gap-2 text-sm font-medium text-gray-800 transition hover:text-dino-red dark:text-zinc-200"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-dino-red" />
-                  {cat}
+                  {cat.name}
                 </a>
               ))}
             </div>

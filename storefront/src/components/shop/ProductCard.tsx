@@ -47,7 +47,7 @@ export function ShopProductCard({ product, priority = false }: { product: ShopIt
       </div>
 
       <div className="pointer-events-none relative z-10 mt-auto flex flex-col text-left">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{product.category}</p>
+        {product.category && <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{product.category}</p>}
         <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white drop-shadow-md transition-colors group-hover:text-dino-red sm:text-base">
           {product.name}
         </h3>

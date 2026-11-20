@@ -210,6 +210,17 @@ export type ShopFilters = {
   collectionSlug?: string;
 };
 
+/** Categorias ocultas no admin (is_active = false): o nome não aparece em cartões nem na página do produto. */
+async function hiddenCategorySlugs(): Promise<Set<string>> {
+  const sql = await getSql();
+  const rows = await sql.query<{ slug: string }>("select slug from categories where not is_active");
+  return new Set(rows.map((r) => r.slug));
+}
+
+function maskHiddenCategory(items: ProductListing[], hidden: Set<string>): ProductListing[] {
+  return hidden.size === 0 ? items : items.map((item) => (hidden.has(item.categorySlug) ? { ...item, categoryName: "" } : item));
+}
+
 export async function getProductListings(filters: ShopFilters = {}): Promise<ProductListing[]> {
   const sql = await getSql();
   const conditions: string[] = [];
@@ -281,7 +292,7 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
     `select * from v_product_listing ${where} order by ${orderBy} ${limit}`,
     params,
   );
-  return rows.map(toListing);
+  return maskHiddenCategory(rows.map(toListing), await hiddenCategorySlugs());
 }
 
 export async function getProductCount(): Promise<number> {
@@ -342,7 +353,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   if (!product) return null;
 
   const [category] = await sql.query<{ slug: string; name: string }>(
-    "select slug, name from categories where id = $1",
+    "select slug, case when is_active then name else '' end as name from categories where id = $1",
     [product.category_id],
   );
 
@@ -467,7 +478,7 @@ export async function getRelatedProducts(productId: string, categorySlug: string
      (select * from v_product_listing where category_slug != $1 and id != $2 order by sold_count desc limit $3)`,
     [categorySlug, productId, limit],
   );
-  return rows.slice(0, limit).map(toListing);
+  return maskHiddenCategory(rows.slice(0, limit).map(toListing), await hiddenCategorySlugs());
 }
 
 // ---------------------------------------------------------------------------

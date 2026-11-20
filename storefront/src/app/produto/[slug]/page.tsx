@@ -147,12 +147,16 @@ export default async function ProductPage({ params }: PageProps) {
         <ol className="flex flex-wrap items-center gap-1.5">
           <li><Link href="/" className="hover:text-dino-red">Início</Link></li>
           <li aria-hidden>›</li>
-          <li>
-            <a href={`/loja?categoria=${product.categorySlug}`} className="hover:text-dino-red">
-              {product.categoryName}
-            </a>
-          </li>
-          <li aria-hidden>›</li>
+          {product.categoryName && (
+            <>
+              <li>
+                <a href={`/loja?categoria=${product.categorySlug}`} className="hover:text-dino-red">
+                  {product.categoryName}
+                </a>
+              </li>
+              <li aria-hidden>›</li>
+            </>
+          )}
           <li aria-current="page" className="font-semibold text-gray-800 dark:text-zinc-200">{product.name}</li>
         </ol>
       </nav>
