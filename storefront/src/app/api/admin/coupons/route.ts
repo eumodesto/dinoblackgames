@@ -1,9 +1,20 @@
 import { handle, json, readJson, requireAdminSession } from "@/lib/server/api";
-import { getSql } from "@/lib/server/sql";
+import { createCoupon, listCoupons, parseCouponInput } from "@/lib/server/coupons";
 
-function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
-function nullableDate(value: unknown) { const v = text(value); return v ? v : null; }
+export async function GET() {
+  return handle(async () => {
+    const unauthorized = await requireAdminSession();
+    if (unauthorized) return unauthorized;
+    return json({ coupons: await listCoupons() });
+  });
+}
 
-export async function GET() { return handle(async () => { const unauthorized = await requireAdminSession(); if (unauthorized) return unauthorized; const sql = await getSql(); return json({ coupons: await sql.query("select c.*, count(cr.id)::int as redemption_count from coupons c left join coupon_redemptions cr on cr.coupon_id = c.id group by c.id order by c.created_at desc") }); }); }
-
-export async function POST(req: Request) { return handle(async () => { const unauthorized = await requireAdminSession(); if (unauthorized) return unauthorized; const body = await readJson(req); const code = text(body.code).toUpperCase(); const kind = text(body.kind); const value = Number(body.value); if (!code || !["percent", "amount"].includes(kind) || !Number.isFinite(value) || value <= 0) return json({ error: "Código, tipo e valor do cupom são obrigatórios." }, 400); if (kind === "percent" && value > 100) return json({ error: "Percentual não pode superar 100%." }, 400); const sql = await getSql(); const [coupon] = await sql.query("insert into coupons (code, kind, value, min_subtotal, max_uses, max_uses_per_user, starts_at, ends_at, is_active) values ($1, $2::discount_kind, $3, $4, $5, $6, $7::timestamptz, $8::timestamptz, coalesce($9::boolean, true)) returning *", [code, kind, value, Number(body.minSubtotal) || 0, body.maxUses ? Number(body.maxUses) : null, Number(body.maxUsesPerUser) || 1, nullableDate(body.startsAt), nullableDate(body.endsAt), body.isActive === undefined ? true : Boolean(body.isActive)]); return json({ coupon }, 201); }); }
+export async function POST(req: Request) {
+  return handle(async () => {
+    const unauthorized = await requireAdminSession();
+    if (unauthorized) return unauthorized;
+    const input = parseCouponInput(await readJson(req));
+    const id = await createCoupon(input);
+    return json({ id }, 201);
+  });
+}

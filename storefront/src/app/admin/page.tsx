@@ -1,17 +1,20 @@
 import Link from "next/link";
+import { ArrowUpRight, Box, CircleDollarSign, ShoppingBag, TriangleAlert, type LucideIcon } from "lucide-react";
 import { getDashboardKpis } from "@/lib/server/catalog";
+import { getFunnel, resolveRange } from "@/lib/server/analytics";
+import { FunnelPanel } from "@/components/admin/FunnelPanel";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function Kpi({ label, value, sub, icon: Icon, tone, href }: { label: string; value: string | number; sub?: string; icon: LucideIcon; tone?: "featured"; href: string }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-      <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">{label}</div>
-      <div className="mt-1 font-display text-3xl font-black text-white">{value}</div>
-      {sub && <div className="mt-1 text-xs text-zinc-500">{sub}</div>}
-    </div>
+    <Link href={href} className="gd-metric" data-tone={tone} aria-label={`${label}: ${value}. Abrir gestão`}>
+      <div className="gd-metric-head"><span>{label}</span><span className="gd-metric-icon" aria-hidden="true"><Icon /></span></div>
+      <strong className="gd-metric-value">{value}</strong>
+      {sub && <div className="gd-metric-caption">{sub}</div>}
+    </Link>
   );
 }
 
@@ -19,72 +22,67 @@ function Kpi({ label, value, sub }: { label: string; value: string | number; sub
 // durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
-  const kpis = await getDashboardKpis();
+const INTEGRATIONS: [string, string, "teal" | "ochre"][] = [
+  ["Supabase", "Conectado", "teal"],
+  ["Mercado Pago", "Configurado", "teal"],
+  ["SuperFrete / Melhor Envio", "Configurado", "teal"],
+  ["PGlite local", "Ativo (dev)", "teal"],
+];
+
+const QUICK = [
+  { href: "/admin/produtos", label: "Gerenciar produtos", hint: "Catálogo, preços e estoque" },
+  { href: "/admin/pedidos", label: "Ver pedidos", hint: "Pagamentos, envio e status" },
+  { href: "/", label: "Abrir loja pública", hint: "Como o cliente vê a loja" },
+];
+
+export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ periodo?: string; de?: string; ate?: string; dispositivo?: string; origem?: string }> }) {
+  const params = await searchParams;
+  const range = resolveRange(params);
+  const [kpis, funnel] = await Promise.all([getDashboardKpis(), getFunnel(range, { dispositivo: params.dispositivo, origem: params.origem })]);
+  const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl font-black text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-zinc-500">Visão geral da loja DinoBlack Games.</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label="Produtos publicados" value={kpis.publishedProducts} sub={`${kpis.totalProducts} total`} />
-        <Kpi label="Pedidos" value={kpis.totalOrders} sub={`${kpis.pendingOrders} aguardando pagamento`} />
-        <Kpi label="Receita" value={formatBRL(kpis.revenue)} sub={`${kpis.paidOrders} pedidos pagos`} />
-        <Kpi label="Alertas de estoque" value={kpis.inventoryAlerts} sub="Itens com estoque baixo" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-white">Ações rápidas</h2>
-          </div>
-          <div className="mt-4 grid gap-2">
-            <Link
-              href="/admin/produtos"
-              className="flex items-center justify-between rounded-xl bg-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-700"
-            >
-              <span>Gerenciar produtos</span>
-              <span className="text-zinc-500">→</span>
-            </Link>
-            <Link
-              href="/admin/pedidos"
-              className="flex items-center justify-between rounded-xl bg-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-700"
-            >
-              <span>Ver pedidos</span>
-              <span className="text-zinc-500">→</span>
-            </Link>
-            <Link
-              href="/"
-              className="flex items-center justify-between rounded-xl bg-zinc-800 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-700"
-            >
-              <span>Abrir loja pública</span>
-              <span className="text-zinc-500">→</span>
-            </Link>
-          </div>
+    <div style={{ display: "grid", gap: 14 }}>
+      <header className="gd-view-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p style={{ color: "var(--gd-muted)", fontSize: 13, margin: "8px 0 0" }}>Visão geral da loja DinoBlack Games.</p>
         </div>
+      </header>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="font-bold text-white">Status da integração</h2>
-          <div className="mt-4 space-y-3">
-            {[
-              ["Supabase", "Conectado", true],
-              ["Mercado Pago", "Configurado", true],
-              ["SuperFrete / Melhor Envio", "Configurado", true],
-              ["PGlite local", "Ativo (dev)", true],
-            ].map(([name, status, ok]) => (
-              <div key={name as string} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-300">{name as string}</span>
-                <span className={`flex items-center gap-1.5 font-semibold ${ok ? "text-emerald-400" : "text-amber-400"}`}>
-                  <span className={`h-2 w-2 rounded-full ${ok ? "bg-emerald-400" : "bg-amber-400"}`} />
-                  {status as string}
-                </span>
+      <div className="gd-metric-grid">
+        <Kpi label="Receita" value={formatBRL(kpis.revenue)} sub={`${kpis.paidOrders} pedidos pagos`} icon={CircleDollarSign} tone="featured" href="/admin/pedidos?status=paid" />
+        <Kpi label="Pedidos" value={kpis.totalOrders} sub={`${kpis.pendingOrders} aguardando pagamento`} icon={ShoppingBag} href="/admin/pedidos" />
+        <Kpi label="Produtos publicados" value={kpis.publishedProducts} sub={`${kpis.totalProducts} no total`} icon={Box} href="/admin/produtos?status=published" />
+        <Kpi label="Alertas de estoque" value={kpis.inventoryAlerts} sub="Itens com estoque baixo" icon={TriangleAlert} href="/admin/produtos?estoque=alerta" />
+      </div>
+
+      <FunnelPanel funnel={funnel} today={today} />
+
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+        <section className="gd-panel">
+          <header className="gd-panel-head"><div><h2>Ações rápidas</h2><p>Atalhos para o que você mais usa</p></div></header>
+          <div className="gd-quick-list">
+            {QUICK.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <div style={{ flex: 1 }}><strong>{item.label}</strong><small>{item.hint}</small></div>
+                <ArrowUpRight aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="gd-panel">
+          <header className="gd-panel-head"><div><h2>Status da integração</h2><p>Serviços conectados à loja</p></div></header>
+          <div style={{ display: "grid", gap: 10 }}>
+            {INTEGRATIONS.map(([name, status, tone]) => (
+              <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontWeight: 650 }}>{name}</span>
+                <span className="gd-status" data-state={tone}><i aria-hidden="true" />{status}</span>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

@@ -51,12 +51,15 @@ function loadSdk(): Promise<void> {
  * nosso servidor só recebe um token. O valor cobrado é decidido no servidor, não aqui.
  */
 export function PaymentBrick({
+  method,
   publicKey,
   amount,
   email,
   maxInstallments,
   onSubmit,
 }: {
+  /** Forma escolhida no checkout: mostra só ela (o desconto do pedido pode depender disso). */
+  method?: "pix" | "credit_card";
   publicKey: string;
   amount: number;
   email?: string;
@@ -82,7 +85,7 @@ export function PaymentBrick({
         controller = await mp.bricks().create("payment", "mp-payment-brick", {
           initialization: { amount, ...(email ? { payer: { email } } : {}) },
           customization: {
-            paymentMethods: { creditCard: "all", bankTransfer: ["pix"], maxInstallments },
+            paymentMethods: method === "pix" ? { bankTransfer: ["pix"] } : method === "credit_card" ? { creditCard: "all", maxInstallments } : { creditCard: "all", bankTransfer: ["pix"], maxInstallments },
             visual: { style: { theme: dark ? "dark" : "default" } },
           },
           callbacks: {
@@ -113,7 +116,7 @@ export function PaymentBrick({
         // o SDK já desmontou
       }
     };
-  }, [publicKey, amount, email, maxInstallments]);
+  }, [publicKey, amount, email, maxInstallments, method]);
 
   return (
     <div>

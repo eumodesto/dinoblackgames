@@ -33,6 +33,7 @@ export type CategoryCard = {
   name: string;
   image: string | null;
   href: string;
+  parentId: string | null;
 };
 
 export type HeroSlide = {
@@ -62,6 +63,8 @@ export type UnitReport = {
   tested: string[];
   warrantyDays: number;
 };
+
+export type VariantInfo = { options: Record<string, string>; price: number; compareAt: number | null; available: number };
 
 export type ProductDetail = {
   id: string;
@@ -93,6 +96,8 @@ export type ProductDetail = {
   faq: Faq[];
   unit: UnitReport | null;
   facets: Record<string, string[]>;
+  videoUrl: string | null;
+  variants: VariantInfo[];
 };
 
 // ---------------------------------------------------------------------------
@@ -151,16 +156,21 @@ function toListing(r: ListingRow): ProductListing {
 
 export async function getCategories(): Promise<CategoryCard[]> {
   const sql = await getSql();
-  const rows = await sql.query<{ id: string; slug: string; name: string; image_url: string | null }>(
-    "select id, slug, name, image_url from categories where is_active order by position",
+  const rows = await sql.query<{ id: string; slug: string; name: string; image_url: string | null; parent_id: string | null }>(
+    "select id, slug, name, image_url, parent_id from categories where is_active order by position, name",
   );
-  return rows.map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    name: r.name,
-    image: r.image_url,
-    href: `/loja?categoria=${r.slug}`,
-  }));
+  // Categoria cuja mãe está oculta no admin também some (a árvore inteira abaixo dela).
+  const active = new Set(rows.map((r) => r.id));
+  return rows
+    .filter((r) => !r.parent_id || active.has(r.parent_id))
+    .map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
+      image: r.image_url,
+      href: `/loja?categoria=${r.slug}`,
+      parentId: r.parent_id,
+    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +220,17 @@ export type ShopFilters = {
   collectionSlug?: string;
 };
 
+/** Categorias ocultas no admin (is_active = false): o nome não aparece em cartões nem na página do produto. */
+async function hiddenCategorySlugs(): Promise<Set<string>> {
+  const sql = await getSql();
+  const rows = await sql.query<{ slug: string }>("select slug from categories where not is_active");
+  return new Set(rows.map((r) => r.slug));
+}
+
+function maskHiddenCategory(items: ProductListing[], hidden: Set<string>): ProductListing[] {
+  return hidden.size === 0 ? items : items.map((item) => (hidden.has(item.categorySlug) ? { ...item, categoryName: "" } : item));
+}
+
 export async function getProductListings(filters: ShopFilters = {}): Promise<ProductListing[]> {
   const sql = await getSql();
   const conditions: string[] = [];
@@ -218,12 +239,12 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
 
   if (filters.q) {
     n++;
-    conditions.push(`(lower(name) like '%' || lower($${n}) || '%' or lower(category_name) like '%' || lower($${n}) || '%')`);
+    conditions.push(`(lower(name) like '%' || lower($${n}) || '%' or lower(category_name) like '%' || lower($${n}) || '%' or id in (select pt.product_id from product_tags pt join tags t on t.id = pt.tag_id where t.is_active and lower(t.name) like '%' || lower($${n}) || '%'))`);
     params.push(filters.q);
   }
   if (filters.categoria) {
     n++;
-    conditions.push(`category_slug = $${n}`);
+    conditions.push(`category_slug in (with recursive branch as (select id, slug from categories where slug = $${n} union all select c.id, c.slug from categories c join branch b on c.parent_id = b.id) select slug from branch)`);
     params.push(filters.categoria);
   }
   if (filters.condicao?.length) {
@@ -264,7 +285,8 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
     params.push(filters.collectionSlug);
   }
 
-  const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
+  conditions.push("visibility <> 'hidden'"); // produto oculto só abre pelo link direto
+  const where = `where ${conditions.join(" and ")}`;
 
   let orderBy: string;
   switch (filters.ordem) {
@@ -281,7 +303,7 @@ export async function getProductListings(filters: ShopFilters = {}): Promise<Pro
     `select * from v_product_listing ${where} order by ${orderBy} ${limit}`,
     params,
   );
-  return rows.map(toListing);
+  return maskHiddenCategory(rows.map(toListing), await hiddenCategorySlugs());
 }
 
 export async function getProductCount(): Promise<number> {
@@ -334,7 +356,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     badge: string | null; sold_count: number; rating: string | number | null;
     warranty_months: number; warranty_text: string | null;
     highlights: Highlight[]; specs: SpecGroup[]; in_box: string[]; faq: Faq[];
-    category_id: string;
+    category_id: string; video_url: string | null;
   }>(
     "select * from products where slug = $1 and status = 'published'",
     [slug],
@@ -342,7 +364,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   if (!product) return null;
 
   const [category] = await sql.query<{ slug: string; name: string }>(
-    "select slug, name from categories where id = $1",
+    "select slug, case when is_active then name else '' end as name from categories where id = $1",
     [product.category_id],
   );
 
@@ -362,6 +384,19 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   const facets = listing[0]?.facets ?? {};
 
   const options = await loadOptions(sql, product.id);
+  const variantRows = await sql.query<{ option_values: Record<string, string>; price: string | number; compare_at: string | number | null; avail: string | number }>(
+    `select v.option_values, effective_price(v.id) as price, greatest(coalesce(v.compare_at, v.price), v.price) as compare_at,
+       coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il where il.variant_id = v.id), 0)
+       + (select count(*) from inventory_units u where u.variant_id = v.id and u.status = 'disponivel')::int as avail
+     from product_variants v where v.product_id = $1 and v.is_active order by v.price`,
+    [product.id],
+  );
+  const variants: VariantInfo[] = variantRows.map((v) => ({
+    options: v.option_values ?? {},
+    price: Number(v.price),
+    compareAt: Number(v.compare_at) > Number(v.price) ? Number(v.compare_at) : null,
+    available: Number(v.avail),
+  }));
 
   const maxInstallments = await sql.query<{ m: number }>(
     "select coalesce(max(max_installments), 10) as m from product_variants where product_id = $1 and is_active",
@@ -420,6 +455,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     faq: product.faq ?? [],
     unit,
     facets,
+    videoUrl: product.video_url ?? null,
+    variants,
   };
 }
 
@@ -462,12 +499,12 @@ async function loadOptions(sql: Sql, productId: string): Promise<ProductOption[]
 export async function getRelatedProducts(productId: string, categorySlug: string, limit = 6): Promise<ProductListing[]> {
   const sql = await getSql();
   const rows = await sql.query<ListingRow>(
-    `(select * from v_product_listing where category_slug = $1 and id != $2 order by sold_count desc limit $3)
+    `(select * from v_product_listing where category_slug = $1 and id != $2 and visibility <> 'hidden' order by sold_count desc limit $3)
      union all
-     (select * from v_product_listing where category_slug != $1 and id != $2 order by sold_count desc limit $3)`,
+     (select * from v_product_listing where category_slug != $1 and id != $2 and visibility <> 'hidden' order by sold_count desc limit $3)`,
     [categorySlug, productId, limit],
   );
-  return rows.slice(0, limit).map(toListing);
+  return maskHiddenCategory(rows.slice(0, limit).map(toListing), await hiddenCategorySlugs());
 }
 
 // ---------------------------------------------------------------------------
@@ -477,7 +514,7 @@ export async function getRelatedProducts(productId: string, categorySlug: string
 export async function getAllProductSlugs(): Promise<string[]> {
   const sql = await getSql();
   const rows = await sql.query<{ slug: string }>(
-    "select slug from products where status = 'published' order by slug",
+    "select slug from products where status = 'published' and visibility <> 'hidden' order by slug",
   );
   return rows.map((r) => r.slug);
 }
@@ -782,23 +819,76 @@ export type AdminProduct = {
   available: number;
 };
 
-export async function getAdminProducts(): Promise<AdminProduct[]> {
+export const ADMIN_PAGE_SIZE = 25;
+
+export type AdminProductFilters = {
+  page?: number;
+  q?: string;
+  categoria?: string;
+  status?: string;
+  condicao?: string;
+  estoque?: string; // com | sem | baixo
+  visibilidade?: string;
+  precoMin?: string;
+  precoMax?: string;
+};
+
+const ONE_OF = (value: string | undefined, allowed: string[]) => (value && allowed.includes(value) ? value : "");
+const PRICE = (value: string | undefined) => { const n = Number(String(value ?? "").replace(",", ".")); return Number.isFinite(n) && n >= 0 && value !== "" ? String(n) : ""; };
+
+/** Uma página do catálogo no admin, com busca (nome, SKU, categoria) e filtros combináveis. */
+export async function getAdminProducts(opts: AdminProductFilters = {}): Promise<{ items: AdminProduct[]; total: number; page: number; pages: number }> {
   const sql = await getSql();
+  const q = (opts.q ?? "").trim().slice(0, 80);
+  const requested = Math.max(1, Math.trunc(opts.page ?? 1) || 1);
+  const params = [
+    q,
+    (opts.categoria ?? "").slice(0, 80),
+    ONE_OF(opts.status, ["draft", "scheduled", "published", "archived"]),
+    ONE_OF(opts.condicao, ["novo", "seminovo", "raridade", "pre_venda"]),
+    ONE_OF(opts.estoque, ["com", "sem", "baixo", "alerta"]),
+    ONE_OF(opts.visibilidade, ["visible", "hidden"]),
+    PRICE(opts.precoMin),
+    PRICE(opts.precoMax),
+  ];
+  const base = `with base as (
+      select p.id, p.slug, p.sku, p.name, p.condition::text as condition, p.status::text as status, p.visibility, p.updated_at,
+             c.name as cat_name, c.slug as cat_slug,
+             coalesce((select v.price from product_variants v where v.product_id = p.id and v.is_active order by v.price limit 1), 0) as price,
+             (select m.url from product_media m where m.product_id = p.id order by m.position limit 1) as image,
+             coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il join product_variants v on v.id = il.variant_id where v.product_id = p.id), 0)::int
+               + (select count(*) from inventory_units u where u.product_id = p.id and u.status = 'disponivel')::int as avail
+      from products p join categories c on c.id = p.category_id
+    ), filtered as (
+      select * from base
+      where ($1 = '' or name ilike '%' || $1 || '%' or sku ilike '%' || $1 || '%' or cat_name ilike '%' || $1 || '%')
+        and ($2 = '' or cat_slug in (with recursive branch as (select id, slug from categories where slug = $2 union all select c2.id, c2.slug from categories c2 join branch b on c2.parent_id = b.id) select slug from branch))
+        and ($3 = '' or status = $3)
+        and ($4 = '' or condition = $4)
+        and ($5 = '' or ($5 = 'com' and avail > 0) or ($5 = 'sem' and avail <= 0) or ($5 = 'baixo' and avail between 1 and 5) or ($5 = 'alerta' and exists (select 1 from v_inventory_alerts a join product_variants av on av.id = a.variant_id where av.product_id = base.id)))
+        and ($6 = '' or visibility = $6)
+        and price >= coalesce(nullif($7, '')::numeric, 0)
+        and price <= coalesce(nullif($8, '')::numeric, 1000000000)
+    )`;
   const rows = await sql.query<{
-    id: string; slug: string; sku: string; name: string; condition: string; status: string;
+    total: number; id: string; slug: string; sku: string; name: string; condition: string; status: string;
     cat_name: string; price: string | number; image: string | null; avail: number;
   }>(
-    `select p.id, p.slug, p.sku, p.name, p.condition::text, p.status::text,
-            c.name as cat_name,
-            coalesce((select v.price from product_variants v where v.product_id = p.id and v.is_active order by v.price limit 1), 0) as price,
-            (select m.url from product_media m where m.product_id = p.id order by m.position limit 1) as image,
-            coalesce((select sum(il.on_hand - il.reserved) from inventory_levels il join product_variants v on v.id = il.variant_id where v.product_id = p.id), 0)::int
-              + (select count(*) from inventory_units u where u.product_id = p.id and u.status = 'disponivel')::int as avail
-     from products p
-     join categories c on c.id = p.category_id
-     order by p.status = 'published' desc, p.updated_at desc`,
+    `${base}
+     select (select count(*) from filtered)::int as total, id, slug, sku, name, condition, status, cat_name, price, image, avail
+     from filtered
+     order by status = 'published' desc, updated_at desc, id
+     limit ${ADMIN_PAGE_SIZE} offset ${(requested - 1) * ADMIN_PAGE_SIZE}`,
+    params,
   );
-  return rows.map((r) => ({
+  let total = rows[0]?.total ?? 0;
+  if (rows.length === 0 && requested > 1) {
+    [{ n: total }] = await sql.query<{ n: number }>(`${base} select count(*)::int as n from filtered`, params);
+  }
+  const pages = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+  // página além do fim (ex.: link antigo ou filtro novo): volta para a última
+  if (rows.length === 0 && requested > pages) return getAdminProducts({ ...opts, page: pages });
+  const items = rows.map((r) => ({
     id: r.id,
     slug: r.slug,
     sku: r.sku,
@@ -810,4 +900,17 @@ export async function getAdminProducts(): Promise<AdminProduct[]> {
     image: r.image,
     available: r.avail,
   }));
+  return { items, total, page: requested, pages };
+}
+
+/** Categorias em ordem de árvore, com o caminho "Principal › Sub › Item" (para filtros e formulários do admin). */
+export async function getAdminCategoryOptions(): Promise<{ slug: string; label: string }[]> {
+  const sql = await getSql();
+  return sql.query<{ slug: string; label: string }>(
+    `with recursive t as (
+       select id, slug, name::text as label, lpad(position::text, 4, '0') || name as ord from categories where parent_id is null
+       union all
+       select c.id, c.slug, t.label || ' › ' || c.name, t.ord || '.' || lpad(c.position::text, 4, '0') || c.name from categories c join t on c.parent_id = t.id
+     ) select slug, label from t order by ord`,
+  );
 }

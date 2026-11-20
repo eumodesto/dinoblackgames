@@ -88,12 +88,14 @@ export function CartDrawer() {
             >
               <div className="flex gap-3">
                 <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-zinc-200">
-                  <Image
-                    src={line.product.image}
-                    alt={line.product.name}
-                    fill
-                    className="object-cover"
-                  />
+                  {line.product.image && (
+                    <Image
+                      src={line.product.image}
+                      alt={line.product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  )}
                   <button
                     type="button"
                     aria-label={`Remover ${line.product.name}`}
@@ -116,6 +118,11 @@ export function CartDrawer() {
                     {line.storage && (
                       <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">
                         {line.storage}
+                      </span>
+                    )}
+                    {line.condition && (
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        {line.condition}
                       </span>
                     )}
                   </div>

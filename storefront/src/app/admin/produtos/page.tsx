@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getAdminProducts } from "@/lib/server/catalog";
+import { ADMIN_PAGE_SIZE, getAdminCategoryOptions, getAdminProducts } from "@/lib/server/catalog";
+import { ProductsFilters, type ProductsFilterValues } from "@/components/admin/ProductsFilters";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -24,18 +26,37 @@ const CONDITION_LABEL: Record<string, string> = {
 // durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
 export const dynamic = "force-dynamic";
 
-export default async function AdminProductsPage() {
-  const products = await getAdminProducts();
+type PageProps = { searchParams: Promise<{ page?: string } & Partial<ProductsFilterValues>> };
+
+export default async function AdminProductsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const filters: ProductsFilterValues = {
+    q: (params.q ?? "").trim(), categoria: params.categoria ?? "", status: params.status ?? "", condicao: params.condicao ?? "",
+    estoque: params.estoque ?? "", visibilidade: params.visibilidade ?? "", precoMin: params.precoMin ?? "", precoMax: params.precoMax ?? "",
+  };
+  const [{ items: products, total, page, pages }, categories] = await Promise.all([
+    getAdminProducts({ page: Number(params.page) || 1, ...filters }),
+    getAdminCategoryOptions(),
+  ]);
+  const filtered = Object.values(filters).some(Boolean);
+  const href = (n: number) => {
+    const query = new URLSearchParams(Object.entries(filters).filter(([, v]) => v));
+    if (n > 1) query.set("page", String(n));
+    const text = query.toString();
+    return text ? `/admin/produtos?${text}` : "/admin/produtos";
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-black text-white">Produtos</h1>
-          <p className="mt-1 text-sm text-zinc-500">{products.length} produtos no catálogo</p>
+          <p className="mt-1 text-sm text-zinc-500">{filtered ? `${total} resultado${total === 1 ? "" : "s"} com os filtros aplicados` : `${total} produtos no catálogo`}</p>
         </div>
         <Link href="/admin/produtos/novo" className="rounded-xl bg-dino-red px-4 py-2.5 text-sm font-bold text-white transition hover:bg-dino-red-hover">Novo produto</Link>
       </div>
+
+      <ProductsFilters initial={filters} categories={categories} />
 
       <div className="overflow-hidden rounded-2xl border border-zinc-800">
         <table className="w-full text-left text-sm">
@@ -50,13 +71,15 @@ export default async function AdminProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800 bg-zinc-950">
+            {products.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-zinc-500">Nenhum produto encontrado.</td></tr>
+            )}
             {products.map((p) => {
               const badge = STATUS_BADGE[p.status] ?? STATUS_BADGE.draft;
               return (
                 <tr key={p.id} className="transition hover:bg-zinc-900/50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                    <Link href={`/produto/${p.slug}`} className="flex min-w-0 flex-1 items-center gap-3 hover:text-dino-red">
+                  <td className="p-0">
+                    <Link href={`/admin/produtos/${p.id}`} aria-label={`Editar ${p.name}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:text-dino-red">
                       {p.image ? (
                         <Image src={p.image} alt="" width={40} height={40} className="h-10 w-10 rounded-lg bg-zinc-900 object-cover" />
                       ) : (
@@ -67,8 +90,6 @@ export default async function AdminProductsPage() {
                         <div className="text-xs text-zinc-500">{CONDITION_LABEL[p.condition] ?? p.condition}</div>
                       </div>
                     </Link>
-                    <Link href={`/admin/produtos/${p.id}`} className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-400 hover:border-dino-red hover:text-white">Editar</Link>
-                    </div>
                   </td>
                   <td className="hidden px-4 py-3 font-mono text-xs text-zinc-500 md:table-cell">{p.sku}</td>
                   <td className="hidden px-4 py-3 text-zinc-400 sm:table-cell">{p.categoryName}</td>
@@ -89,6 +110,8 @@ export default async function AdminProductsPage() {
           </tbody>
         </table>
       </div>
+
+      <AdminPagination page={page} pages={pages} total={total} pageSize={ADMIN_PAGE_SIZE} href={href} />
     </div>
   );
 }

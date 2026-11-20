@@ -33,6 +33,16 @@ async function connectPostgres(url: string): Promise<Sql> {
   };
 }
 
+/**
+ * O exec_sql recebe os parâmetros em JSON e os insere como texto na consulta. Uma lista JS chegaria como
+ * '["a","b"]' (texto de JSON), que o Postgres não aceita como array; vira o literal do Postgres {"a","b"}.
+ */
+function toRestParam(value: unknown): unknown {
+  if (Array.isArray(value)) return `{${value.map((v) => (v === null ? "NULL" : `"${String(v).replace(/(["\\])/g, "\\$1")}"`)).join(",")}}`;
+  if (value instanceof Date) return value.toISOString();
+  return value;
+}
+
 async function connectViaRest(baseUrl: string, serviceKey: string): Promise<Sql> {
   const rpcUrl = `${baseUrl}/rest/v1/rpc/exec_sql`;
   const headers = {
@@ -51,7 +61,7 @@ async function connectViaRest(baseUrl: string, serviceKey: string): Promise<Sql>
       const res = await fetch(rpcUrl, {
         method: "POST",
         headers,
-        body: JSON.stringify({ sql_text: text, params }),
+        body: JSON.stringify({ sql_text: text, params: params.map(toRestParam) }),
       });
       if (!res.ok) {
         const body = await res.text();

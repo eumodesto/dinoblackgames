@@ -34,7 +34,7 @@ export function CategorySection({ categories }: Props) {
               Comprar por categoria
             </h2>
             <p className="hidden text-xs font-medium text-gray-400 dark:text-zinc-400 sm:block">
-              Consoles, PC Gamer, Retro e Notebooks selecionados pela DinoBlack
+              {categories.length > 0 ? `${categories.map((cat) => cat.name).join(", ")} selecionados pela DinoBlack` : "Produtos selecionados pela DinoBlack"}
             </p>
           </div>
         </div>

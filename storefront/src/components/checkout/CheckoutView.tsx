@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { track } from "@/lib/analytics-client";
 import { useCart } from "@/components/cart-provider";
 import {
   ORDER_PAY_WINDOW_MINUTES,
@@ -20,7 +21,10 @@ type Config = { ready: boolean; db: boolean; payments: boolean; mode: "simulated
 
 type Customer = { name: string; email: string; phone: string };
 type Address = { cep: string; street: string; number: string; complement: string; district: string; city: string; state: string; recipient: string };
-type Draft = { customer: Customer; address: Address; shippingId: string; couponInput: string; coupon: string; marketing: boolean };
+type PayMethod = "pix" | "credit_card";
+type Draft = { customer: Customer; address: Address; shippingId: string; couponInput: string; coupon: string; marketing: boolean; paymentMethod?: PayMethod };
+/** Cupom trazido por um link (/?cupom=CODIGO): guardado até o checkout aplicá-lo. */
+const COUPON_LINK_KEY = "dino-coupon-link";
 type PendingOrder = OrderCreated & { placedAt: number };
 
 const DRAFT_KEY = "dinoblack-checkout-draft";
@@ -108,6 +112,7 @@ export function CheckoutView() {
   const [shippingId, setShippingId] = useState("");
   const [couponInput, setCouponInput] = useState("");
   const [coupon, setCoupon] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("pix");
   const [terms, setTerms] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -143,6 +148,13 @@ export function CheckoutView() {
         setCouponInput(d.couponInput ?? "");
         setCoupon(d.coupon ?? "");
         setMarketing(Boolean(d.marketing));
+        if (d.paymentMethod === "credit_card" || d.paymentMethod === "pix") setPaymentMethod(d.paymentMethod);
+      }
+      // Cupom que chegou por link: entra sozinho se o cliente ainda não digitou outro.
+      const linked = localStorage.getItem(COUPON_LINK_KEY);
+      if (linked && !(raw && (JSON.parse(raw) as Draft).coupon)) {
+        setCouponInput(linked);
+        setCoupon(linked);
       }
       const pending = sessionStorage.getItem(ORDER_KEY);
       if (pending) {
@@ -161,16 +173,16 @@ export function CheckoutView() {
   useEffect(() => {
     if (!draftLoaded.current) return;
     try {
-      const draft: Draft = { customer, address, shippingId, couponInput, coupon, marketing };
+      const draft: Draft = { customer, address, shippingId, couponInput, coupon, marketing, paymentMethod };
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // ignora
     }
-  }, [customer, address, shippingId, couponInput, coupon, marketing]);
+  }, [customer, address, shippingId, couponInput, coupon, marketing, paymentMethod]);
 
   // ---- cotação no servidor (preço, estoque, frete e cupom vêm do banco)
   const cartItems = useMemo(
-    () => items.map((l) => ({ slug: l.product.slug, color: l.color, storage: l.storage, qty: l.qty })),
+    () => items.map((l) => ({ slug: l.product.slug, color: l.color, storage: l.storage, condition: l.condition, qty: l.qty })),
     [items],
   );
   const cepDigits = onlyDigits(address.cep);
@@ -186,7 +198,7 @@ export function CheckoutView() {
     const t = window.setTimeout(async () => {
       const r = await api<QuoteResponse>("/api/checkout/quote", {
         method: "POST",
-        body: JSON.stringify({ items: cartItems, cep: cepOk ? cepDigits : null, coupon: coupon || null, email: customer.email || null }),
+        body: JSON.stringify({ items: cartItems, cep: cepOk ? cepDigits : null, coupon: coupon || null, email: customer.email || null, paymentMethod }),
       });
       if (cancelled) return;
       setQuoteLoading(false);
@@ -201,7 +213,14 @@ export function CheckoutView() {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [cartReady, cartItems, cepOk, cepDigits, coupon, customer.email]);
+  }, [cartReady, cartItems, cepOk, cepDigits, coupon, customer.email, paymentMethod]);
+
+  // funil: frete calculado e cupom aplicado (uma vez cada por visita à página)
+  const funnelSent = useRef({ shipping: false, coupon: false });
+  useEffect(() => {
+    if (quote?.shipping.length && !funnelSent.current.shipping) { funnelSent.current.shipping = true; track("shipping_quoted"); }
+    if (quote?.coupon?.ok && !funnelSent.current.coupon) { funnelSent.current.coupon = true; track("coupon_applied"); }
+  }, [quote]);
 
   // escolhe a primeira entrega quando a lista muda
   useEffect(() => {
@@ -329,6 +348,7 @@ export function CheckoutView() {
         },
         shippingId,
         coupon: coupon || undefined,
+        paymentMethod,
         acceptTerms: terms,
         marketingOptIn: marketing,
       }),
@@ -341,6 +361,8 @@ export function CheckoutView() {
     const placed: PendingOrder = { ...r.data, placedAt: Date.now() };
     setNow(placed.placedAt);
     setOrder(placed);
+    track("payment_created", { value: placed.total });
+    try { localStorage.removeItem(COUPON_LINK_KEY); } catch { /* sem armazenamento */ }
     try {
       sessionStorage.setItem(ORDER_KEY, JSON.stringify(placed));
     } catch {
@@ -421,7 +443,7 @@ export function CheckoutView() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 text-sm font-bold text-gray-900 dark:text-white">{line.product.name}</p>
-                <p className="text-xs text-gray-500 dark:text-zinc-400">{[line.color, line.storage].filter(Boolean).join(" · ")}</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">{[line.color, line.storage, line.condition].filter(Boolean).join(" · ")}</p>
                 {bad && <p role="alert" className="mt-0.5 text-xs font-bold text-dino-red">{q.reason ?? "Indisponível"}</p>}
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   {locked ? (
@@ -461,14 +483,19 @@ export function CheckoutView() {
               Aplicar
             </button>
           </div>
-          {coupon && quote?.coupon && (
+          {quote?.coupon && (coupon || quote.coupon.ok) && (
             <p role="status" className={`mt-1.5 text-xs font-bold ${quote.coupon.ok ? "text-emerald-600 dark:text-emerald-400" : "text-dino-red"}`}>
-              {quote.coupon.ok ? `✓ ${quote.coupon.code}: ${quote.coupon.message}` : quote.coupon.message}
+              {quote.coupon.ok
+                ? quote.coupon.auto ? `✓ ${quote.coupon.title ?? "Desconto automático"}: aplicado automaticamente` : `✓ ${quote.coupon.code}: ${quote.coupon.message}`
+                : quote.coupon.message}
             </p>
+          )}
+          {quote?.coupon?.ok && quote.coupon.rejected && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">O código digitado não foi aplicado: {quote.coupon.rejected}</p>
           )}
         </form>
       )}
-      {locked && coupon && quote?.coupon?.ok && <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✓ Cupom {quote.coupon.code} aplicado</p>}
+      {locked && quote?.coupon?.ok && <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✓ {quote.coupon.auto ? (quote.coupon.title ?? "Desconto automático") : `Cupom ${quote.coupon.code}`} aplicado</p>}
 
       <dl className="space-y-2 border-t border-gray-100 pt-4 text-sm dark:border-zinc-800">
         <div className="flex justify-between"><dt className="text-gray-600 dark:text-zinc-400">Subtotal</dt><dd className="font-mono font-bold text-gray-900 dark:text-white">{brl(subtotal)}</dd></div>
@@ -626,6 +653,18 @@ export function CheckoutView() {
                     <span className="text-gray-700 dark:text-zinc-300">Quero receber ofertas e novidades por e-mail (opcional, você pode sair quando quiser).</span>
                   </label>
                 </div>
+                <fieldset className="space-y-2">
+                  <legend className="mb-1 text-sm font-bold text-gray-900 dark:text-white">Forma de pagamento</legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {([{ id: "pix", label: "Pix", hint: "Aprovação na hora" }, { id: "credit_card", label: "Cartão de crédito", hint: `Em até ${cfg?.maxInstallments ?? 10}x` }] as const).map((option) => (
+                      <label key={option.id} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-sm transition ${paymentMethod === option.id ? "border-dino-red bg-dino-red/5" : "border-gray-200 hover:border-gray-300 dark:border-zinc-800"}`}>
+                        <input type="radio" name="payment-method" value={option.id} checked={paymentMethod === option.id} onChange={() => setPaymentMethod(option.id)} className="mt-1" />
+                        <span><span className="block font-bold text-gray-900 dark:text-white">{option.label}</span><span className="block text-xs text-gray-500 dark:text-zinc-400">{option.hint}</span></span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">Alguns cupons valem só para uma forma de pagamento. O pagamento é feito na etapa seguinte.</p>
+                </fieldset>
                 {formError && <p role="alert" className="rounded-xl border border-dino-red/40 bg-dino-red/10 p-3 text-sm font-semibold text-dino-red">{formError}</p>}
                 {payError && <p role="alert" className="rounded-xl border border-dino-red/40 bg-dino-red/10 p-3 text-sm font-semibold text-dino-red">{payError}</p>}
                 <button
@@ -646,7 +685,7 @@ export function CheckoutView() {
                 </div>
                 {payError && <p role="alert" className="rounded-xl border border-dino-red/40 bg-dino-red/10 p-3 text-sm font-semibold text-dino-red">{payError}</p>}
                 {cfg?.publicKey ? (
-                  <PaymentBrick publicKey={cfg.publicKey} amount={order?.total ?? total} email={customer.email} maxInstallments={cfg.maxInstallments} onSubmit={pay} />
+                  <PaymentBrick method={paymentMethod} publicKey={cfg.publicKey} amount={order?.total ?? total} email={customer.email} maxInstallments={cfg.maxInstallments} onSubmit={pay} />
                 ) : (
                   <p role="alert" className="rounded-xl border border-amber-400/50 bg-amber-400/10 p-3 text-sm font-semibold text-amber-800 dark:text-amber-300">Pagamento indisponível: chave pública do Mercado Pago não configurada.</p>
                 )}

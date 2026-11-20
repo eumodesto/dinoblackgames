@@ -1,5 +1,6 @@
 import { getOrders } from "@/lib/server/catalog";
 import Link from "next/link";
+import { OrdersFilters } from "@/components/admin/OrdersFilters";
 
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -19,6 +20,15 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "Cancelado", cls: "bg-red-500/10 text-red-400 border-red-500/30" },
   returned: { label: "Devolvido", cls: "bg-zinc-500/10 text-zinc-400 border-zinc-500/30" },
 };
+
+const PAYMENT_OPTIONS = [
+  { value: "", label: "Todos os pagamentos" },
+  { value: "pending", label: "Pendente" },
+  { value: "authorized", label: "Autorizado" },
+  { value: "paid", label: "Pago" },
+  { value: "failed", label: "Falhou" },
+  { value: "refunded", label: "Reembolsado" },
+];
 
 // Lê o catálogo do banco em tempo de execução. Sem isto o Next tenta pré-renderizar a página
 // durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
@@ -40,14 +50,6 @@ function pageUrl(params: SearchParams, page: number) {
   return `/admin/pedidos?${next.toString()}`;
 }
 
-function exportUrl(params: SearchParams) {
-  const next = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (key !== "page" && typeof value === "string" && value) next.set(key, value);
-  }
-  const query = next.toString();
-  return `/api/admin/orders/export${query ? `?${query}` : ""}`;
-}
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -72,25 +74,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
         <p className="mt-1 text-sm text-zinc-500">Página {page} · {orders.length} pedidos carregados</p>
       </div>
 
-      <form className="grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 md:grid-cols-2 xl:grid-cols-6" method="get">
-        <input name="q" defaultValue={valueOf(params, "q")} placeholder="Pedido, cliente, e-mail ou SKU" className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-dino-red xl:col-span-2" />
-        <select name="status" defaultValue={valueOf(params, "status")} className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white">
-          <option value="">Todos os status</option>
-          {Object.entries(STATUS_BADGE).map(([key, badge]) => <option key={key} value={key}>{badge.label}</option>)}
-        </select>
-        <select name="payment" defaultValue={valueOf(params, "payment")} className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white">
-          <option value="">Todos os pagamentos</option>
-          <option value="pending">Pendente</option><option value="authorized">Autorizado</option><option value="paid">Pago</option><option value="failed">Falhou</option><option value="refunded">Reembolsado</option>
-        </select>
-        <input name="carrier" defaultValue={valueOf(params, "carrier")} placeholder="Transportadora" className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-dino-red" />
-        <div className="flex gap-2 xl:col-span-2">
-          <input type="date" name="from" defaultValue={valueOf(params, "from")} className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white" />
-          <input type="date" name="to" defaultValue={valueOf(params, "to")} className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white" />
-        </div>
-        <button className="rounded-xl bg-dino-red px-4 py-2 text-sm font-bold text-white hover:bg-red-700 xl:col-span-1" type="submit">Filtrar</button>
-        <Link href="/admin/pedidos" className="rounded-xl border border-zinc-700 px-4 py-2 text-center text-sm font-bold text-zinc-300 hover:border-zinc-500 hover:text-white">Limpar</Link>
-        <a href={exportUrl(params)} className="rounded-xl border border-emerald-700/60 px-4 py-2 text-center text-sm font-bold text-emerald-300 hover:border-emerald-500 hover:text-emerald-200">Exportar CSV</a>
-      </form>
+      <OrdersFilters
+        initial={{ q: valueOf(params, "q"), status: valueOf(params, "status"), payment: valueOf(params, "payment"), carrier: valueOf(params, "carrier"), from: valueOf(params, "from"), to: valueOf(params, "to") }}
+        statusOptions={[{ value: "", label: "Todos os status" }, ...Object.entries(STATUS_BADGE).map(([value, badge]) => ({ value, label: badge.label }))]}
+        paymentOptions={PAYMENT_OPTIONS}
+      />
 
       {orders.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-700 p-12 text-center">

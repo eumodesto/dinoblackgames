@@ -225,18 +225,27 @@ export async function getShop(state: ShopState) {
 
   const allItems = allUnfiltered;
 
-  const categoryTabs = [
-    { label: "Todas", slug: undefined as string | undefined, count: allItems.length },
-    ...categories.map((c) => ({
-      label: c.name,
-      slug: c.slug,
-      count: allItems.filter((p) => p.categorySlug === c.slug).length,
-    })),
-  ].map((tab) => ({
+  // Abas: categorias principais; dentro de uma ramificação, aparecem também as subcategorias dela.
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const rootOf = (c: (typeof categories)[number]) => { let cur = c; while (cur.parentId && byId.get(cur.parentId)) cur = byId.get(cur.parentId)!; return cur; };
+  const descendantSlugs = (id: string): string[] => categories.filter((c) => c.parentId === id).flatMap((c) => [c.slug, ...descendantSlugs(c.id)]);
+  const activeCategory = categories.find((c) => c.slug === state.categoria);
+  const branchRoot = activeCategory ? rootOf(activeCategory) : null;
+  const shownCategories = [
+    ...categories.filter((c) => !c.parentId),
+    ...(branchRoot ? categories.filter((c) => c.parentId === branchRoot.id) : []),
+  ];
+  const toTab = (c: (typeof categories)[number]) => {
+    const slugs = new Set([c.slug, ...descendantSlugs(c.id)]);
+    return { label: c.name, slug: c.slug as string | undefined, count: allItems.filter((p) => slugs.has(p.categorySlug)).length };
+  };
+  const withHref = (tab: { label: string; slug: string | undefined; count: number }) => ({
     ...tab,
     href: toQuery({ ...state, categoria: tab.slug }),
     active: state.categoria === tab.slug,
-  }));
+  });
+  const categoryTabs = [{ label: "Todas", slug: undefined as string | undefined, count: allItems.length }, ...shownCategories.map(toTab)].map(withHref);
+  const chipTabs = [{ label: "Todas", slug: undefined as string | undefined, count: allItems.length }, ...categories.map(toTab)].map(withHref);
 
   const promoCount = allItems.filter((p) => p.discount != null && p.discount > 0).length;
 
@@ -244,7 +253,7 @@ export async function getShop(state: ShopState) {
     items: shopItems,
     total: items.length,
     facets: buildFacets(state, items, allItems, facetValues),
-    chips: buildChips(state, categoryTabs, facetValues),
+    chips: buildChips(state, chipTabs, facetValues),
     promo: {
       count: promoCount,
       selected: state.promocao,
