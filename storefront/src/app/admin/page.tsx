@@ -57,13 +57,6 @@ function Kpi({ kpi }: { kpi: KpiData }) {
 // durante `next build`, quando não há banco (a Vercel não tem DATABASE_URL no build).
 export const dynamic = "force-dynamic";
 
-const INTEGRATIONS: [string, string, "teal" | "ochre"][] = [
-  ["Supabase", "Conectado", "teal"],
-  ["Mercado Pago", "Configurado", "teal"],
-  ["SuperFrete / Melhor Envio", "Configurado", "teal"],
-  ["PGlite local", "Ativo (dev)", "teal"],
-];
-
 const QUICK = [
   { href: "/admin/produtos", label: "Gerenciar produtos", hint: "Catálogo, preços e estoque" },
   { href: "/admin/pedidos", label: "Ver pedidos", hint: "Pagamentos, envio e status" },
@@ -116,22 +109,36 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       <FunnelPanel funnel={funnel} today={today} />
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
-        <section className="gd-panel">
-          <header className="gd-panel-head"><div><h2>Saúde do estoque</h2><p>Produtos publicados</p></div></header>
-          <div style={{ display: "grid", gap: 10 }}>
-            <Link href="/admin/produtos?status=published" style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontWeight: 650 }}>Visíveis na loja</span><strong>{nf.format(stock.visibleProducts)}</strong>
-            </Link>
-            <Link href="/admin/produtos?estoque=alerta" style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontWeight: 650 }}>Visíveis sem estoque</span>
-              <strong style={{ color: stock.visibleOutOfStock > 0 ? "var(--gd-coral)" : undefined }}>{nf.format(stock.visibleOutOfStock)}</strong>
-            </Link>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }} title="Produtos publicados com visibilidade oculta; quase todos estão sem estoque">
-              <span style={{ fontWeight: 650 }}>Ocultos da loja</span><strong>{nf.format(stock.hiddenProducts)}</strong>
+        <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
+          <section className="gd-panel">
+            <header className="gd-panel-head"><div><h2>Saúde do estoque</h2><p>Produtos publicados</p></div></header>
+            <div style={{ display: "grid", gap: 10 }}>
+              <Link href="/admin/produtos?status=published" style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontWeight: 650 }}>Visíveis na loja</span><strong>{nf.format(stock.visibleProducts)}</strong>
+              </Link>
+              <Link href="/admin/produtos?estoque=alerta" style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontWeight: 650 }}>Visíveis sem estoque</span>
+                <strong style={{ color: stock.visibleOutOfStock > 0 ? "var(--gd-coral)" : undefined }}>{nf.format(stock.visibleOutOfStock)}</strong>
+              </Link>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }} title="Produtos publicados com visibilidade oculta; quase todos estão sem estoque">
+                <span style={{ fontWeight: 650 }}>Ocultos da loja</span><strong>{nf.format(stock.hiddenProducts)}</strong>
+              </div>
+              <small style={{ color: "var(--gd-muted)" }}>{nf.format(stock.hiddenOutOfStock)} dos ocultos estão sem estoque. “Sem estoque” é saldo disponível zerado, não nível mínimo.</small>
             </div>
-            <small style={{ color: "var(--gd-muted)" }}>{nf.format(stock.hiddenOutOfStock)} dos ocultos estão sem estoque. “Sem estoque” é saldo disponível zerado, não nível mínimo.</small>
-          </div>
-        </section>
+          </section>
+
+          <section className="gd-panel">
+            <header className="gd-panel-head"><div><h2>Ações rápidas</h2><p>Atalhos para o que você mais usa</p></div></header>
+            <div className="gd-quick-list">
+              {QUICK.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <div style={{ flex: 1 }}><strong>{item.label}</strong><small>{item.hint}</small></div>
+                  <ArrowUpRight aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>
 
         <section className="gd-panel">
           <header className="gd-panel-head"><div><h2>Visitados e não vendidos</h2><p>{insights.range.label} · revise preço, foto ou descrição</p></div></header>
@@ -147,30 +154,6 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           ) : (
             <p style={{ margin: 0, color: "var(--gd-muted)", fontSize: 13 }}>Nenhum produto visitado sem venda neste período.</p>
           )}
-        </section>
-
-        <section className="gd-panel">
-          <header className="gd-panel-head"><div><h2>Ações rápidas</h2><p>Atalhos para o que você mais usa</p></div></header>
-          <div className="gd-quick-list">
-            {QUICK.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <div style={{ flex: 1 }}><strong>{item.label}</strong><small>{item.hint}</small></div>
-                <ArrowUpRight aria-hidden="true" />
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="gd-panel">
-          <header className="gd-panel-head"><div><h2>Status da integração</h2><p>Serviços conectados à loja</p></div></header>
-          <div style={{ display: "grid", gap: 10 }}>
-            {INTEGRATIONS.map(([name, status, tone]) => (
-              <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontWeight: 650 }}>{name}</span>
-                <span className="gd-status" data-state={tone}><i aria-hidden="true" />{status}</span>
-              </div>
-            ))}
-          </div>
         </section>
       </div>
     </div>
