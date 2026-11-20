@@ -44,6 +44,7 @@ export function AdminProductForm({ productId }: { productId?: string }) {
   const [loading, setLoading] = useState(Boolean(productId));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [message, setMessage] = useState("");
   const [type, setType] = useState("console");
   const [highlights, setHighlights] = useState<HighlightsState>(emptyHighlights);
@@ -92,6 +93,7 @@ export function AdminProductForm({ productId }: { productId?: string }) {
   // ---- imagens
   async function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
+    setDragging(false);
     setUploading(true); setMessage("");
     const body = new FormData();
     body.set("name", form.name ?? "");
@@ -165,22 +167,30 @@ export function AdminProductForm({ productId }: { productId?: string }) {
 
     <div className={card}>
       <div><h2 className="font-bold text-white">Imagens</h2><p className="mt-1 text-xs text-zinc-500">A primeira é a capa. As imagens são reduzidas e convertidas para WebP automaticamente, com nome otimizado para buscas.</p></div>
-      {media.length > 0 && <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {media.map((m, i) => <li key={`${m.url}-${i}`} className="rounded-xl border border-zinc-800 bg-zinc-950 p-2">
+      {media.length > 0 && <ul className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+        {media.map((m, i) => <li key={`${m.url}-${i}`} className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-950 p-2">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-zinc-900">
             {/* eslint-disable-next-line @next/next/no-img-element -- pré-visualização no admin */}
             <img src={m.url} alt={m.alt} className="h-full w-full object-contain" />
             {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-dino-red px-2 py-0.5 text-[10px] font-black text-white">CAPA</span>}
           </div>
           <input aria-label={`Texto alternativo da imagem ${i + 1}`} className={`${cell} mt-2 text-xs`} value={m.alt} placeholder="Texto alternativo" onChange={(e) => setMedia((c) => c.map((x, j) => (j === i ? { ...x, alt: e.target.value } : x)))} />
-          <div className="mt-2 flex items-center justify-between gap-1">
-            <button type="button" className={ghost} disabled={i === 0} onClick={() => move(i, i - 1)} aria-label="Mover para antes">◀</button>
-            <button type="button" className={ghost} disabled={i === 0} onClick={() => move(i, 0)}>Capa</button>
-            <button type="button" className={ghost} disabled={i === media.length - 1} onClick={() => move(i, i + 1)} aria-label="Mover para depois">▶</button>
-            <button type="button" className={`${ghost} hover:!border-red-500 hover:!text-red-400`} onClick={() => setMedia((c) => c.filter((_, j) => j !== i))} aria-label="Remover imagem">✕</button>
+          <div className="mt-2 grid grid-cols-[1fr_1.6fr_1fr_1fr] gap-1">
+            <button type="button" className={`${ghost} !px-0`} disabled={i === 0} onClick={() => move(i, i - 1)} aria-label="Mover para antes">◀</button>
+            <button type="button" className={`${ghost} !px-1`} disabled={i === 0} onClick={() => move(i, 0)}>Capa</button>
+            <button type="button" className={`${ghost} !px-0`} disabled={i === media.length - 1} onClick={() => move(i, i + 1)} aria-label="Mover para depois">▶</button>
+            <button type="button" className={`${ghost} !px-0 hover:!border-red-500 hover:!text-red-400`} onClick={() => setMedia((c) => c.filter((_, j) => j !== i))} aria-label="Remover imagem">✕</button>
           </div>
         </li>)}
       </ul>}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); upload(e.dataTransfer.files); }}
+        className={`grid place-items-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center text-sm transition ${dragging ? "border-dino-red bg-dino-red/10 text-white" : "border-zinc-700 text-zinc-400"}`}
+      >
+        <span>{uploading ? "Enviando..." : "Arraste as imagens aqui ou use o botão abaixo (JPG, PNG, WebP · até 4 MB cada)"}</span>
+      </div>
       <div className="flex flex-wrap items-end gap-3">
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => upload(e.target.files)} />
         <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()} className="h-11 rounded-xl bg-dino-red px-5 text-sm font-bold text-white disabled:opacity-50">{uploading ? "Enviando..." : "Enviar imagens"}</button>
