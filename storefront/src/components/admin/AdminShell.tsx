@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -110,10 +111,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="gd-app" data-theme={theme}>
       <div className="gd-surround">
         <header className="gd-top">
-          <div className="gd-brand">
-            <span className="gd-logo" aria-hidden="true">D</span>
-            <div><strong>DINOBLACK</strong><small>Painel administrativo</small></div>
-          </div>
+          <Link href="/admin" className="gd-brand" aria-label="DinoBlack Games — painel administrativo">
+            <Image src="/brand/logo.png" alt="" width={92} height={46} priority className="gd-logo-img" />
+            <div className="gd-brand-text"><strong>Painel</strong><small>Administrativo</small></div>
+          </Link>
           <button type="button" className="gd-ask" aria-label="Buscar seção do admin" onClick={() => setSearch(true)}>
             <span className="gd-orb" aria-hidden="true" />
             <span className="gd-prompt">{current ? `${current.label} · ir para…` : "Ir para uma seção…"}</span>
